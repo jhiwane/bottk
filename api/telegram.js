@@ -305,66 +305,54 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // B. UPLOAD VISUAL (HERO/PROFIL) - SUPPORT LINK & FOTO
+        // B. UPLOAD VISUAL (HERO/PROFIL - LOGIKA RESET DIPERBAIKI)
         if (userState.step === 'upload_visual') {
-            let finalUrl = null;
-            const waitMsg = await bot.sendMessage(chatId, "⏳ Memproses...");
-
+            // Cek ada foto atau tidak
             if (update.message.photo) {
                 const activeCloud = await cloudCol.findOne({ active: true });
-                if(!activeCloud) { 
-                    await bot.deleteMessage(chatId, waitMsg.message_id);
-                    await bot.sendMessage(chatId, "⚠️ Set Cloudinary dulu."); return res.send('ok'); 
-                }
+                if (!activeCloud) { await bot.sendMessage(chatId, "⚠️ Set Cloudinary dulu."); return res.send('ok'); }
+                
                 const fileId = update.message.photo[update.message.photo.length - 1].file_id;
                 const fileLink = await bot.getFileLink(fileId);
-                finalUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
-            } else if (text && text.startsWith('http')) {
-                finalUrl = text;
-            }
-
-            await bot.deleteMessage(chatId, waitMsg.message_id);
-
-            if (finalUrl) {
-                if (userState.mode === 'set_mascot') {
-                    await configCol.updateOne({_id:'main'}, {$set: {mascotUrl: finalUrl}}, {upsert:true});
-                    await bot.sendMessage(chatId, "✅ Mascot ganti!", mainMenu);
-                    await stateCol.deleteOne({_id:chatId});
-                }
-                else if (userState.mode.includes('reset')) {
-                    // RESET = TIMPA ($set)
-                    const field = userState.mode.includes('hero') ? 'heroImages' : 'profileImages';
-                    await configCol.updateOne({_id:'main'}, {$set: {[field]: [finalUrl]}}, {upsert:true});
+                const url = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
+                
+                if (url) {
+                    // LOGIKA MASCOT
+                    if (userState.mode === 'set_mascot') {
+                        await configCol.updateOne({_id:'main'}, {$set: {mascotUrl: url}}, {upsert:true});
+                        await bot.sendMessage(chatId, "✅ Mascot berhasil diganti!", mainMenu);
+                        await stateCol.deleteOne({_id:chatId});
+                        return res.send('ok');
+                    }
                     
-                    const nextMode = userState.mode.includes('hero') ? 'add_hero' : 'add_profile';
-                    await stateCol.updateOne({_id:chatId}, {$set: {mode: nextMode}});
-                    await bot.sendMessage(chatId, `✅ Reset Sukses! Data lama terhapus.\nLink: \`${finalUrl}\`\nKirim lagi untuk menambah.`, {parse_mode:'Markdown', ...cancelMenu});
-                }
-                else {
-                    // ADD = TAMBAH ($push)
+                    // Tentukan Field Target (Hero atau Profil)
                     const field = userState.mode.includes('hero') ? 'heroImages' : 'profileImages';
-                    await configCol.updateOne({_id:'main'}, {$push: {[field]: finalUrl}}, {upsert:true});
-                    await bot.sendMessage(chatId, `✅ Ditambahkan.\nLink: \`${finalUrl}\``, {parse_mode:'Markdown', ...cancelMenu});
+
+                    // LOGIKA RESET (GANTI TOTAL)
+                    if (userState.mode.includes('reset')) {
+                        // 1. Hapus array lama, ganti dengan array baru berisi 1 foto ini
+                        await configCol.updateOne({_id:'main'}, { $set: { [field]: [url] } }, { upsert:true });
+                        
+                        // 2. Ubah mode user jadi 'add' (supaya foto berikutnya MENAMBAH, bukan mereset lagi)
+                        const nextMode = userState.mode.includes('hero') ? 'add_hero' : 'add_profile';
+                        await stateCol.updateOne({_id:chatId}, { $set: { mode: nextMode } }); 
+                        
+                        await bot.sendMessage(chatId, "✅ **RESET SUKSES!**\nFoto lama dihapus. Foto ini jadi slide pertama.\n\nKirim foto lagi untuk menambah slide berikutnya.", cancelMenu);
+                    }
+                    // LOGIKA ADD (TAMBAH)
+                    else {
+                        // Push ke array yang sudah ada
+                        await configCol.updateOne({_id:'main'}, { $push: { [field]: url } }, { upsert:true });
+                        await bot.sendMessage(chatId, "✅ Foto ditambahkan ke urutan belakang.", cancelMenu);
+                    }
                 }
-            } else if (!text.includes('Selesai')) {
-                await bot.sendMessage(chatId, "❌ Input tidak valid (Kirim Foto atau Link).");
+            } 
+            else if (text && text.toLowerCase().includes('selesai')) {
+                await stateCol.deleteOne({_id:chatId});
+                await bot.sendMessage(chatId, "✅ Pengaturan Tampilan Selesai.", mainMenu);
             }
             return res.send('ok');
         }
-
-        // C. INFO TEKS
-        if (userState.step === 'info_title') {
-            await stateCol.updateOne({ _id: chatId }, { $set: { step: 'info_content', temp: text } });
-            await bot.sendMessage(chatId, "Kirim **Isi Info**:", cancelMenu);
-            return res.send('ok');
-        }
-        if (userState.step === 'info_content') {
-            await configCol.updateOne({_id:'main'}, {$set: {infoTitle: userState.temp, infoContent: text}}, {upsert:true});
-            await stateCol.deleteOne({_id:chatId});
-            await bot.sendMessage(chatId, "✅ Info Update!", mainMenu);
-            return res.send('ok');
-        }
-
         // D. WIZARD VIDEO
         if (text === '🎥 Tambah Video') {
             await stateCol.updateOne({ _id: chatId }, { $set: { step: 'vid_title', draft: {} } }, { upsert: true });
