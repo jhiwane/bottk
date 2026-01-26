@@ -46,54 +46,29 @@
     </script>
 
     <style>
-        /* --- UTILITIES --- */
         body { overflow-x: hidden; width: 100%; }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
-        
-        /* --- SLIDE & ANIMATION --- */
         .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
         .slide.active { opacity: 1; z-index: 0; }
         .profile-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 10; object-fit: contain; background-color: #ffffff; border-radius: 2rem; }
         .profile-slide.active { opacity: 1 !important; z-index: 20; }
-        
-        /* --- MODAL / FULL PAGE TRANSITIONS --- */
-        .full-page-view {
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-in-out;
-            transform: translateY(100%); opacity: 0; visibility: hidden;
-            position: fixed; inset: 0; z-index: 200; background-color: white; overflow-y: auto;
-        }
+        .full-page-view { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 200; background-color: white; overflow-y: auto; }
         .full-page-view.active { transform: translateY(0); opacity: 1; visibility: visible; }
-
-        /* --- MEDIA VIEWER OVERLAY (BLACK SCREEN) --- */
-        .media-viewer-overlay {
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-in-out;
-            transform: scale(0.95); opacity: 0; visibility: hidden;
-            position: fixed; inset: 0; z-index: 300; background-color: #000; overflow-y: auto;
-        }
+        .media-viewer-overlay { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-in-out; transform: scale(0.95); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 300; background-color: #000; overflow-y: auto; }
         .media-viewer-overlay.active { transform: scale(1); opacity: 1; visibility: visible; }
-
-        /* Modal Info */
         .modal { transition: opacity 0.3s, visibility 0.3s; }
         .modal.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .modal.visible { opacity: 1; visibility: visible; pointer-events: auto; }
-
-        /* Floating Mascot */
         #floating-mascot { position: fixed; z-index: 90; width: 50px; cursor: pointer; transition: transform 3s ease-in-out; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)); }
         #floating-mascot:hover { transform: scale(1.1) !important; }
-
-        /* News Slideshow */
         .news-slide-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; }
         .news-slide-wrapper.active { opacity: 1; }
         .drop-cap::first-letter { float: left; font-size: 3.5rem; line-height: 0.8; font-weight: bold; color: #0EA5E9; margin-right: 0.75rem; margin-top: 0.25rem; }
-
-        /* --- SMART VIDEO SLIDER LOGIC --- */
         .slider-wrapper .nav-btn { transition: all 0.3s ease; backdrop-filter: blur(4px); opacity: 1; transform: translateY(-50%) scale(1); }
         .slider-wrapper.video-playing .nav-btn { opacity: 0 !important; pointer-events: none !important; transform: translateY(-50%) scale(0.8); }
         .slider-wrapper.video-playing:hover .nav-btn { opacity: 1 !important; pointer-events: auto !important; transform: translateY(-50%) scale(1); }
-
-        /* --- LINK NYAMBUNG DI TEKS (INLINE STYLE) --- */
         a.inline-link { display: inline; color: #0EA5E9; font-weight: 800; text-decoration: none; cursor: pointer; transition: color 0.2s; }
         a.inline-link:hover { color: #F59E0B; text-decoration: underline; }
         a.inline-link.video-link { color: #DC2626; }
@@ -234,16 +209,7 @@
             <button onclick="scrollSection('gallery-slider', -1)" class="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-left"></i></button>
             <button onclick="scrollSection('gallery-slider', 1)" class="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-right"></i></button>
             <div id="gallery-slider" class="flex overflow-x-auto gap-0 hide-scroll snap-x snap-mandatory scroll-smooth h-[500px]">
-                <div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(0)">
-                    <div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('https://files.catbox.moe/3tf995.png');"></div>
-                    <img src="https://files.catbox.moe/3tf995.png" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20">
-                        <span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Kegiatan</span>
-                        <h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">Pekan Kreativitas: Susi & Rendi</h3>
-                        <p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca selengkapnya</p>
-                    </div>
                 </div>
-            </div>
         </div>
     </section>
 
@@ -286,32 +252,10 @@
         <div class="max-w-5xl mx-auto text-center"><h2 class="font-display text-3xl font-bold text-gray-800 mb-6">Lokasi Sekolah</h2><div class="w-full h-96 rounded-3xl overflow-hidden shadow-lg border-2 border-gray-100 relative group"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" class="w-full h-full border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div></div>
     </section>
 
-    <footer class="bg-dark text-white pt-16 pb-8 px-6 mb-16 md:mb-0 overflow-hidden">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div class="col-span-1 md:col-span-2"><div class="flex items-center gap-3 mb-6"><img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk h-16 w-auto object-contain drop-shadow-md"><span class="font-display font-bold text-2xl">TK BAITURROHMAN</span></div><p class="text-gray-400 mb-6 max-w-sm">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Tautan Cepat</h4><ul class="space-y-3 text-gray-400"><li><a href="#beranda" class="hover:text-white">Beranda</a></li><li><a href="#profil" class="hover:text-white">Tentang Kami</a></li><li><a href="#galeri" class="hover:text-white">Galeri Foto</a></li><li><a href="#daftar" class="hover:text-white">Info PPDB</a></li></ul></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Hubungi Kami</h4><ul class="space-y-3 text-gray-400"><li class="flex items-center gap-3"><i class="fa-brands fa-whatsapp"></i><span>0812-1186-2924</span></li><li class="flex items-center gap-3"><i class="fa-solid fa-envelope"></i><span>dapodiktkbaiturrohman@gmail.com</span></li></ul></div>
-        </div>
-        <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm"><p>© 2026 TK Baiturrohman. All Rights Reserved.</p></div>
-    </footer>
-
-    <a href="https://wa.me/6281211862924" target="_blank" class="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.5)] flex items-center justify-center transition-transform hover:scale-110 animate-pulse-slow"><i class="fa-brands fa-whatsapp text-3xl"></i></a>
-
     <script>
-        // --- DATA DEFAULT ---
-        let daftarVideo = [
-            { url: "https://youtube.com/watch?v=qOea_D1euFs", judul: "Video Dokumentasi", deskripsi: "Kegiatan utama TK Baiturrohman." },
-            { url: "https://youtu.be/L_jWHffIx5E", judul: "Video Kegiatan Outdoor", deskripsi: "Anak-anak bermain di luar ruangan." }
-        ];
-        let newsData = [
-            {
-                title: "Pekan Kreativitas: Susi & Rendi",
-                date: "20 Mei 2024",
-                content: `<p>Pekan kreativitas kali ini sangat meriah. Anak-anak dibagi menjadi beberapa kelompok untuk menunjukkan bakat terbaik mereka.</p><p class="mt-4">Salah satu yang menonjol adalah ananda Susi. Ia menunjukkan bakat luar biasa dalam melukis pemandangan alam. Anda bisa melihat <a onclick="openMediaViewer(0, 'karya_susi')" class="inline-link">[hasil karya lukisannya di sini]</a> yang warnanya sangat cerah dan berani.</p>`,
-                images: ["https://files.catbox.moe/3tf995.png"],
-                gallery: []
-            }
-        ];
+        // DATA DEFAULT
+        let daftarVideo = [{ url: "https://youtube.com/watch?v=qOea_D1euFs", judul: "Video Dokumentasi", deskripsi: "Kegiatan utama TK Baiturrohman." }];
+        let newsData = [{ title: "Pekan Kreativitas", date: "20 Mei 2024", content: `<p>Contoh Berita.</p>`, images: ["https://files.catbox.moe/3tf995.png"], gallery: [] }];
         let track, mainSlider, players = [];
 
         async function loadContent() {
@@ -337,9 +281,8 @@
                     }
                 }
                 if(data.videos && data.videos.length > 0) { daftarVideo = data.videos; renderVideoSlider(); }
-                if(data.news && data.news.length > 0) { newsData = data.news; }
-                console.log("Data Loaded");
-            } catch (e) { console.log("Default Data used"); renderVideoSlider(); }
+                if(data.news && data.news.length > 0) { newsData = data.news; renderNewsSlider(); }
+            } catch (e) { renderVideoSlider(); renderNewsSlider(); }
         }
 
         function renderVideoSlider() {
@@ -349,7 +292,7 @@
             daftarVideo.forEach((item, index) => {
                 const videoId = getYouTubeVideoId(item.url);
                 if (videoId) {
-                    const slideHTML = `
+                    track.innerHTML += `
                         <div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all">
                             <div class="relative w-full aspect-video bg-black">
                                 <div id="player-${index}" class="absolute top-0 left-0 w-full h-full" data-videoid="${videoId}"></div>
@@ -359,11 +302,29 @@
                                 <p class="text-gray-500 text-sm">${item.deskripsi}</p>
                             </div>
                         </div>`;
-                    track.innerHTML += slideHTML;
                 }
             });
             if (window.YT && window.YT.Player) onYouTubeIframeAPIReady();
             else { var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(tag, s); }
+        }
+
+        function renderNewsSlider() {
+            const slider = document.getElementById('gallery-slider');
+            if(!slider) return;
+            slider.innerHTML = '';
+            newsData.forEach((item, index) => {
+                let img = item.images && item.images.length > 0 ? item.images[0] : "https://files.catbox.moe/3tf995.png";
+                slider.innerHTML += `
+                <div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${index})">
+                    <div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div>
+                    <img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105">
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20">
+                        <span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span>
+                        <h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${item.title}</h3>
+                        <p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p>
+                    </div>
+                </div>`;
+            });
         }
 
         function getYouTubeVideoId(url) { const m = url.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/); return (m && m[1].length == 11) ? m[1] : null; }
@@ -390,16 +351,15 @@
             track.scrollBy({ left: arah * w, behavior: 'smooth' });
         }
 
-        // NAVIGATION & UI
         const mobileBtn = document.getElementById('mobile-btn'), mobileMenu = document.getElementById('mobile-menu'), navbar = document.getElementById('navbar');
         mobileBtn.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); mobileMenu.classList.toggle('flex'); });
         window.addEventListener('scroll', () => { if (window.scrollY > 50) { navbar.classList.add('py-2'); navbar.classList.remove('py-4'); } else { navbar.classList.add('py-4'); navbar.classList.remove('py-2'); } });
 
         const slides = document.querySelectorAll('.slide'); let currentSlide = 0;
-        setInterval(() => { slides[currentSlide].classList.remove('active'); currentSlide = (currentSlide + 1) % slides.length; slides[currentSlide].classList.add('active'); }, 6000);
+        setInterval(() => { if(slides.length > 0) { slides[currentSlide].classList.remove('active'); currentSlide = (currentSlide + 1) % slides.length; slides[currentSlide].classList.add('active'); } }, 6000);
         
         const profileSlides = document.querySelectorAll('.profile-slide'); let currentProfileSlide = 0;
-        if(profileSlides.length > 0) setInterval(() => { profileSlides[currentProfileSlide].classList.remove('active'); currentProfileSlide = (currentProfileSlide + 1) % profileSlides.length; profileSlides[currentProfileSlide].classList.add('active'); }, 4000);
+        if(profileSlides.length > 0) setInterval(() => { if(profileSlides.length > 0) { profileSlides[currentProfileSlide].classList.remove('active'); currentProfileSlide = (currentProfileSlide + 1) % profileSlides.length; profileSlides[currentProfileSlide].classList.add('active'); } }, 4000);
 
         const observer = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) { e.target.classList.remove('opacity-0', 'translate-y-10'); e.target.classList.add('opacity-100', 'translate-y-0'); observer.unobserve(e.target); } }); }, { threshold: 0.1 });
         document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
@@ -488,7 +448,7 @@
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        document.addEventListener('DOMContentLoaded', () => { loadContent(); renderVideoSlider(); });
+        document.addEventListener('DOMContentLoaded', () => { loadContent(); renderVideoSlider(); renderNewsSlider(); });
     </script>
 </body>
 </html>
