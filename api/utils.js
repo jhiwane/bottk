@@ -15,23 +15,22 @@ async function removeBackground(imageUrl, apiKey) {
         const response = await axios.post('https://api.remove.bg/v1.0/removebg', formData, {
             headers: { 'X-Api-Key': apiKey, ...formData.getHeaders() },
             responseType: 'arraybuffer',
-            timeout: 9000 // Batas waktu 9 detik agar tidak hang
+            timeout: 15000 // Naikkan ke 15 detik untuk aman
         });
         
         return Buffer.from(response.data, 'binary').toString('base64');
     } catch (error) {
-        // Cek error detail dari Remove.bg
         const msg = error.response ? error.response.data.toString() : error.message;
         console.error("❌ RemoveBG Gagal:", msg);
         return null;
     }
 }
 
-// Fungsi Upload ke Cloudinary (Versi Anti-Hang)
+// Fungsi Upload ke Cloudinary (VERSI FIX: TANPA TRANSFORMATION)
 async function uploadToCloudinary(fileSource, cloudName, uploadPreset, isBase64 = false) {
-    // 1. Validasi Akun Dulu
+    // 1. Validasi Akun
     if (!cloudName || !uploadPreset) {
-        console.error("❌ Cloudinary Error: Nama Cloud atau Preset belum diisi di Database.");
+        console.error("❌ Cloudinary Error: Nama Cloud atau Preset belum diisi.");
         return null;
     }
 
@@ -42,40 +41,35 @@ async function uploadToCloudinary(fileSource, cloudName, uploadPreset, isBase64 
         } else {
             formData.append('file', fileSource);
         }
-        formData.append('upload_preset', uploadPreset);
         
-        // Optimasi Gambar: Resize ke lebar 1000px, Kualitas Auto (Biar enteng & cepat upload)
-        formData.append("transformation", "w_1000,q_auto,f_auto,c_limit"); 
+        // PENTING: Preset harus BENAR-BENAR ada di dashboard Cloudinary
+        formData.append('upload_preset', uploadPreset); 
+
+        // ❌ SAYA HAPUS BAGIAN INI KARENA DITOLAK CLOUDINARY UNSIGNED:
+        // formData.append("transformation", "w_1000,q_auto,f_auto,c_limit"); 
 
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
         
-        console.log(`⏳ Memulai upload ke akun: ${cloudName}...`);
+        console.log(`⏳ Uploading ke: ${cloudName} dengan preset: ${uploadPreset}...`);
 
         const res = await axios.post(url, formData, { 
             headers: formData.getHeaders ? formData.getHeaders() : {},
-            timeout: 9000 // PENTING: Batas waktu 9 detik. Jika internet lambat, dia akan error (bukan hang).
+            timeout: 20000 // 20 Detik (Internet lambat aman)
         });
         
-        console.log("✅ Upload Sukses:", res.data.secure_url);
+        console.log("✅ Sukses:", res.data.secure_url);
         return res.data.secure_url;
 
     } catch (error) {
-        // 2. Tangkap Error Spesifik Cloudinary
-        let errorMsg = "Unknown Error";
-        
+        // Log Error Lengkap
         if (error.response) {
-            // Error dari Cloudinary (Misal: Limit habis, Preset salah)
-            console.error("❌ Cloudinary Menolak:", JSON.stringify(error.response.data));
-            errorMsg = error.response.data.error.message; 
+            // Ini pesan error ASLI dari Cloudinary (Penting dibaca di Logs Vercel)
+            console.error("❌ CLOUDINARY REJECT:", JSON.stringify(error.response.data));
         } else if (error.code === 'ECONNABORTED') {
-            // Error Timeout (Internet lambat / File terlalu besar)
-            console.error("❌ Upload Timeout (Lebih dari 9 detik)");
-            errorMsg = "Koneksi Timeout (Gambar terlalu besar/Internet lambat)";
+            console.error("❌ TIMEOUT: Koneksi terlalu lambat.");
         } else {
-            console.error("❌ Error Jaringan:", error.message);
-            errorMsg = error.message;
+            console.error("❌ ERROR LAIN:", error.message);
         }
-        
         return null;
     }
 }
