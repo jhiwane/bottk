@@ -8,14 +8,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Nunito','sans-serif'],display:['Fredoka','sans-serif']},colors:{primary:'#0EA5E9',secondary:'#F59E0B',accent:'#10B981',dark:'#1E293B'},animation:{'float':'float 6s ease-in-out infinite','kenburns':'kenburns 20s ease-out infinite alternate','fade-in-down':'fadeInDown 1s ease-out forwards'},keyframes:{float:{'0%, 100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-20px)'}},kenburns:{'0%':{transform:'scale(1) translate(0, 0)'},'100%':{transform:'scale(1.15) translate(-2%, -2%)'}},fadeInDown:{'0%':{opacity:'0',transform:'translateY(-20px)'},'100%':{opacity:'1',transform:'translateY(0)'}}}}}}</script>
+    <script>
+        tailwind.config={theme:{extend:{fontFamily:{sans:['Nunito','sans-serif'],display:['Fredoka','sans-serif']},colors:{primary:'#0EA5E9',secondary:'#F59E0B',accent:'#10B981',dark:'#1E293B'},
+        animation:{
+            'float':'float 4s ease-in-out infinite', 
+            'kenburns':'kenburns 20s ease-out infinite alternate',
+            'fade-in-down':'fadeInDown 1s ease-out forwards'
+        },
+        keyframes:{
+            float:{'0%, 100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-15px)'}},
+            kenburns:{'0%':{transform:'scale(1) translate(0, 0)'},'100%':{transform:'scale(1.15) translate(-2%, -2%)'}},
+            fadeInDown:{'0%':{opacity:'0',transform:'translateY(-20px)'},'100%':{opacity:'1',transform:'translateY(0)'}}
+        }}}}
+    </script>
     <style>
-        body{overflow-x:hidden;width:100%}.hide-scroll::-webkit-scrollbar{display:none}.hide-scroll{-ms-overflow-style:none;scrollbar-width:none}input:focus,textarea:focus,select:focus{outline:none;border-color:#0EA5E9;box-shadow:0 0 0 3px rgba(14,165,233,0.2)}.slide{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out;z-index:-1}.slide.active{opacity:1;z-index:0}.profile-slide{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out;z-index:10;object-fit:contain;background-color:#ffffff;border-radius:2rem}.profile-slide.active{opacity:1!important;z-index:20}.full-page-view{transition:transform 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s ease-in-out;transform:translateY(100%);opacity:0;visibility:hidden;position:fixed;inset:0;z-index:200;background-color:white;overflow-y:auto}.full-page-view.active{transform:translateY(0);opacity:1;visibility:visible}.media-viewer-overlay{transition:transform 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s ease-in-out;transform:scale(0.95);opacity:0;visibility:hidden;position:fixed;inset:0;z-index:300;background-color:#000;overflow-y:auto}.media-viewer-overlay.active{transform:scale(1);opacity:1;visibility:visible}.modal{transition:opacity 0.3s,visibility 0.3s}.modal.hidden{opacity:0;visibility:hidden;pointer-events:none}.modal.visible{opacity:1;visibility:visible;pointer-events:auto}#floating-mascot{position:fixed;z-index:90;width:50px;cursor:pointer;transition:transform 3s ease-in-out;filter:drop-shadow(0 5px 5px rgba(0,0,0,0.2))}#floating-mascot:hover{transform:scale(1.1)!important}.news-slide-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out}.news-slide-wrapper.active{opacity:1}.drop-cap::first-letter{float:left;font-size:3.5rem;line-height:0.8;font-weight:bold;color:#0EA5E9;margin-right:0.75rem;margin-top:0.25rem}.slider-wrapper .nav-btn{transition:all 0.3s ease;backdrop-filter:blur(4px);opacity:1;transform:translateY(-50%) scale(1)}.slider-wrapper.video-playing .nav-btn{opacity:0!important;pointer-events:none!important;transform:translateY(-50%) scale(0.8)}.slider-wrapper.video-playing:hover .nav-btn{opacity:1!important;pointer-events:auto!important;transform:translateY(-50%) scale(1)}a.inline-link{display:inline;color:#0EA5E9;font-weight:800;text-decoration:none;cursor:pointer;transition:color 0.2s}a.inline-link:hover{color:#F59E0B;text-decoration:underline}a.inline-link.video-link{color:#DC2626}
+        body{overflow-x:hidden;width:100%}.hide-scroll::-webkit-scrollbar{display:none}.hide-scroll{-ms-overflow-style:none;scrollbar-width:none}
+        input:focus,textarea:focus,select:focus{outline:none;border-color:#0EA5E9;box-shadow:0 0 0 3px rgba(14,165,233,0.2)}
+        .slide{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out;z-index:-1}.slide.active{opacity:1;z-index:0}
+        .profile-slide{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out;z-index:10;object-fit:contain;background-color:#ffffff;border-radius:2rem}.profile-slide.active{opacity:1!important;z-index:20}
+        .full-page-view{transition:transform 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s ease-in-out;transform:translateY(100%);opacity:0;visibility:hidden;position:fixed;inset:0;z-index:200;background-color:white;overflow-y:auto}.full-page-view.active{transform:translateY(0);opacity:1;visibility:visible}
+        .media-viewer-overlay{transition:transform 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s ease-in-out;transform:scale(0.95);opacity:0;visibility:hidden;position:fixed;inset:0;z-index:300;background-color:#000;overflow-y:auto}.media-viewer-overlay.active{transform:scale(1);opacity:1;visibility:visible}
+        .modal{transition:opacity 0.3s,visibility 0.3s}.modal.hidden{opacity:0;visibility:hidden;pointer-events:none}.modal.visible{opacity:1;visibility:visible;pointer-events:auto}
+        #floating-mascot{position:fixed;z-index:90;width:50px;cursor:pointer;transition:transform 3s ease-in-out;filter:drop-shadow(0 5px 5px rgba(0,0,0,0.2))}
+        #floating-mascot:hover{transform:scale(1.1)!important}
+        .news-slide-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease-in-out}.news-slide-wrapper.active{opacity:1}
+        .drop-cap::first-letter{float:left;font-size:3.5rem;line-height:0.8;font-weight:bold;color:#0EA5E9;margin-right:0.75rem;margin-top:0.25rem}
+        .slider-wrapper .nav-btn{transition:all 0.3s ease;backdrop-filter:blur(4px);opacity:1;transform:translateY(-50%) scale(1)}
+        .slider-wrapper.video-playing .nav-btn{opacity:0!important;pointer-events:none!important;transform:translateY(-50%) scale(0.8)}
+        .slider-wrapper.video-playing:hover .nav-btn{opacity:1!important;pointer-events:auto!important;transform:translateY(-50%) scale(1)}
+        a.inline-link{display:inline;color:#0EA5E9;font-weight:800;text-decoration:none;cursor:pointer;transition:color 0.2s}
+        a.inline-link:hover{color:#F59E0B;text-decoration:underline}
+        a.inline-link.video-link{color:#DC2626}
     </style>
 </head>
 <body class="font-sans text-gray-700 antialiased overflow-x-hidden bg-gray-50">
 
-    <img id="floating-mascot" src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NmpzNWR2andkemZsZ2VndXVmOW5tdnJjdHZkcWQ4MmR6bGY2bGsyZiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/O0DmL0WTkudXLfsUil/giphy.gif" alt="Info TK" onclick="openInfoModal()">
+    <img id="floating-mascot" src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NmpzNWR2andkemZsZ2VndXVmOW5tdnJjdHZkcWQ4MmR6bGY2bGsyZiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/O0DmL0WTkudXLfsUil/giphy.gif" class="animate-float" alt="Info TK" onclick="openInfoModal()">
 
     <div id="infoModal" class="modal hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeInfoModal()"></div>
@@ -89,9 +117,9 @@
     <header id="beranda" class="relative w-full min-h-[100dvh] overflow-hidden flex items-center justify-center text-center">
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-white z-10"></div>
         <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900">
-            <div class="slide active"><img src="https://files.catbox.moe/3tf995.png" class="w-full h-full object-cover animate-kenburns"></div>
+    
         </div>
-        <div class="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-20 pb-32">
+        <div class="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-32 pb-32">
             <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000 delay-200">
                 <span class="inline-block py-1 px-4 rounded-full bg-white/20 backdrop-blur-md border border-white/40 text-white font-semibold text-xs md:text-sm mb-4 animate-bounce">✨ Pendaftaran Siswa Baru Telah Dibuka</span>
                 <h1 class="font-display text-4xl md:text-7xl font-bold text-white mb-6 drop-shadow-lg leading-tight">Bermain, Belajar & <br><span class="text-secondary">Bertumbuh Bersama</span></h1>
