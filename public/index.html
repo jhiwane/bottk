@@ -20,11 +20,13 @@
                     animation: {
                         'float': 'float 3s ease-in-out infinite',
                         'kenburns': 'kenburns 20s ease-out infinite alternate',
+                        'fade-in-down': 'fadeInDown 1s ease-out forwards',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
-                        kenburns: { '0%': { transform: 'scale(1) translate(0, 0)' }, '100%': { transform: 'scale(1.15) translate(-2%, -2%)' } }
+                        kenburns: { '0%': { transform: 'scale(1)' }, '100%': { transform: 'scale(1.15)' } },
+                        fadeInDown: { '0%': { opacity: '0', transform: 'translateY(-20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
                     }
                 }
             }
@@ -32,68 +34,77 @@
     </script>
 
     <style>
-        /* UTILITIES */
         body { overflow-x: hidden; width: 100%; }
         .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
+        .slide { position: absolute; inset: 0; opacity: 0; transition: 1.5s; z-index: -1; } .slide.active { opacity: 1; z-index: 0; }
+        .profile-slide { position: absolute; inset: 0; opacity: 0; transition: 1.5s; z-index: 10; object-fit: contain; background: transparent; filter: drop-shadow(0 20px 13px rgba(0,0,0,0.15)); } .profile-slide.active { opacity: 1 !important; z-index: 20; }
         
-        /* SLIDESHOW */
-        .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
-        .slide.active { opacity: 1; z-index: 0; }
-        
-        /* PROFIL (KEMBALI KE KOTAK PUTIH POLOS) */
-        .profile-slide { 
-            position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; 
-            background-color: #ffffff; /* Putih Polos */
-            border-radius: 2rem; /* Sudut Membulat */
-        }
-        .profile-slide.active { opacity: 1 !important; z-index: 20; }
-        
-        /* MODALS */
+        /* Modals & Overlays */
         .full-page-view { transition: 0.3s; transform: translateY(100%); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 200; background: white; overflow-y: auto; }
         .full-page-view.active { transform: translateY(0); opacity: 1; visibility: visible; }
-        .media-viewer-overlay { transition: 0.3s; transform: scale(0.95); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 300; background: black; overflow-y: auto; }
+        .media-viewer-overlay { transition: 0.3s; transform: scale(0.95); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 300; background: black; }
         .media-viewer-overlay.active { transform: scale(1); opacity: 1; visibility: visible; }
-        .modal { transition: 0.3s; } .modal.hidden { opacity: 0; pointer-events: none; } .modal.visible { opacity: 1; pointer-events: auto; }
         
-        /* MASCOT & WA */
-        #floating-mascot { transition: transform 0.3s; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2)); }
-        #floating-mascot:hover { transform: scale(1.1); }
-        
-        /* YOUTUBE FACADE (ANTI BOT & FIX RATIO) */
-        .yt-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; overflow: hidden; }
-        .yt-lite { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        /* Youtube Lite */
+        .yt-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; }
+        .yt-lite { position: absolute; inset: 0; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .yt-lite img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: 0.3s; }
         .yt-lite:hover img { opacity: 1; }
+        .play-btn { width: 68px; height: 48px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/><path d="M45 24 27 14v20" fill="white"/></svg>') no-repeat; z-index: 10; position: absolute; }
         
-        .play-btn { position: absolute; width: 68px; height: 48px; z-index: 10; background-color: transparent; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/><path d="M45 24 27 14v20" fill="white"/></svg>'); background-repeat: no-repeat; transition: transform 0.2s; }
-        .yt-lite:hover .play-btn { transform: scale(1.1); }
-        .yt-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        
-        /* HEADER & LINK */
-        .news-slide-wrapper { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; }
-        .news-slide-wrapper.active { opacity: 1; }
+        /* Menu Overlay (NEW) */
+        .menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; justify-content: center; align-items: flex-end; }
+        .menu-overlay.active { display: flex; animation: slideUp 0.3s; }
+        .menu-panel { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* Others */
+        .news-slide-wrapper { position: absolute; inset: 0; opacity: 0; transition: 1.5s; } .news-slide-wrapper.active { opacity: 1; }
         .drop-cap::first-letter { float: left; font-size: 3.5rem; line-height: 0.8; font-weight: bold; color: #0EA5E9; margin-right: 0.75rem; margin-top: 0.25rem; }
         a.inline-link { color: #0EA5E9; font-weight: 800; cursor: pointer; } a.inline-link:hover { color: #F59E0B; text-decoration: underline; }
-        
-        /* VIDEO NAV BUTTONS */
-        .slider-wrapper .nav-btn { transition: 0.3s; opacity: 1; }
-        .slider-wrapper.video-playing .nav-btn { opacity: 0 !important; pointer-events: none; }
-        .slider-wrapper.video-playing:hover .nav-btn { opacity: 1 !important; pointer-events: auto; }
     </style>
 </head>
-<body class="font-sans text-gray-700 antialiased overflow-x-hidden bg-gray-50">
+<body class="font-sans text-gray-700 bg-gray-50">
 
-    <a href="https://wa.me/6281211862924" target="_blank" class="fixed bottom-6 right-6 z-[9999] bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 animate-pulse-slow">
-        <i class="fa-brands fa-whatsapp text-3xl"></i>
-    </a>
+    <a href="https://wa.me/6281211862924" target="_blank" class="fixed bottom-6 right-6 z-[99] bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition hover:scale-110 animate-pulse-slow"><i class="fa-brands fa-whatsapp text-3xl"></i></a>
+    <div class="fixed bottom-24 right-6 z-[99] w-14 flex justify-center animate-float cursor-pointer" onclick="openInfoModal()"><img id="floating-mascot" src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NmpzNWR2andkemZsZ2VndXVmOW5tdnJjdHZkcWQ4MmR6bGY2bGsyZiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/O0DmL0WTkudXLfsUil/giphy.gif" class="w-full h-auto"></div>
+    
+    <button onclick="toggleMenu()" class="fixed bottom-6 left-6 z-[99] bg-primary hover:bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition hover:scale-110"><i class="fa-solid fa-bars text-2xl"></i></button>
 
-    <div class="fixed bottom-24 right-6 z-[9999] w-14 flex justify-center animate-float">
-        <img id="floating-mascot" src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NmpzNWR2andkemZsZ2VndXVmOW5tdnJjdHZkcWQ4MmR6bGY2bGsyZiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/O0DmL0WTkudXLfsUil/giphy.gif" 
-             class="w-full h-auto cursor-pointer" 
-             alt="Info TK" 
-             onclick="openInfoModal()">
+    <div id="mainMenu" class="menu-overlay" onclick="if(event.target===this) toggleMenu()">
+        <div class="menu-panel">
+            <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-xl">Menu Utama</h3><button onclick="toggleMenu()" class="text-gray-500"><i class="fa-solid fa-xmark text-2xl"></i></button></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div onclick="openListModal('news')" class="bg-blue-50 p-4 rounded-xl flex flex-col items-center cursor-pointer hover:bg-blue-100"><i class="fa-solid fa-newspaper text-3xl text-primary mb-2"></i><span class="font-bold text-sm">Berita & Galeri</span></div>
+                <div onclick="openListModal('video')" class="bg-red-50 p-4 rounded-xl flex flex-col items-center cursor-pointer hover:bg-red-100"><i class="fa-brands fa-youtube text-3xl text-red-500 mb-2"></i><span class="font-bold text-sm">Video Youtube</span></div>
+                <div onclick="openToolsModal()" class="bg-purple-50 p-4 rounded-xl flex flex-col items-center cursor-pointer hover:bg-purple-100 col-span-2"><i class="fa-solid fa-rocket text-3xl text-purple-500 mb-2"></i><span class="font-bold text-sm">Tools / Aplikasi Web</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="listModal" class="full-page-view z-[1001]">
+        <div class="sticky top-0 bg-white p-4 shadow flex items-center gap-4 z-10">
+            <button onclick="closeListModal()"><i class="fa-solid fa-arrow-left text-xl"></i></button>
+            <input type="text" id="searchInput" placeholder="Cari judul..." class="flex-1 bg-gray-100 p-2 rounded-lg outline-none" onkeyup="filterList()">
+        </div>
+        <div id="listContainer" class="p-4 space-y-4 pb-20"></div>
+        <div class="fixed bottom-0 w-full bg-white p-4 border-t flex justify-between z-20">
+            <button onclick="prevPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
+            <span id="pageInfo" class="font-bold">1/1</span>
+            <button onclick="nextPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Next</button>
+        </div>
+    </div>
+
+    <div id="toolsModal" class="full-page-view z-[1001]">
+        <div class="sticky top-0 bg-white p-4 shadow flex items-center gap-4 z-10"><button onclick="closeToolsModal()"><i class="fa-solid fa-arrow-left text-xl"></i></button><h3 class="font-bold">Tools & Aplikasi</h3></div>
+        <div id="toolsContainer" class="p-4 grid grid-cols-2 gap-4"></div>
+    </div>
+
+    <div id="iframeView" class="full-page-view z-[2000]">
+        <div class="h-full flex flex-col">
+            <div class="bg-black text-white p-2 flex justify-between items-center"><span id="iframeTitle" class="font-bold ml-2">App</span><button onclick="closeIframe()" class="bg-red-600 px-3 py-1 rounded">Tutup</button></div>
+            <iframe id="mainIframe" class="flex-1 w-full bg-white border-0" src=""></iframe>
+        </div>
     </div>
 
     <div id="infoModal" class="modal hidden fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -101,23 +112,17 @@
         <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 transform transition-all scale-100 border-4 border-secondary overflow-hidden animate-fade-in-down">
             <div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary to-blue-600 rounded-b-[50%] -translate-y-12"></div>
             <div class="relative z-10 text-center pt-6">
-                <div class="w-20 h-20 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-4 border-4 border-yellow-400">
-                    <i class="fa-solid fa-bullhorn text-3xl text-primary animate-pulse"></i>
-                </div>
+                <div class="w-20 h-20 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-4 border-4 border-yellow-400"><i class="fa-solid fa-bullhorn text-3xl text-primary animate-pulse"></i></div>
                 <h3 id="info-title" class="font-display text-2xl font-bold text-gray-800 mb-2">Info Terbaru</h3>
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 text-left">
-                    <p id="info-content" class="text-sm text-gray-600">Memuat info...</p>
-                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 text-left"><p id="info-content" class="text-sm text-gray-600">Loading...</p></div>
                 <button onclick="closeInfoModal()" class="bg-secondary hover:bg-yellow-500 text-white font-bold py-3 px-8 rounded-full shadow-lg">Tutup</button>
             </div>
         </div>
     </div>
 
     <div id="newsFullPage" class="full-page-view">
-        <div class="sticky top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-[201] px-4 py-3 flex items-center gap-4 border-b border-gray-100">
-            <button onclick="goBack()" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors group">
-                <i class="fa-solid fa-arrow-left text-lg group-hover:-translate-x-1 transition-transform"></i>
-            </button>
+        <div class="sticky top-0 bg-white/95 backdrop-blur-md shadow-sm z-[201] px-4 py-3 flex items-center gap-4 border-b">
+            <button onclick="goBack()" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200"><i class="fa-solid fa-arrow-left"></i></button>
             <h3 class="font-bold text-lg text-gray-800 truncate">Detail Kegiatan</h3>
         </div>
         <div class="max-w-5xl mx-auto bg-white min-h-screen pb-24">
@@ -126,350 +131,260 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white z-30 pointer-events-none">
                     <div class="max-w-3xl mx-auto">
-                        <span id="news-date" class="bg-secondary/90 backdrop-blur text-white px-4 py-1.5 rounded-full text-xs font-bold mb-4 inline-block tracking-widest uppercase shadow-lg">...</span>
-                        <h2 id="news-title" class="font-display text-3xl md:text-5xl font-bold leading-tight drop-shadow-lg mb-2">...</h2>
+                        <span id="news-date" class="bg-secondary/90 backdrop-blur text-white px-4 py-1.5 rounded-full text-xs font-bold mb-4 inline-block">...</span>
+                        <h2 id="news-title" class="font-display text-3xl md:text-5xl font-bold drop-shadow-lg">...</h2>
                     </div>
                 </div>
             </div>
-            <div class="px-6 md:px-10 max-w-3xl mx-auto relative z-10 bg-white">
-                <div class="flex items-center gap-4 py-8 border-b border-gray-100">
-                    <img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk w-14 h-14 rounded-full border-2 border-primary/20 bg-blue-50 p-1 object-contain">
-                    <div><p class="font-bold text-gray-800 text-lg">Admin TK Baiturrohman</p><p class="text-sm text-gray-500">Diposting dalam <span class="text-primary font-semibold">Kegiatan Sekolah</span></p></div>
+            <div class="px-6 md:px-10 max-w-3xl mx-auto relative z-10 bg-white pt-8">
+                <div class="flex items-center gap-4 border-b pb-6 mb-6">
+                    <img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk w-14 h-14 rounded-full border p-1 object-contain">
+                    <div><p class="font-bold text-gray-800 text-lg">Admin TK</p><p class="text-sm text-gray-500">Kegiatan Sekolah</p></div>
                 </div>
-                <div id="news-content" class="py-8 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose font-sans"></div>
-                <div class="mt-8 bg-gradient-to-br from-blue-50 to-white rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 border border-blue-100 shadow-sm">
-                    <div class="flex-1 text-center md:text-left"><h4 class="font-display font-bold text-2xl text-gray-800 mb-2">Tertarik Bergabung?</h4><p class="text-gray-600">Jangan ragu untuk menghubungi kami.</p></div>
-                    <button onclick="sendToWhatsappSimple()" class="bg-[#25D366] hover:bg-[#128C7E] text-white py-4 px-10 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center gap-3 whitespace-nowrap"><i class="fa-brands fa-whatsapp text-2xl"></i> Chat Admin</button>
+                <div id="news-content" class="py-8 prose prose-lg prose-blue max-w-none text-gray-700 font-sans"></div>
+                <div class="mt-8 bg-blue-50 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 border border-blue-100 shadow-sm">
+                    <div class="flex-1 text-center md:text-left"><h4 class="font-bold text-2xl mb-2">Info Pendaftaran?</h4><p class="text-gray-600">Hubungi kami via WhatsApp.</p></div>
+                    <button onclick="sendToWhatsappSimple()" class="bg-green-500 text-white py-4 px-10 rounded-full font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center gap-3"><i class="fa-brands fa-whatsapp text-2xl"></i> Chat Admin</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="mediaViewer" class="media-viewer-overlay flex flex-col">
-        <div class="sticky top-0 left-0 right-0 bg-black/90 backdrop-blur-md z-[301] px-4 py-4 flex items-center justify-between border-b border-gray-800">
-            <button onclick="goBack()" class="flex items-center gap-3 text-white hover:text-gray-300 transition-colors"><i class="fa-solid fa-arrow-left text-xl"></i><span class="font-bold text-lg">Kembali ke Berita</span></button>
+        <div class="sticky top-0 bg-black/90 backdrop-blur z-[301] px-4 py-4 flex items-center justify-between border-b border-gray-800">
+            <button onclick="goBack()" class="flex items-center gap-3 text-white hover:text-gray-300"><i class="fa-solid fa-arrow-left text-xl"></i> Kembali</button>
         </div>
         <div id="mediaViewerContent" class="flex-1 w-full max-w-4xl mx-auto p-4 flex flex-col gap-8 pb-20"></div>
     </div>
 
     <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 py-4 px-6 lg:px-12">
         <div class="max-w-7xl mx-auto flex justify-between items-center bg-white/90 backdrop-blur-md rounded-full shadow-lg px-6 py-3 border border-gray-100 relative z-50">
-            <a href="#" class="flex items-center gap-3 group overflow-hidden">
-                <img src="https://files.catbox.moe/dlbpqp.png" alt="Logo TK" class="logo-tk h-10 md:h-12 w-auto object-contain group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                <div class="flex flex-col leading-tight"><span class="font-display font-bold text-lg md:text-xl text-primary truncate">TK BAITURROHMAN</span><span class="text-xs font-semibold text-gray-500 tracking-wider truncate">Membangun Generasi Baiti</span></div>
+            <a href="#" class="flex items-center gap-3 group">
+                <img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk h-10 w-auto object-contain">
+                <div class="flex flex-col leading-tight"><span class="font-display font-bold text-lg text-primary">TK BAITURROHMAN</span><span class="text-xs font-semibold text-gray-500 tracking-wider">Membangun Generasi Baiti</span></div>
             </a>
             <div class="hidden lg:flex gap-8 items-center font-semibold text-gray-600">
-                <a href="#beranda" class="hover:text-primary transition-colors">Beranda</a><a href="#profil" class="hover:text-primary transition-colors">Profil</a><a href="#galeri" class="hover:text-primary transition-colors">Galeri</a><a href="#video" class="hover:text-primary transition-colors">Video</a><a href="#daftar" class="bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">Daftar Sekarang</a>
+                <a href="#beranda" class="hover:text-primary">Beranda</a><a href="#profil" class="hover:text-primary">Profil</a><a href="#galeri" class="hover:text-primary">Galeri</a><a href="#video" class="hover:text-primary">Video</a><a href="#daftar" class="bg-primary text-white px-5 py-2 rounded-full">Daftar</a>
             </div>
-            <button id="mobile-btn" class="lg:hidden text-2xl text-primary focus:outline-none"><i class="fa-solid fa-bars"></i></button>
+            <button id="mobile-btn" class="lg:hidden text-2xl text-primary"><i class="fa-solid fa-bars"></i></button>
         </div>
-        <div id="mobile-menu" class="hidden absolute top-20 left-4 right-4 bg-white rounded-2xl shadow-xl p-6 flex-col gap-4 text-center z-40 border border-gray-100 lg:hidden max-h-[80vh] overflow-y-auto">
-            <a href="#beranda" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Beranda</a><a href="#profil" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Profil</a><a href="#galeri" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Galeri</a><a href="#video" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Video</a><a href="#daftar" class="bg-primary text-white py-3 rounded-xl font-bold">Daftar Sekarang</a>
+        <div id="mobile-menu" class="hidden absolute top-20 left-4 right-4 bg-white rounded-2xl shadow-xl p-6 flex-col gap-4 text-center z-40 border border-gray-100 lg:hidden">
+            <a href="#beranda" class="py-2 hover:bg-gray-50 rounded">Beranda</a><a href="#profil" class="py-2 hover:bg-gray-50 rounded">Profil</a><a href="#galeri" class="py-2 hover:bg-gray-50 rounded">Galeri</a><a href="#video" class="py-2 hover:bg-gray-50 rounded">Video</a><a href="#daftar" class="bg-primary text-white py-3 rounded-xl font-bold">Daftar</a>
         </div>
     </nav>
 
     <header id="beranda" class="relative w-full min-h-[100dvh] overflow-hidden flex items-center justify-center text-center">
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-white z-10"></div>
-        <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900">
-            </div>
+        <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900"></div>
         <div class="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-32 md:pt-44 pb-32">
             <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000 delay-200">
-                <span class="inline-block py-1 px-4 rounded-full bg-white/20 backdrop-blur-md border border-white/40 text-white font-semibold text-xs md:text-sm mb-4 animate-bounce">✨ Pendaftaran Siswa Baru Telah Dibuka</span>
+                <span class="inline-block py-1 px-4 rounded-full bg-white/20 backdrop-blur border border-white/40 text-white font-semibold text-xs mb-4">✨ Pendaftaran Siswa Baru Dibuka</span>
                 <h1 class="font-display text-4xl md:text-7xl font-bold text-white mb-6 drop-shadow-lg leading-tight">Bermain, Belajar & <br><span class="text-secondary">Bertumbuh Bersama</span></h1>
-                <p class="text-base md:text-2xl text-white/90 mb-8 font-light max-w-2xl mx-auto">TK Baiturrohman membentuk karakter anak yang cerdas, kreatif, berakhlak mulia, Bertaqwa, Dan Berguna.</p>
-                <div class="flex flex-col md:flex-row gap-4 justify-center w-full md:w-auto"><a href="#daftar" class="bg-secondary hover:bg-yellow-500 text-white font-bold py-4 px-10 rounded-full text-lg shadow-[0_10px_20px_rgba(245,158,11,0.4)] transition-all transform hover:-translate-y-1 w-full md:w-auto">Daftar Sekarang</a></div>
+                <p class="text-white/90 mb-8 max-w-2xl mx-auto">TK Baiturrohman membentuk karakter anak yang cerdas, kreatif, berakhlak mulia.</p>
+                <div class="flex gap-4 justify-center"><a href="#daftar" class="bg-secondary hover:bg-yellow-500 text-white font-bold py-4 px-10 rounded-full shadow-lg transition transform hover:-translate-y-1">Daftar Sekarang</a></div>
             </div>
         </div>
-        <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] z-20">
-            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" class="relative block w-[calc(146%_+_1.3px)] h-[80px] text-gray-50 fill-current"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path></svg>
-        </div>
+        <div class="absolute bottom-0 left-0 w-full z-20"><svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="block w-full h-16 md:h-24 text-gray-50 fill-current"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path></svg></div>
     </header>
 
-    <section class="relative -mt-10 z-30 px-6 overflow-hidden">
-        <div class="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl p-8 grid grid-cols-1 md:grid-cols-3 gap-8 border border-gray-100">
-            <div class="text-center group"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary transition-colors duration-300"><i class="fa-solid fa-book-open text-2xl text-primary group-hover:text-white"></i></div><h3 class="font-display font-bold text-xl mb-2">Kurikulum Merdeka</h3><p class="text-gray-500 text-sm">Pembelajaran berpusat pada minat anak.</p></div>
-            <div class="text-center group"><div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-accent transition-colors duration-300"><i class="fa-solid fa-hands-praying text-2xl text-accent group-hover:text-white"></i></div><h3 class="font-display font-bold text-xl mb-2">Pendidikan Islam</h3><p class="text-gray-500 text-sm">Penanaman nilai agama sejak dini.</p></div>
-            <div class="text-center group"><div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-secondary transition-colors duration-300"><i class="fa-solid fa-shapes text-2xl text-secondary group-hover:text-white"></i></div><h3 class="font-display font-bold text-xl mb-2">Fasilitas Lengkap</h3><p class="text-gray-500 text-sm">Area bermain aman & edukatif.</p></div>
-        </div>
-    </section>
+    <section class="relative -mt-10 z-30 px-6"><div class="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl p-8 grid grid-cols-1 md:grid-cols-3 gap-8 border border-gray-100"><div class="text-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-primary text-2xl"><i class="fa-solid fa-book-open"></i></div><h3 class="font-bold text-xl">Kurikulum Merdeka</h3><p class="text-sm text-gray-500">Berpusat pada anak.</p></div><div class="text-center"><div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-accent text-2xl"><i class="fa-solid fa-hands-praying"></i></div><h3 class="font-bold text-xl">Pendidikan Islam</h3><p class="text-sm text-gray-500">Akhlak mulia.</p></div><div class="text-center"><div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 text-secondary text-2xl"><i class="fa-solid fa-shapes"></i></div><h3 class="font-bold text-xl">Fasilitas Lengkap</h3><p class="text-sm text-gray-500">Aman & Nyaman.</p></div></div></section>
 
-    <section id="profil" class="py-20 px-6 overflow-hidden">
+    <section id="profil" class="py-20 px-6">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
             <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full"> 
                 <div class="absolute -top-4 -left-4 w-24 h-24 bg-secondary rounded-full opacity-20 animate-float"></div>
                 <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary rounded-full opacity-20 animate-float" style="animation-delay: 1s;"></div>
-                
                 <div id="profile-container" class="w-full h-full relative rounded-[2rem] shadow-2xl border-8 border-white overflow-hidden bg-white rotate-2 hover:rotate-0 transition-transform duration-500">
                     <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" class="profile-slide active" alt="Kegiatan 1">
                 </div>
             </div>
             <div class="lg:w-1/2 animate-on-scroll opacity-0 translate-x-10 transition-all duration-1000">
                 <h4 class="text-primary font-bold tracking-widest uppercase mb-2">Tentang Kami</h4>
-                <h2 class="font-display text-4xl font-bold text-gray-800 mb-6">Mewujudkan Lingkungan Belajar yang <span class="text-secondary underline decoration-wavy">Ceria & Islami</span></h2>
-                <p class="text-gray-600 mb-6 leading-relaxed">TK Baiturrohman berkomitmen untuk menyediakan pendidikan anak usia dini yang berkualitas. Kami percaya setiap anak adalah bintang yang memiliki potensi unik.</p>
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-accent text-xl"></i><span class="font-medium text-gray-700">Tenaga pendidik profesional</span></li>
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-accent text-xl"></i><span class="font-medium text-gray-700">Lingkungan asri & aman</span></li>
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-accent text-xl"></i><span class="font-medium text-gray-700">Ekstrakurikuler seni lukis</span></li>
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-accent text-xl"></i><span class="font-medium text-gray-700">Baca tulis al-qur'an</span></li>
-                </ul>
+                <h2 class="font-display text-4xl font-bold text-gray-800 mb-6">Lingkungan <span class="text-secondary underline decoration-wavy">Ceria & Islami</span></h2>
+                <p class="text-gray-600 mb-6">TK Baiturrohman berkomitmen menyediakan pendidikan usia dini berkualitas.</p>
+                <ul class="space-y-4 mb-8"><li class="flex gap-3"><i class="fa-solid fa-check-circle text-accent"></i><span>Guru Profesional</span></li><li class="flex gap-3"><i class="fa-solid fa-check-circle text-accent"></i><span>Ekstrakurikuler</span></li></ul>
             </div>
         </div>
     </section>
 
-    <section id="galeri" class="py-20 bg-blue-50 px-6 relative overflow-hidden">
-        <div class="max-w-7xl mx-auto mb-8 text-center animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000">
-            <h2 class="font-display text-4xl font-bold text-gray-800 mb-4">Galeri & Berita</h2>
-            <p class="text-gray-600 max-w-xl mx-auto">Klik foto untuk melihat detail kegiatan dan berita selengkapnya.</p>
-        </div>
+    <section id="galeri" class="py-20 bg-blue-50 px-6">
+        <div class="max-w-7xl mx-auto mb-8 text-center"><h2 class="font-display text-4xl font-bold text-gray-800 mb-4">Galeri & Berita</h2><p class="text-gray-600">Klik foto untuk info lengkap.</p></div>
         <div class="max-w-6xl mx-auto relative group shadow-2xl rounded-3xl overflow-hidden bg-white">
-            <button onclick="scrollSection('gallery-slider', -1)" class="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-left"></i></button>
-            <button onclick="scrollSection('gallery-slider', 1)" class="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-right"></i></button>
-            <div id="gallery-slider" class="flex overflow-x-auto gap-0 hide-scroll snap-x snap-mandatory scroll-smooth h-[500px]">
-                </div>
+            <button onclick="scrollSection('gallery-slider', -1)" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white flex items-center justify-center"><i class="fa-solid fa-chevron-left"></i></button>
+            <button onclick="scrollSection('gallery-slider', 1)" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white flex items-center justify-center"><i class="fa-solid fa-chevron-right"></i></button>
+            <div id="gallery-slider" class="flex overflow-x-auto gap-0 hide-scroll snap-x snap-mandatory scroll-smooth h-[500px]"></div>
         </div>
     </section>
 
-    <section id="video" class="py-20 px-6 bg-white overflow-hidden">
-        <div class="max-w-5xl mx-auto text-center animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000">
-            <h2 class="font-display text-4xl font-bold text-gray-800 mb-8">Video Kegiatan</h2>
+    <section id="video" class="py-20 px-6 bg-white">
+        <div class="max-w-5xl mx-auto text-center"><h2 class="font-display text-4xl font-bold text-gray-800 mb-8">Video Kegiatan</h2>
             <div class="relative w-full max-w-3xl mx-auto slider-wrapper" id="mainSlider">
-                <button class="nav-btn prev-btn absolute -left-4 md:-left-12 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                <button class="nav-btn next-btn absolute -right-4 md:-right-12 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="nav-btn prev-btn absolute -left-12 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white text-primary shadow flex items-center justify-center hover:scale-110" onclick="geserSlider(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="nav-btn next-btn absolute -right-12 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white text-primary shadow flex items-center justify-center hover:scale-110" onclick="geserSlider(1)"><i class="fa-solid fa-chevron-right"></i></button>
                 <div class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scroll gap-6 pb-4" id="trackVideo"></div>
             </div>
-            <p class="mt-6 text-gray-500 italic">Geser untuk melihat video lainnya</p>
         </div>
     </section>
 
-    <section id="daftar" class="py-20 px-6 bg-blue-50 relative overflow-hidden">
-        <div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-100 animate-on-scroll opacity-0 translate-y-20 transition-all duration-1000">
-            <div class="md:w-5/12 bg-gradient-to-br from-primary to-blue-600 p-10 text-white flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div class="relative z-10"><h3 class="font-display text-3xl font-bold mb-4">Pendaftaran Online</h3><p class="text-blue-100 mb-8">Silahkan isi formulir di samping. Data akan langsung terkirim ke WhatsApp Admin kami.</p><div class="space-y-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-sm"><i class="fa-solid fa-phone text-xl"></i></div><span class="font-semibold text-lg">0812-1186-2924</span></div><div class="flex items-start gap-4"><div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-sm mt-1"><i class="fa-solid fa-location-dot text-xl"></i></div><span class="font-semibold leading-relaxed">Jl. Andong kencono No. III, Pulodarat RT 19 RW 02, Pecangaan, Jepara, Jawa Tengah.</span></div></div></div>
-                <div class="mt-12 relative z-10 w-full flex justify-center"><img src="https://files.catbox.moe/dlbpqp.png" class="w-24 opacity-90  drop-shadow-md"></div>
-            </div>
-            <div class="md:w-7/12 p-8 md:p-12">
-                <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Data Calon Siswa</h3>
-                <form id="waForm" class="space-y-5" onsubmit="sendToWhatsapp(event)">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak</label><input type="text" id="namaAnak" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Contoh: Ahmad Zaky"></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Umur (Tahun)</label><input type="number" id="umur" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Ex: 5"></div>
-                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label><select id="jk" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors"><option>Laki-laki</option><option>Perempuan</option></select></div>
-                    </div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nama Orang Tua / Wali</label><input type="text" id="namaOrtu" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Contoh: Bpk. Budi"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Alamat Domisili</label><textarea id="alamat" rows="2" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Alamat lengkap..."></textarea></div>
-                    <button type="submit" class="w-full bg-secondary hover:bg-yellow-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex justify-center items-center gap-2"><i class="fa-brands fa-whatsapp text-xl"></i> Kirim Pendaftaran</button>
-                </form>
-            </div>
-        </div>
-    </section>
+    <section id="daftar" class="py-20 px-6 bg-blue-50"><div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden"><div class="md:w-5/12 bg-gradient-to-br from-primary to-blue-600 p-10 text-white"><h3 class="font-bold text-3xl mb-4">Pendaftaran Online</h3><p class="mb-8">Isi formulir ini untuk mendaftar.</p><div class="flex gap-4 mb-4"><i class="fa-solid fa-phone mt-1"></i><span>0812-1186-2924</span></div><div class="flex gap-4"><i class="fa-solid fa-location-dot mt-1"></i><span>Jl. Andong kencono No. III</span></div></div><div class="md:w-7/12 p-8 md:p-12"><h3 class="font-bold text-2xl mb-6">Data Calon Siswa</h3><form id="waForm" class="space-y-4" onsubmit="sendToWhatsapp(event)"><input type="text" id="namaAnak" placeholder="Nama Lengkap Anak" class="w-full p-3 rounded-lg border bg-gray-50" required><input type="number" id="umur" placeholder="Umur" class="w-full p-3 rounded-lg border bg-gray-50" required><input type="text" id="namaOrtu" placeholder="Nama Ortu" class="w-full p-3 rounded-lg border bg-gray-50" required><textarea id="alamat" placeholder="Alamat" class="w-full p-3 rounded-lg border bg-gray-50" required></textarea><button type="submit" class="w-full bg-secondary text-white font-bold py-3 rounded-xl hover:bg-yellow-500">Kirim</button></form></div></div></section>
 
-    <section id="lokasi" class="py-12 px-6 bg-white border-t border-gray-100 overflow-hidden">
-        <div class="max-w-5xl mx-auto text-center"><h2 class="font-display text-3xl font-bold text-gray-800 mb-6">Lokasi Sekolah</h2><div class="w-full h-96 rounded-3xl overflow-hidden shadow-lg border-2 border-gray-100 relative group"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" class="w-full h-full border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div></div>
-    </section>
+    <section id="lokasi" class="py-12 px-6 bg-white text-center"><h2 class="font-bold text-3xl mb-6">Lokasi</h2><div class="max-w-5xl mx-auto h-96 rounded-3xl overflow-hidden shadow-lg border-2"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" class="w-full h-full border-0" allowfullscreen></iframe></div></section>
 
-    <footer class="bg-dark text-white pt-16 pb-8 px-6 mb-16 md:mb-0 overflow-hidden">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div class="col-span-1 md:col-span-2"><div class="flex items-center gap-3 mb-6"><img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk h-16 w-auto object-contain drop-shadow-md"><span class="font-display font-bold text-2xl">TK BAITURROHMAN</span></div><p class="text-gray-400 mb-6 max-w-sm">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Tautan Cepat</h4><ul class="space-y-3 text-gray-400"><li><a href="#beranda" class="hover:text-white">Beranda</a></li><li><a href="#profil" class="hover:text-white">Tentang Kami</a></li><li><a href="#galeri" class="hover:text-white">Galeri Foto</a></li><li><a href="#daftar" class="hover:text-white">Info PPDB</a></li></ul></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Hubungi Kami</h4><ul class="space-y-3 text-gray-400"><li class="flex items-center gap-3"><i class="fa-brands fa-whatsapp"></i><span>0812-1186-2924</span></li><li class="flex items-center gap-3"><i class="fa-solid fa-envelope"></i><span>dapodiktkbaiturrohman@gmail.com</span></li></ul></div>
-        </div>
-        <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm"><p>© 2026 TK Baiturrohman. All Rights Reserved.</p></div>
-    </footer>
+    <footer class="bg-dark text-white pt-16 pb-8 px-6 text-center"><p class="text-sm">© 2026 TK Baiturrohman.</p></footer>
 
     <script>
-        // --- DATA AWAL (SESUAI REQUEST) ---
-        let daftarVideo = [{
-            url: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",
-            judul: "Profil sekolah",
-            deskripsi: "Profil TK Baiturrohman."
-        }];
-        
-        let newsData = [{
+        let allData = { news: [], videos: [], tools: [] };
+        let currentPage = 1, itemsPerPage = 10, currentType = 'news';
+        let newsSlideshowInterval;
+
+        // DATA MANUAL (DEFAULT) SESUAI REQUEST
+        let defaultNews = [{
             title: "Profil sekolah",
             date: "20 januari 2026",
-            // KONTEN DENGAN LINK INLINE
             content: `Tetap stay di web kami bunda.segala informasi nanti kami update bisa <a onclick="openMediaViewer(0, 'foto_1')" class="inline-link">[lihat foto ]</a><br>Untuk melihat aktivitas bisa ke channel video yutube kami bunda <a onclick="openMediaViewer(0, 'video_1')" class="inline-link video-link">[lihat video]</a><br><br><span class="text-xs text-gray-400 italic">jika video tidak bisa dibuka diweb ada tulisan kecil dibawah buka app youtube.</span>`,
             images: ["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],
             gallery: [
-                // FOTO INLINE
-                { group: 'foto_1', type: 'image', src: "https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg", caption: "Dokumentasi Profil" },
-                // VIDEO INLINE
-                { group: 'video_1', type: 'video', src: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP", caption: "Video Profil Sekolah" }
+                { group: 'foto_1', type: 'image', src: "https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg", caption: "Dokumentasi" },
+                { group: 'video_1', type: 'video', src: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP", caption: "Video Profil" }
             ]
         }];
-        
-        let track, mainSlider, players = [];
+        let defaultVideos = [{ url: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP", judul: "Profil sekolah", deskripsi: "Profil TK Baiturrohman." }];
 
         async function loadContent() {
             try {
-                // Fetch dengan cache busting
-                const response = await fetch('/api/content?t=' + new Date().getTime());
-                if (!response.ok) throw new Error('API Error');
-                const data = await response.json();
+                const res = await fetch('/api/content?t=' + new Date().getTime());
+                const data = await res.json();
+                
+                allData.news = (data.news && data.news.length > 0) ? data.news : defaultNews;
+                allData.videos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
+                allData.tools = data.tools || [];
 
-                if (data.config) {
-                    if (data.config.logoUrl) document.querySelectorAll('.logo-tk').forEach(img => img.src = data.config.logoUrl);
-                    if (data.config.mascotUrl) document.getElementById('floating-mascot').src = data.config.mascotUrl;
-                    if (data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
-                    if (data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
-                    if (data.config.heroImages && data.config.heroImages.length > 0) {
+                if(data.config) {
+                    if(data.config.logoUrl) document.querySelectorAll('.logo-tk').forEach(img => img.src = data.config.logoUrl);
+                    if(data.config.mascotUrl) document.getElementById('floating-mascot').src = data.config.mascotUrl;
+                    if(data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
+                    if(data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
+                    if(data.config.heroImages && data.config.heroImages.length > 0) {
                         const h = document.getElementById('slider-container'); h.innerHTML = '';
-                        data.config.heroImages.forEach((src, i) => {
+                        data.config.heroImages.forEach((src,i) => {
                             h.innerHTML += `<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`;
                         });
                         startHeroLoop();
                     }
-                    if (data.config.profileImages && data.config.profileImages.length > 0) {
+                    if(data.config.profileImages && data.config.profileImages.length > 0) {
                         const p = document.getElementById('profile-container'); p.innerHTML = '';
-                        data.config.profileImages.forEach((src, i) => {
+                        data.config.profileImages.forEach((src,i) => {
                             const img = document.createElement('img'); img.src = src; img.className = `profile-slide ${i===0?'active':''}`;
                             p.appendChild(img);
                         });
                         startProfileLoop();
                     }
                 }
-                if (data.videos && data.videos.length > 0) { daftarVideo = data.videos; renderVideoSlider(); }
-                if (data.news && data.news.length > 0) { newsData = data.news; renderNewsSlider(); }
-            } catch (e) {
-                renderVideoSlider(); renderNewsSlider(); 
+                
+                renderNewsSlider();
+                renderVideoSlider();
+
+            } catch(e) { 
+                // Fallback to manual data
+                allData.news = defaultNews; 
+                allData.videos = defaultVideos;
+                renderNewsSlider(); 
+                renderVideoSlider();
             }
         }
 
-        function startHeroLoop() { let c = 0; const s = document.querySelectorAll('.slide'); if (s.length > 1) setInterval(() => { s[c].classList.remove('active'); c = (c + 1) % s.length; s[c].classList.add('active') }, 6000) }
-        function startProfileLoop() { let c = 0; const p = document.querySelectorAll('.profile-slide'); if (p.length > 1) setInterval(() => { p[c].classList.remove('active'); c = (c + 1) % p.length; p[c].classList.add('active') }, 4000) }
+        function startHeroLoop(){let c=0;const s=document.querySelectorAll('.slide');if(s.length>1)setInterval(()=>{s[c].classList.remove('active');c=(c+1)%s.length;s[c].classList.add('active')},6000)}
+        function startProfileLoop(){let c=0;const p=document.querySelectorAll('.profile-slide');if(p.length>1)setInterval(()=>{p[c].classList.remove('active');c=(c+1)%p.length;p[c].classList.add('active')},4000)}
 
-        // --- YOUTUBE NOCOOKIE (ANTI BOT) ---
-        function renderVideoSlider() {
-            const t = document.getElementById('trackVideo');
-            if (!t) return;
-            t.innerHTML = '';
-            daftarVideo.forEach((v, i) => {
-                const id = getYouTubeVideoId(v.url);
-                if (id) {
-                    const thumb = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
-                    t.innerHTML += `<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all">
-                        <div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div>
-                        <div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p>
-                        <div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div>
-                    </div>`
-                }
-            })
-        }
-
-        function loadYtIframe(el) {
-            const id = el.getAttribute('data-id');
-            const f = document.createElement('iframe');
-            f.setAttribute('src', `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);
-            f.className = 'yt-iframe';
-            f.setAttribute('frameborder', '0');
-            f.setAttribute('allowfullscreen', 'true');
-            f.setAttribute('allow', 'autoplay');
-            el.innerHTML = '';
-            el.appendChild(f);
-            document.getElementById('mainSlider').classList.add('video-playing');
-        }
-
-        function getYouTubeVideoId(u) { const m = u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/); return (m && m[1].length == 11) ? m[1] : null; }
-        
-        function geserSlider(d) {
-            const f = document.querySelectorAll('.yt-iframe');
-            f.forEach(x => { const p = x.parentElement; const id = p.getAttribute('data-id'); p.innerHTML = `<div class="play-btn"></div><img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.8;transition:0.3s">` });
-            document.getElementById('mainSlider').classList.remove('video-playing');
-            const t = document.getElementById('trackVideo');
-            const i = t.querySelector('div');
-            const w = i ? i.clientWidth + 24 : 300;
-            t.scrollBy({ left: d * w, behavior: 'smooth' })
-        }
-
-        function renderNewsSlider() {
-            const s = document.getElementById('gallery-slider');
-            if (!s) return;
-            s.innerHTML = '';
-            newsData.forEach((n, i) => {
-                let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
-                if (img.includes('cloudinary')) img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
-                s.innerHTML += `<div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${i})"><div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div><img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105"><div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20"><span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span><h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3><p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p></div></div>`
-            })
-        }
-
-        const infoModal = document.getElementById('infoModal');
-        function openInfoModal() { infoModal.classList.remove('hidden'); setTimeout(() => infoModal.classList.add('visible'), 10) }
-        function closeInfoModal() { infoModal.classList.remove('visible'); setTimeout(() => infoModal.classList.add('hidden'), 300) }
-        
-        const newsFullPage = document.getElementById('newsFullPage');
-        let newsSlideshowInterval;
-
-        function openFullPageNews(index) {
-            const data = newsData[index];
-            if (!data) return;
-            document.getElementById('news-title').innerText = data.title;
-            document.getElementById('news-date').innerText = data.date;
-            document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
-            const container = document.getElementById('news-slideshow-container');
-            container.innerHTML = '';
-            if (data.images && data.images.length > 0) {
-                data.images.forEach((src, i) => {
-                    const div = document.createElement('div');
-                    div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
-                    div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
-                    container.appendChild(div)
-                });
-                startNewsSlideshow()
-            }
-            history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
-            newsFullPage.classList.add('active');
-            document.body.style.overflow = 'hidden'
-        }
-        
-        const mediaViewer = document.getElementById('mediaViewer');
-        const mediaViewerContent = document.getElementById('mediaViewerContent');
-
-        function openMediaViewer(newsIndex, filter) {
-            const data = newsData[newsIndex];
-            if (!data || !data.gallery) return;
-            mediaViewerContent.innerHTML = '';
-            const filtered = data.gallery.filter(item => { if (filter === 'all') return true; return item.group === filter });
-            if (filtered.length === 0) { alert("Galeri belum tersedia."); return }
-            filtered.forEach(item => {
-                let el = '';
-                if (item.type === 'image') el = `<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;
-                else if (item.type === 'video') {
-                    const vid = getYouTubeVideoId(item.src);
-                    // TOMBOL BUKA APP YOUTUBE
-                    el = `<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`
-                }
-                mediaViewerContent.innerHTML += el
+        // --- NEW FEATURES ---
+        function toggleMenu() { document.getElementById('mainMenu').classList.toggle('active'); }
+        function openListModal(type) { currentType = type; currentPage = 1; document.getElementById('listModal').classList.add('active'); renderList(); toggleMenu(); }
+        function closeListModal() { document.getElementById('listModal').classList.remove('active'); }
+        function openToolsModal() { 
+            const c = document.getElementById('toolsContainer'); c.innerHTML = '';
+            if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
+            allData.tools.forEach(t => {
+                c.innerHTML += `<div onclick="openIframe('${t.url}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
             });
-            history.pushState({ newsOpen: true, mediaOpen: true }, "", "#lihat-media");
-            mediaViewer.classList.add('active')
+            document.getElementById('toolsModal').classList.add('active'); toggleMenu();
         }
+        function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); }
+        function openIframe(url, name) { document.getElementById('mainIframe').src = url; document.getElementById('iframeTitle').innerText = name; document.getElementById('iframeView').classList.add('active'); }
+        function closeIframe() { document.getElementById('iframeView').classList.remove('active'); document.getElementById('mainIframe').src = ''; }
 
-        function closeMediaViewer() { mediaViewer.classList.remove('active'); setTimeout(() => { mediaViewerContent.innerHTML = '' }, 300) }
-        function closeFullPageNews() { newsFullPage.classList.remove('active'); document.body.style.overflow = 'auto'; stopNewsSlideshow() }
-        function goBack() { if (history.state && history.state.mediaOpen) history.back(); else if (history.state && history.state.newsOpen) history.back(); else { closeMediaViewer(); closeFullPageNews() } }
-        window.addEventListener('popstate', function(event) { if (mediaViewer.classList.contains('active')) closeMediaViewer(); else if (newsFullPage.classList.contains('active')) closeFullPageNews() });
+        function renderList() {
+            const container = document.getElementById('listContainer'); container.innerHTML = '';
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const source = currentType === 'news' ? allData.news : allData.videos;
+            const filtered = source.filter(item => (item.title || item.judul || '').toLowerCase().includes(query));
+            
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginated = filtered.slice(start, start + itemsPerPage);
+            document.getElementById('pageInfo').innerText = `${currentPage} / ${Math.ceil(filtered.length/itemsPerPage) || 1}`;
 
-        function startNewsSlideshow() { stopNewsSlideshow(); const slides = document.querySelectorAll('.news-slide-wrapper'); if (slides.length <= 1) return; let current = 0; newsSlideshowInterval = setInterval(() => { slides[current].classList.remove('active'); current = (current + 1) % slides.length; slides[current].classList.add('active') }, 3000) }
-        function stopNewsSlideshow() { if (newsSlideshowInterval) clearInterval(newsSlideshowInterval) }
+            paginated.forEach((item, idx) => {
+                const globalIdx = source.indexOf(item);
+                const title = item.title || item.judul;
+                const date = item.date || 'Video';
+                let thumb = "https://files.catbox.moe/3tf995.png";
+                if(currentType === 'news' && item.images?.length) thumb = item.images[0];
+                if(currentType === 'video' && item.url) { const vid = item.url.match(/v=([^&]+)/); if(vid) thumb = `https://img.youtube.com/vi/${vid[1]}/default.jpg`; }
+                
+                const clickAction = currentType === 'news' ? `openFullPageNews(${globalIdx}); closeListModal()` : `window.open('${item.url}', '_blank')`;
+                container.innerHTML += `<div onclick="${clickAction}" class="flex gap-4 bg-gray-50 p-3 rounded-lg shadow-sm cursor-pointer hover:bg-gray-100"><img src="${thumb}" class="w-20 h-20 object-cover rounded-md bg-gray-200"><div><h4 class="font-bold text-gray-800 line-clamp-2">${title}</h4><span class="text-xs text-gray-500">${date}</span></div></div>`;
+            });
+        }
+        function filterList() { currentPage = 1; renderList(); }
+        function prevPage() { if(currentPage > 1) { currentPage--; renderList(); } }
+        function nextPage() { currentPage++; renderList(); }
 
-        function sendToWhatsappSimple() { window.open("https://wa.me/6281211862924", "_blank") }
-        function sendToWhatsapp(e) { e.preventDefault(); const namaAnak = document.getElementById('namaAnak').value; const umur = document.getElementById('umur').value; const jk = document.getElementById('jk').value; const namaOrtu = document.getElementById('namaOrtu').value; const alamat = document.getElementById('alamat').value; const phone = "6281211862924"; const msg = `Halo Admin TK BAITURROHMAN, saya ingin mendaftarkan anak saya. Berikut datanya:\n\n📋 *FORMULIR PENDAFTARAN*\n--------------------------------\n👤 *Nama Anak:* ${namaAnak}\n🎂 *Umur:* ${umur} Tahun\n⚧ *Jenis Kelamin:* ${jk}\n👨‍👩‍👧 *Nama Ortu:* ${namaOrtu}\n🏠 *Alamat:* ${alamat}\n--------------------------------\nMohon info selanjutnya. Terima kasih.`; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank') }
+        // --- CORE LOGIC ---
+        function renderVideoSlider(){const t=document.getElementById('trackVideo');if(!t)return;t.innerHTML='';allData.videos.forEach((v,i)=>{const id=getYouTubeVideoId(v.url);if(id){
+            const thumb=`https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+            t.innerHTML+=`<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all">
+                <div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div>
+                <div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p>
+                <div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div>
+            </div>`}})}
+        
+        function loadYtIframe(el){const id=el.getAttribute('data-id');const f=document.createElement('iframe');f.setAttribute('src',`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);f.className='yt-iframe';f.setAttribute('frameborder','0');f.setAttribute('allowfullscreen','true');f.setAttribute('allow','autoplay');el.innerHTML='';el.appendChild(f);document.getElementById('mainSlider').classList.add('video-playing')}
+        function getYouTubeVideoId(u){const m=u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);return(m&&m[1].length==11)?m[1]:null}
+        function geserSlider(d){const f=document.querySelectorAll('.yt-iframe');f.forEach(x=>{const p=x.parentElement;const id=p.getAttribute('data-id');p.innerHTML=`<div class="play-btn"></div><img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.8;transition:0.3s">`});document.getElementById('mainSlider').classList.remove('video-playing');const t=document.getElementById('trackVideo');const i=t.querySelector('div');const w=i?i.clientWidth+24:300;t.scrollBy({left:d*w,behavior:'smooth'})}
 
-        const mobileBtn = document.getElementById('mobile-btn'), mobileMenu = document.getElementById('mobile-menu'), navbar = document.getElementById('navbar');
-        mobileBtn.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); mobileMenu.classList.toggle('flex') });
-        window.addEventListener('scroll', () => { if (window.scrollY > 50) { navbar.classList.add('py-2'); navbar.classList.remove('py-4') } else { navbar.classList.add('py-4'); navbar.classList.remove('py-2') } });
+        function renderNewsSlider(){const s=document.getElementById('gallery-slider');if(!s)return;s.innerHTML='';allData.news.forEach((n,i)=>{let img=n.images&&n.images.length>0?n.images[0]:"https://files.catbox.moe/3tf995.png";if(img.includes('cloudinary'))img=img.replace('/upload/','/upload/w_600,q_auto,f_auto/');s.innerHTML+=`<div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${i})"><div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div><img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105"><div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20"><span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span><h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3><p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p></div></div>`})}
+        
+        const infoModal=document.getElementById('infoModal');
+        function openInfoModal(){infoModal.classList.remove('hidden');setTimeout(()=>infoModal.classList.add('visible'),10)}
+        function closeInfoModal(){infoModal.classList.remove('visible');setTimeout(()=>infoModal.classList.add('hidden'),300)}
+        
+        const newsFullPage=document.getElementById('newsFullPage');
+        function openFullPageNews(index){const data=allData.news[index];if(!data)return;document.getElementById('news-title').innerText=data.title;document.getElementById('news-date').innerText=data.date;document.getElementById('news-content').innerHTML=`<div class="drop-cap">${data.content}</div>`;const container=document.getElementById('news-slideshow-container');container.innerHTML='';if(data.images&&data.images.length>0){data.images.forEach((src,i)=>{const div=document.createElement('div');div.className=`news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;div.innerHTML=`<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;container.appendChild(div)});startNewsSlideshow()}history.pushState({newsOpen:true},"","#detail-kegiatan");newsFullPage.classList.add('active');document.body.style.overflow='hidden'}
+        
+        const mediaViewer=document.getElementById('mediaViewer');const mediaViewerContent=document.getElementById('mediaViewerContent');
+        function openMediaViewer(newsIndex,filter){const data=allData.news[newsIndex];if(!data||!data.gallery)return;mediaViewerContent.innerHTML='';const filtered=data.gallery.filter(item=>{if(filter==='all')return true;return item.group===filter});if(filtered.length===0){alert("Galeri belum tersedia.");return}filtered.forEach(item=>{let el='';if(item.type==='image')el=`<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;else if(item.type==='video'){const vid=getYouTubeVideoId(item.src);el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`}mediaViewerContent.innerHTML+=el});history.pushState({newsOpen:true,mediaOpen:true},"","#lihat-media");mediaViewer.classList.add('active')}
+        
+        function closeMediaViewer(){mediaViewer.classList.remove('active');setTimeout(()=>{mediaViewerContent.innerHTML=''},300)}
+        function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow()}
+        function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews();closeListModal();closeToolsModal();closeIframe()}}
+        window.addEventListener('popstate',function(event){if(mediaViewer.classList.contains('active'))closeMediaViewer();else if(newsFullPage.classList.contains('active'))closeFullPageNews()});
+        function startNewsSlideshow(){stopNewsSlideshow();const slides=document.querySelectorAll('.news-slide-wrapper');if(slides.length<=1)return;let current=0;newsSlideshowInterval=setInterval(()=>{slides[current].classList.remove('active');current=(current+1)%slides.length;slides[current].classList.add('active')},3000)}
+        function stopNewsSlideshow(){if(newsSlideshowInterval)clearInterval(newsSlideshowInterval)}
+        function sendToWhatsappSimple(){window.open("https://wa.me/6281211862924","_blank")}
+        function sendToWhatsapp(e){e.preventDefault();const namaAnak=document.getElementById('namaAnak').value;const umur=document.getElementById('umur').value;const jk=document.getElementById('jk').value;const namaOrtu=document.getElementById('namaOrtu').value;const alamat=document.getElementById('alamat').value;const phone="6281211862924";const msg=`Halo Admin TK BAITURROHMAN, saya ingin mendaftarkan anak saya. Berikut datanya:\n\n📋 *FORMULIR PENDAFTARAN*\n--------------------------------\n👤 *Nama Anak:* ${namaAnak}\n🎂 *Umur:* ${umur} Tahun\n⚧ *Jenis Kelamin:* ${jk}\n👨‍👩‍👧 *Nama Ortu:* ${namaOrtu}\n🏠 *Alamat:* ${alamat}\n--------------------------------\nMohon info selanjutnya. Terima kasih.`;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank')}
+        
+        const mobileBtn=document.getElementById('mobile-btn'),mobileMenu=document.getElementById('mobile-menu'),navbar=document.getElementById('navbar');
+        mobileBtn.addEventListener('click',()=>{mobileMenu.classList.toggle('hidden');mobileMenu.classList.toggle('flex')});
+        window.addEventListener('scroll',()=>{if(window.scrollY>50){navbar.classList.add('py-2');navbar.classList.remove('py-4')}else{navbar.classList.add('py-4');navbar.classList.remove('py-2')}});
+        
+        const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('opacity-0','translate-y-10');e.target.classList.add('opacity-100','translate-y-0');observer.unobserve(e.target)}})},{threshold:0.1});
+        document.querySelectorAll('.animate-on-scroll').forEach(el=>observer.observe(el));
+        function scrollSection(id,dir){const c=document.getElementById(id);c.scrollBy({left:dir*c.clientWidth,behavior:'smooth'})}
+        const gallerySlider=document.getElementById('gallery-slider');let galleryInterval;
+        function startGAP(){galleryInterval=setInterval(()=>{if(gallerySlider.scrollLeft+gallerySlider.clientWidth>=gallerySlider.scrollWidth-10)gallerySlider.scrollTo({left:0,behavior:'smooth'});else gallerySlider.scrollBy({left:gallerySlider.clientWidth,behavior:'smooth'})},5000)}
+        function stopGAP(){clearInterval(galleryInterval)}
+        startGAP();gallerySlider.addEventListener('mouseenter',stopGAP);gallerySlider.addEventListener('mouseleave',startGAP);gallerySlider.addEventListener('touchstart',stopGAP);gallerySlider.addEventListener('touchend',startGAP);
 
-        const observer = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) { e.target.classList.remove('opacity-0', 'translate-y-10'); e.target.classList.add('opacity-100', 'translate-y-0'); observer.unobserve(e.target) } }) }, { threshold: 0.1 });
-        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
-        function scrollSection(id, dir) { const c = document.getElementById(id); c.scrollBy({ left: dir * c.clientWidth, behavior: 'smooth' }) }
-        const gallerySlider = document.getElementById('gallery-slider'); let galleryInterval;
-        function startGAP() { galleryInterval = setInterval(() => { if (gallerySlider.scrollLeft + gallerySlider.clientWidth >= gallerySlider.scrollWidth - 10) gallerySlider.scrollTo({ left: 0, behavior: 'smooth' }); else gallerySlider.scrollBy({ left: gallerySlider.clientWidth, behavior: 'smooth' }) }, 5000) }
-        function stopGAP() { clearInterval(galleryInterval) }
-        startGAP(); gallerySlider.addEventListener('mouseenter', stopGAP); gallerySlider.addEventListener('mouseleave', startGAP); gallerySlider.addEventListener('touchstart', stopGAP); gallerySlider.addEventListener('touchend', startGAP);
-
-        document.addEventListener('DOMContentLoaded', () => { loadContent(); renderVideoSlider() });
+        document.addEventListener('DOMContentLoaded',()=>{loadContent();renderVideoSlider()});
     </script>
 </body>
 </html>
