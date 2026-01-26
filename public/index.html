@@ -42,15 +42,21 @@
         .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
         .slide.active { opacity: 1; z-index: 0; }
         
-        /* PROFIL */
-        .profile-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; background-color: #ffffff; border-radius: 2rem; }
+        /* PROFIL (Transparan & Drop Shadow) */
+        .profile-slide { 
+            position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; 
+            background-color: transparent; 
+            filter: drop-shadow(0 20px 13px rgba(0,0,0,0.15));
+        }
         .profile-slide.active { opacity: 1 !important; z-index: 20; }
         
-        /* MODALS */
+        /* MODALS (Fullscreen Overlay) */
         .full-page-view { transition: 0.3s; transform: translateY(100%); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 2000; background: white; overflow-y: auto; }
         .full-page-view.active { transform: translateY(0); opacity: 1; visibility: visible; }
+        
         .media-viewer-overlay { transition: 0.3s; transform: scale(0.95); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 3000; background: black; overflow-y: auto; }
         .media-viewer-overlay.active { transform: scale(1); opacity: 1; visibility: visible; }
+        
         .modal { transition: 0.3s; } .modal.hidden { opacity: 0; pointer-events: none; } .modal.visible { opacity: 1; pointer-events: auto; }
         
         /* YOUTUBE FACADE */
@@ -73,10 +79,13 @@
         .slider-wrapper.video-playing .nav-btn { opacity: 0 !important; pointer-events: none; }
         .slider-wrapper.video-playing:hover .nav-btn { opacity: 1 !important; pointer-events: auto; }
 
-        /* FLOATING DOCK STYLES */
-        .fab-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: row-reverse; align-items: center; gap: 0.75rem; }
+        /* FLOATING DOCK STYLES (Menu Bawah) */
+        .fab-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000; display: flex; flex-direction: row-reverse; align-items: center; gap: 0.75rem; transition: transform 0.3s, opacity 0.3s; }
+        /* Kelas untuk menyembunyikan FAB saat modal terbuka */
+        .fab-container.hidden-state { transform: scale(0); opacity: 0; pointer-events: none; }
+        
         .fab-actions { display: flex; flex-direction: row-reverse; gap: 0.75rem; padding-right: 0.5rem; max-width: 0; opacity: 0; overflow-x: auto; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; border-radius: 9999px; }
-        .fab-container.active .fab-actions { max-width: 80vw; opacity: 1; pointer-events: auto; padding: 0.5rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .fab-container.active .fab-actions { max-width: 80vw; opacity: 1; pointer-events: auto; padding: 0.5rem; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .fab-btn { width: 3rem; height: 3rem; border-radius: 9999px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
         .fab-btn:active { transform: scale(0.95); }
     </style>
@@ -89,7 +98,7 @@
         </button>
 
         <div class="fab-actions hide-scroll" id="fabActions">
-            <button onclick="window.open('https://wa.me/6281211862924', '_blank')" class="fab-btn bg-green-500 text-white">
+            <button onclick="window.open('https://wa.me/6281211862924', '_blank')" class="fab-btn bg-green-500 text-white shadow-green-200">
                 <i class="fa-brands fa-whatsapp text-xl"></i>
             </button>
             
@@ -201,7 +210,7 @@
             <div class="hidden lg:flex gap-8 items-center font-semibold text-gray-600">
                 <a href="#beranda" class="hover:text-primary transition-colors">Beranda</a><a href="#profil" class="hover:text-primary transition-colors">Profil</a><a href="#galeri" class="hover:text-primary transition-colors">Galeri</a><a href="#video" class="hover:text-primary transition-colors">Video</a><a href="#daftar" class="bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">Daftar Sekarang</a>
             </div>
-            <button id="mobile-btn" class="lg:hidden text-2xl text-primary focus:outline-none" onclick="toggleFab()"><i class="fa-solid fa-bars"></i></button>
+            <button id="mobile-btn" class="lg:hidden text-2xl text-primary focus:outline-none" onclick="toggleNavbarMenu()"><i class="fa-solid fa-bars"></i></button>
         </div>
         <div id="mobile-menu" class="hidden absolute top-20 left-4 right-4 bg-white rounded-2xl shadow-xl p-6 flex-col gap-4 text-center z-40 border border-gray-100 lg:hidden max-h-[80vh] overflow-y-auto">
             <a href="#beranda" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Beranda</a><a href="#profil" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Profil</a><a href="#galeri" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Galeri</a><a href="#video" class="mobile-link py-2 hover:bg-gray-50 rounded-lg">Video</a><a href="#daftar" class="bg-primary text-white py-3 rounded-xl font-bold">Daftar Sekarang</a>
@@ -210,9 +219,7 @@
 
     <header id="beranda" class="relative w-full min-h-[100dvh] overflow-hidden flex items-center justify-center text-center">
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-white z-10"></div>
-        <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900">
-            
-        </div>
+        <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900"></div>
         <div class="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-32 md:pt-44 pb-32">
             <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000 delay-200">
                 <span class="inline-block py-1 px-4 rounded-full bg-white/20 backdrop-blur-md border border-white/40 text-white font-semibold text-xs md:text-sm mb-4 animate-bounce">✨ Pendaftaran Siswa Baru Telah Dibuka</span>
@@ -239,9 +246,8 @@
             <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full"> 
                 <div class="absolute -top-4 -left-4 w-24 h-24 bg-secondary rounded-full opacity-20 animate-float"></div>
                 <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary rounded-full opacity-20 animate-float" style="animation-delay: 1s;"></div>
-                
-                <div id="profile-container" class="w-full h-full relative rounded-[2rem] shadow-2xl border-8 border-white overflow-hidden bg-white rotate-2 hover:rotate-0 transition-transform duration-500">
-                    <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" class="profile-slide active" alt="Kegiatan 1">
+                <div id="profile-container" class="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
+                    <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" class="profile-slide active w-full h-full object-contain drop-shadow-2xl bg-transparent">
                 </div>
             </div>
             <div class="lg:w-1/2 animate-on-scroll opacity-0 translate-x-10 transition-all duration-1000">
@@ -266,9 +272,7 @@
         <div class="max-w-6xl mx-auto relative group shadow-2xl rounded-3xl overflow-hidden bg-white">
             <button onclick="scrollSection('gallery-slider', -1)" class="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-left"></i></button>
             <button onclick="scrollSection('gallery-slider', 1)" class="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/20 hover:bg-black/50 text-white backdrop-blur-sm transition-all flex items-center justify-center text-xl opacity-60 hover:opacity-100"><i class="fa-solid fa-chevron-right"></i></button>
-            <div id="gallery-slider" class="flex overflow-x-auto gap-0 hide-scroll snap-x snap-mandatory scroll-smooth h-[500px]">
-                
-            </div>
+            <div id="gallery-slider" class="flex overflow-x-auto gap-0 hide-scroll snap-x snap-mandatory scroll-smooth h-[500px]"></div>
         </div>
     </section>
 
@@ -397,7 +401,15 @@
         function startHeroLoop() { let c = 0; const s = document.querySelectorAll('.slide'); if (s.length > 1) setInterval(() => { s[c].classList.remove('active'); c = (c + 1) % s.length; s[c].classList.add('active') }, 6000) }
         function startProfileLoop() { let c = 0; const p = document.querySelectorAll('.profile-slide'); if (p.length > 1) setInterval(() => { p[c].classList.remove('active'); c = (c + 1) % p.length; p[c].classList.add('active') }, 4000) }
 
-        // --- NEW FEATURES LOGIC ---
+        // --- PISAHAN LOGIKA MENU (FIX BUG) ---
+        
+        // 1. Toggle Header Menu (Hanya untuk Navbar)
+        function toggleNavbarMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // 2. Toggle Floating Button (Hanya untuk Menu Bawah)
         function toggleFab() { 
             const c = document.getElementById('fabContainer'); 
             const i = document.getElementById('fabIcon');
@@ -406,13 +418,22 @@
             else { i.classList.remove('fa-xmark'); i.classList.add('fa-bars'); }
         }
 
+        // 3. Helper: Sembunyikan FAB saat modal terbuka
+        function hideFab() { document.getElementById('fabContainer').classList.add('hidden-state'); }
+        function showFab() { document.getElementById('fabContainer').classList.remove('hidden-state'); }
+
+        // --- NEW FEATURES LOGIC ---
+
         function openListModal(type) { 
             currentType = type; currentPage = 1; 
             document.getElementById('listModal').classList.add('active'); 
             renderList(); 
-            toggleFab(); // Close fab when opening modal
+            hideFab(); // Sembunyikan FAB
         }
-        function closeListModal() { document.getElementById('listModal').classList.remove('active'); }
+        function closeListModal() { 
+            document.getElementById('listModal').classList.remove('active'); 
+            showFab(); // Munculkan FAB
+        }
 
         function openToolsModal() {
             const c = document.getElementById('toolsContainer'); c.innerHTML = '';
@@ -421,18 +442,23 @@
                 c.innerHTML += `<div onclick="openIframe('${t.url}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
             });
             document.getElementById('toolsModal').classList.add('active');
-            toggleFab();
+            hideFab(); // Sembunyikan FAB
         }
-        function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); }
+        function closeToolsModal() { 
+            document.getElementById('toolsModal').classList.remove('active'); 
+            showFab(); // Munculkan FAB
+        }
         
         function openIframe(url, name) {
             document.getElementById('mainIframe').src = url;
             document.getElementById('iframeTitle').innerText = name;
             document.getElementById('iframeView').classList.add('active');
+            hideFab();
         }
         function closeIframe() {
             document.getElementById('iframeView').classList.remove('active');
             document.getElementById('mainIframe').src = '';
+            showFab();
         }
 
         function renderList() {
@@ -523,8 +549,8 @@
         }
 
         const infoModal = document.getElementById('infoModal');
-        function openInfoModal() { infoModal.classList.remove('hidden'); setTimeout(() => infoModal.classList.add('visible'), 10); toggleFab(); } // Close FAB when opening modal
-        function closeInfoModal() { infoModal.classList.remove('visible'); setTimeout(() => infoModal.classList.add('hidden'), 300) }
+        function openInfoModal() { infoModal.classList.remove('hidden'); setTimeout(() => infoModal.classList.add('visible'), 10); hideFab(); }
+        function closeInfoModal() { infoModal.classList.remove('visible'); setTimeout(() => infoModal.classList.add('hidden'), 300); showFab(); }
         
         const newsFullPage = document.getElementById('newsFullPage');
         let newsSlideshowInterval;
@@ -548,7 +574,8 @@
             }
             history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
             newsFullPage.classList.add('active');
-            document.body.style.overflow = 'hidden'
+            document.body.style.overflow = 'hidden';
+            hideFab();
         }
         
         const mediaViewer = document.getElementById('mediaViewer');
@@ -574,8 +601,8 @@
         }
 
         function closeMediaViewer() { mediaViewer.classList.remove('active'); setTimeout(() => { mediaViewerContent.innerHTML = '' }, 300) }
-        function closeFullPageNews() { newsFullPage.classList.remove('active'); document.body.style.overflow = 'auto'; stopNewsSlideshow() }
-        function goBack() { if (history.state && history.state.mediaOpen) history.back(); else if (history.state && history.state.newsOpen) history.back(); else { closeMediaViewer(); closeFullPageNews(); closeListModal(); closeToolsModal(); closeIframe(); } }
+        function closeFullPageNews() { newsFullPage.classList.remove('active'); document.body.style.overflow = 'auto'; stopNewsSlideshow(); showFab(); }
+        function goBack() { if (history.state && history.state.mediaOpen) history.back(); else if (history.state && history.state.newsOpen) history.back(); else { closeMediaViewer(); closeFullPageNews(); closeListModal(); closeToolsModal(); closeIframe(); showFab(); } }
         window.addEventListener('popstate', function(event) { if (mediaViewer.classList.contains('active')) closeMediaViewer(); else if (newsFullPage.classList.contains('active')) closeFullPageNews() });
 
         function startNewsSlideshow() { stopNewsSlideshow(); const slides = document.querySelectorAll('.news-slide-wrapper'); if (slides.length <= 1) return; let current = 0; newsSlideshowInterval = setInterval(() => { slides[current].classList.remove('active'); current = (current + 1) % slides.length; slides[current].classList.add('active') }, 3000) }
