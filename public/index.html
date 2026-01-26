@@ -100,10 +100,27 @@
         .news-slide-wrapper.active { opacity: 1; }
         .drop-cap::first-letter { float: left; font-size: 3.5rem; line-height: 0.8; font-weight: bold; color: #0EA5E9; margin-right: 0.75rem; margin-top: 0.25rem; }
 
-        /* Video Slider Nav Logic */
-        .slider-wrapper.video-playing .nav-btn { opacity: 0 !important; pointer-events: none; }
-        .slider-wrapper.video-playing:hover .nav-btn { opacity: 1 !important; pointer-events: auto; }
-        .nav-btn { transition: all 0.3s ease; backdrop-filter: blur(4px); }
+        /* --- SMART VIDEO SLIDER LOGIC (Tombol Hilang saat Play) --- */
+        .slider-wrapper .nav-btn {
+            transition: all 0.4s ease;
+            backdrop-filter: blur(4px);
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+        
+        /* Saat video diputar (kelas ini ditambahkan via JS ke wrapper) */
+        .slider-wrapper.video-playing .nav-btn {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: translateY(-50%) scale(0.8); /* Efek mengecil sedikit */
+        }
+
+        /* Saat mouse diarahkan ke slider walau video jalan, tombol muncul lagi (UX Friendly) */
+        .slider-wrapper.video-playing:hover .nav-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: translateY(-50%) scale(1);
+        }
 
         /* --- LINK NYAMBUNG DI TEKS (INLINE STYLE) --- */
         a.inline-link {
@@ -336,8 +353,8 @@
         <div class="max-w-5xl mx-auto text-center animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000">
             <h2 class="font-display text-4xl font-bold text-gray-800 mb-8">Video Kegiatan</h2>
             <div class="relative w-full max-w-3xl mx-auto slider-wrapper" id="mainSlider">
-                <button class="nav-btn prev-btn absolute -left-4 md:-left-12 top-1/3 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                <button class="nav-btn next-btn absolute -right-4 md:-right-12 top-1/3 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="nav-btn prev-btn absolute -left-4 md:-left-12 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="nav-btn next-btn absolute -right-4 md:-right-12 top-1/2 transform -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center text-xl shadow-lg border border-gray-100 hover:scale-110" onclick="geserSlider(1)"><i class="fa-solid fa-chevron-right"></i></button>
                 <div class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scroll gap-6 pb-4" id="trackVideo">
                     </div>
             </div>
@@ -499,8 +516,7 @@
                 // 3. Update News (Jika ada data baru)
                 if(data.news && data.news.length > 0) {
                     newsData = data.news;
-                    // Note: Slider berita saat ini manual link ke index 0,1,2.
-                    // Jika mau full dinamis, perlu fungsi renderNewsSlider()
+                    // Render ulang slider berita manual link ke index 0,1,2 jika data dinamis
                 }
 
                 console.log("Konten berhasil dimuat dari Database.");
@@ -575,7 +591,8 @@
             const mainSlider = document.getElementById('mainSlider');
             players.forEach(p => { if (p && typeof p.pauseVideo === 'function') p.pauseVideo(); });
             mainSlider.classList.remove('video-playing');
-            const lebarSlide = track.querySelector('div').clientWidth + 24; 
+            const item = track.querySelector('div');
+            const lebarSlide = item ? item.clientWidth + 24 : 300; // 24 is gap
             track.scrollBy({ left: arah * lebarSlide, behavior: 'smooth' });
         }
 
@@ -684,14 +701,21 @@
         }
 
         function goBack() {
-            if (history.state && history.state.mediaOpen) { history.back(); } 
-            else if (history.state && history.state.newsOpen) { history.back(); } 
-            else { closeMediaViewer(); closeFullPageNews(); }
+            if (history.state && history.state.mediaOpen) {
+                history.back(); 
+            } else if (history.state && history.state.newsOpen) {
+                history.back(); 
+            } else {
+                closeMediaViewer(); closeFullPageNews();
+            }
         }
 
         window.addEventListener('popstate', function(event) {
-            if (mediaViewer.classList.contains('active')) closeMediaViewer();
-            else if (newsFullPage.classList.contains('active')) closeFullPageNews();
+            if (mediaViewer.classList.contains('active')) {
+                closeMediaViewer();
+            } else if (newsFullPage.classList.contains('active')) {
+                closeFullPageNews();
+            }
         });
 
         function startNewsSlideshow() {
