@@ -13,7 +13,6 @@ async function removeBackground(imageUrl, apiKey) {
             responseType: 'arraybuffer'
         });
         
-        // Return base64 agar bisa diupload ke Cloudinary
         return Buffer.from(response.data, 'binary').toString('base64');
     } catch (error) {
         console.error("Remove BG Error:", error.response?.data?.toString());
@@ -21,16 +20,21 @@ async function removeBackground(imageUrl, apiKey) {
     }
 }
 
-// Fungsi Upload ke Cloudinary (Metode Unsigned / Tanpa Login API)
+// Fungsi Upload ke Cloudinary (DENGAN OPTIMASI FILE)
 async function uploadToCloudinary(fileSource, cloudName, uploadPreset, isBase64 = false) {
     try {
         const formData = new FormData();
         if (isBase64) {
             formData.append('file', `data:image/png;base64,${fileSource}`);
         } else {
-            formData.append('file', fileSource); // URL
+            formData.append('file', fileSource);
         }
         formData.append('upload_preset', uploadPreset);
+        
+        // --- OPTIMASI GAMBAR CERDAS DI SINI ---
+        // Memaksa jadi WebP/Auto, Kualitas Auto, dan Resize max 1200px lebar
+        // Ini agar website tidak loading lama
+        formData.append("transformation", "w_1200,q_auto,f_auto,c_limit"); 
 
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
         const res = await axios.post(url, formData, { headers: formData.getHeaders ? formData.getHeaders() : {} });
