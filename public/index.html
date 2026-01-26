@@ -40,7 +40,13 @@
         /* SLIDESHOW */
         .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
         .slide.active { opacity: 1; z-index: 0; }
-        .profile-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; background: white; border-radius: 2rem; }
+        
+        /* PROFIL (TRANSPARAN FIX) */
+        .profile-slide { 
+            position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; 
+            background: transparent; /* Transparan */
+            filter: drop-shadow(0 20px 13px rgba(0,0,0,0.15)); /* Bayangan Objek */
+        }
         .profile-slide.active { opacity: 1 !important; z-index: 20; }
         
         /* MODALS */
@@ -55,38 +61,13 @@
         #floating-mascot:hover { transform: scale(1.1); }
         
         /* YOUTUBE FACADE (ANTI BOT & FIX RATIO) */
-        .yt-wrapper {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%; /* Rasio 16:9 Paksa */
-            background: #000;
-            overflow: hidden;
-        }
-        .yt-lite { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            cursor: pointer; 
-            display: flex; justify-content: center; align-items: center;
-        }
-        .yt-lite img {
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* FIX GAMBAR MELEBAR/GEPENG */
-            opacity: 0.8;
-            transition: 0.3s;
-        }
+        .yt-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; overflow: hidden; }
+        .yt-lite { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .yt-lite img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: 0.3s; }
         .yt-lite:hover img { opacity: 1; }
         
-        /* Tombol Play Youtube CSS Murni */
-        .play-btn {
-            position: absolute; width: 68px; height: 48px; z-index: 10;
-            background-color: transparent;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/><path d="M45 24 27 14v20" fill="white"/></svg>');
-            background-repeat: no-repeat;
-            transition: transform 0.2s;
-        }
+        .play-btn { position: absolute; width: 68px; height: 48px; z-index: 10; background-color: transparent; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="red"/><path d="M45 24 27 14v20" fill="white"/></svg>'); background-repeat: no-repeat; transition: transform 0.2s; }
         .yt-lite:hover .play-btn { transform: scale(1.1); }
-        
-        /* Iframe */
         .yt-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
         /* HEADER & LINK */
@@ -189,8 +170,7 @@
     <header id="beranda" class="relative w-full min-h-[100dvh] overflow-hidden flex items-center justify-center text-center">
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-white z-10"></div>
         <div id="slider-container" class="absolute inset-0 w-full h-full bg-gray-900">
-        
-        </div>
+            </div>
         <div class="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-32 md:pt-44 pb-32">
             <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-1000 delay-200">
                 <span class="inline-block py-1 px-4 rounded-full bg-white/20 backdrop-blur-md border border-white/40 text-white font-semibold text-xs md:text-sm mb-4 animate-bounce">✨ Pendaftaran Siswa Baru Telah Dibuka</span>
@@ -217,6 +197,8 @@
             <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full"> 
                 <div class="absolute -top-4 -left-4 w-24 h-24 bg-secondary rounded-full opacity-20 animate-float"></div>
                 <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary rounded-full opacity-20 animate-float" style="animation-delay: 1s;"></div>
+                <div id="profile-container" class="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
+                    <img src="https://files.catbox.moe/3tf995.png" class="profile-slide active w-full h-full object-contain drop-shadow-2xl bg-transparent">
                 </div>
             </div>
             <div class="lg:w-1/2 animate-on-scroll opacity-0 translate-x-10 transition-all duration-1000">
@@ -295,7 +277,7 @@
     </footer>
 
     <script>
-        let daftarVideo=[{url:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",judul:"Video Dokumentasi",deskripsi:"Profil TK Baiturrohman."}],newsData=[{title:"Profil sekolah",date:"20 januari 2026",content:"<p>Tetap stay di web kami bunda untuk update info terbaru berita terkini dan kegiatan sekolah.</p>",images:["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],gallery:[]}],track,mainSlider,players=[];
+        let daftarVideo=[{url:"https://youtube.com/watch?v=qOea_D1euFs",judul:"Video Dokumentasi",deskripsi:"Kegiatan utama TK Baiturrohman."}],newsData=[{title:"Profil sekolah",date:"20 januari 2026",content:"<p>Tetap stay di web kami bunda untuk update info terbaru berita terkini dan kegiatan sekolah.</p>",images:["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],gallery:[]}],track,mainSlider,players=[];
         async function loadContent(){try{const response=await fetch('/api/content?t='+new Date().getTime());if(!response.ok)throw new Error('API Error');const data=await response.json();if(data.config){if(data.config.logoUrl)document.querySelectorAll('.logo-tk').forEach(img=>img.src=data.config.logoUrl);if(data.config.mascotUrl)document.getElementById('floating-mascot').src=data.config.mascotUrl;if(data.config.infoTitle)document.getElementById('info-title').innerText=data.config.infoTitle;if(data.config.infoContent)document.getElementById('info-content').innerText=data.config.infoContent;if(data.config.heroImages&&data.config.heroImages.length>0){const h=document.getElementById('slider-container');h.innerHTML='';data.config.heroImages.forEach((src,i)=>{h.innerHTML+=`<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`});startHeroLoop()}if(data.config.profileImages&&data.config.profileImages.length>0){const p=document.getElementById('profile-container');p.innerHTML='';data.config.profileImages.forEach((src,i)=>{const img=document.createElement('img');img.src=src;img.className=`profile-slide ${i===0?'active':''}`;p.appendChild(img)});startProfileLoop()}}if(data.videos&&data.videos.length>0){daftarVideo=data.videos;renderVideoSlider()}if(data.news&&data.news.length>0){newsData=data.news;renderNewsSlider()}}catch(e){renderVideoSlider();renderNewsSlider()}}
         
         function startHeroLoop(){let c=0;const s=document.querySelectorAll('.slide');if(s.length>1)setInterval(()=>{s[c].classList.remove('active');c=(c+1)%s.length;s[c].classList.add('active')},6000)}
@@ -322,7 +304,10 @@
         const newsFullPage=document.getElementById('newsFullPage');let newsSlideshowInterval;
         function openFullPageNews(index){const data=newsData[index];if(!data)return;document.getElementById('news-title').innerText=data.title;document.getElementById('news-date').innerText=data.date;document.getElementById('news-content').innerHTML=`<div class="drop-cap">${data.content}</div>`;const container=document.getElementById('news-slideshow-container');container.innerHTML='';if(data.images&&data.images.length>0){data.images.forEach((src,i)=>{const div=document.createElement('div');div.className=`news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;div.innerHTML=`<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;container.appendChild(div)});startNewsSlideshow()}history.pushState({newsOpen:true},"","#detail-kegiatan");newsFullPage.classList.add('active');document.body.style.overflow='hidden'}
         const mediaViewer=document.getElementById('mediaViewer');const mediaViewerContent=document.getElementById('mediaViewerContent');
-        function openMediaViewer(newsIndex,filter){const data=newsData[newsIndex];if(!data||!data.gallery)return;mediaViewerContent.innerHTML='';const filtered=data.gallery.filter(item=>{if(filter==='all')return true;return item.group===filter});if(filtered.length===0){alert("Galeri belum tersedia.");return}filtered.forEach(item=>{let el='';if(item.type==='image')el=`<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;else if(item.type==='video'){const vid=getYouTubeVideoId(item.src);el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`}mediaViewerContent.innerHTML+=el});history.pushState({newsOpen:true,mediaOpen:true},"","#lihat-media");mediaViewer.classList.add('active')}
+        
+        // VIDEO IN MEDIA VIEWER (WITH OPEN APP LINK)
+        function openMediaViewer(newsIndex,filter){const data=newsData[newsIndex];if(!data||!data.gallery)return;mediaViewerContent.innerHTML='';const filtered=data.gallery.filter(item=>{if(filter==='all')return true;return item.group===filter});if(filtered.length===0){alert("Galeri belum tersedia.");return}filtered.forEach(item=>{let el='';if(item.type==='image')el=`<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;else if(item.type==='video'){const vid=getYouTubeVideoId(item.src);el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-2">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`}mediaViewerContent.innerHTML+=el});history.pushState({newsOpen:true,mediaOpen:true},"","#lihat-media");mediaViewer.classList.add('active')}
+        
         function closeMediaViewer(){mediaViewer.classList.remove('active');setTimeout(()=>{mediaViewerContent.innerHTML=''},300)}
         function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow()}
         function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews()}}
