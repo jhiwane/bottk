@@ -32,6 +32,70 @@
     </script>
 
     <style>
+        /* --- ANIMASI ANGEL LINE --- */
+@keyframes angelRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Wrapper untuk membuat garis tepi berputar */
+.angel-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    /* Bentuk mengikuti gambar (disesuaikan jika gambar bulat/kotak) */
+    border-radius: 20px; 
+}
+
+/* Garis Warna-warni Berputar */
+.angel-wrapper::before {
+    content: '';
+    position: absolute;
+    /* Mengatur ketebalan garis (sesuaikan -5px s/d -10px) */
+    inset: -6px; 
+    /* Warna Angel: Putih, Pink Soft, Biru Langit, Transparan */
+    background: conic-gradient(
+        from 0deg, 
+        transparent 0%, 
+        #ffffff 20%, 
+        #FFB7B2 40%, 
+        #A6E7FF 60%, 
+        #ffffff 80%, 
+        transparent 100%
+    );
+    border-radius: inherit; /* Ikut melengkung */
+    animation: angelRotate 4s linear infinite; /* Kecepatan putar */
+    z-index: 1; /* Di belakang gambar */
+    opacity: 0.8;
+}
+
+/* Efek Glow (Cahaya) biar makin 'Angel' */
+.angel-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    background: inherit;
+    border-radius: inherit;
+    filter: blur(15px); /* Efek blur biar glowing */
+    z-index: 0; /* Paling belakang */
+    opacity: 0.6;
+    animation: angelRotate 4s linear infinite;
+}
+
+/* Gambar Profil di atas garis */
+.angel-img {
+    position: relative;
+    z-index: 10; /* Pastikan gambar di atas garis */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 15px; /* Sedikit melengkung biar rapi */
+    /* Drop shadow tetap ada biar makin 3D */
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+}
         /* UTILITIES */
         body { overflow-x: hidden; width: 100%; }
         .hide-scroll::-webkit-scrollbar { display: none; }
@@ -194,12 +258,15 @@
 
     <section id="profil" class="py-20 px-6 overflow-hidden">
         <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
-            <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full"> 
+            <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full p-8"> 
                 <div class="absolute -top-4 -left-4 w-24 h-24 bg-secondary rounded-full opacity-20 animate-float"></div>
                 <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary rounded-full opacity-20 animate-float" style="animation-delay: 1s;"></div>
+                
                 <div id="profile-container" class="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
-                    <img src="https://files.catbox.moe/3tf995.png" class="profile-slide active w-full h-full object-contain drop-shadow-2xl bg-transparent">
-                </div>
+                    
+                    <div class="angel-wrapper">
+                        <img src="https://files.catbox.moe/3tf995.png" class="profile-slide active angel-img">
+                    </div>
             </div>
             <div class="lg:w-1/2 animate-on-scroll opacity-0 translate-x-10 transition-all duration-1000">
                 <h4 class="text-primary font-bold tracking-widest uppercase mb-2">Tentang Kami</h4>
