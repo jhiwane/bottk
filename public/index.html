@@ -42,21 +42,21 @@
         .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
         .slide.active { opacity: 1; z-index: 0; }
         
-        /* PROFIL (Transparan & Drop Shadow) */
+        /* PROFIL (BOX PUTIH KEMBALI) */
         .profile-slide { 
             position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; z-index: 10; object-fit: contain; 
-            background-color: transparent; 
-            filter: drop-shadow(0 20px 13px rgba(0,0,0,0.15));
+            background-color: #ffffff; /* Putih Polos */
+            border: 8px solid white;   /* Border Tebal Putih */
+            border-radius: 2rem;       /* Sudut Membulat */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Bayangan Kotak */
         }
         .profile-slide.active { opacity: 1 !important; z-index: 20; }
         
-        /* MODALS (Fullscreen Overlay) */
+        /* MODALS */
         .full-page-view { transition: 0.3s; transform: translateY(100%); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 2000; background: white; overflow-y: auto; }
         .full-page-view.active { transform: translateY(0); opacity: 1; visibility: visible; }
-        
         .media-viewer-overlay { transition: 0.3s; transform: scale(0.95); opacity: 0; visibility: hidden; position: fixed; inset: 0; z-index: 3000; background: black; overflow-y: auto; }
         .media-viewer-overlay.active { transform: scale(1); opacity: 1; visibility: visible; }
-        
         .modal { transition: 0.3s; } .modal.hidden { opacity: 0; pointer-events: none; } .modal.visible { opacity: 1; pointer-events: auto; }
         
         /* YOUTUBE FACADE */
@@ -69,7 +69,7 @@
         .yt-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
         /* HEADER & LINK */
-        .news-slide-wrapper { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; }
+        .news-slide-wrapper { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s; cursor: pointer; } 
         .news-slide-wrapper.active { opacity: 1; }
         .drop-cap::first-letter { float: left; font-size: 3.5rem; line-height: 0.8; font-weight: bold; color: #0EA5E9; margin-right: 0.75rem; margin-top: 0.25rem; }
         a.inline-link { color: #0EA5E9; font-weight: 800; cursor: pointer; } a.inline-link:hover { color: #F59E0B; text-decoration: underline; }
@@ -79,11 +79,9 @@
         .slider-wrapper.video-playing .nav-btn { opacity: 0 !important; pointer-events: none; }
         .slider-wrapper.video-playing:hover .nav-btn { opacity: 1 !important; pointer-events: auto; }
 
-        /* FLOATING DOCK STYLES (Menu Bawah) */
+        /* FLOATING DOCK STYLES */
         .fab-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000; display: flex; flex-direction: row-reverse; align-items: center; gap: 0.75rem; transition: transform 0.3s, opacity 0.3s; }
-        /* Kelas untuk menyembunyikan FAB saat modal terbuka */
         .fab-container.hidden-state { transform: scale(0); opacity: 0; pointer-events: none; }
-        
         .fab-actions { display: flex; flex-direction: row-reverse; gap: 0.75rem; padding-right: 0.5rem; max-width: 0; opacity: 0; overflow-x: auto; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; border-radius: 9999px; }
         .fab-container.active .fab-actions { max-width: 80vw; opacity: 1; pointer-events: auto; padding: 0.5rem; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .fab-btn { width: 3rem; height: 3rem; border-radius: 9999px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
@@ -96,24 +94,19 @@
         <button onclick="toggleFab()" class="w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition-transform hover:scale-105 z-50 animate-pulse-slow">
             <i id="fabIcon" class="fa-solid fa-bars"></i>
         </button>
-
         <div class="fab-actions hide-scroll" id="fabActions">
             <button onclick="window.open('https://wa.me/6281211862924', '_blank')" class="fab-btn bg-green-500 text-white shadow-green-200">
                 <i class="fa-brands fa-whatsapp text-xl"></i>
             </button>
-            
             <button onclick="openInfoModal()" class="fab-btn bg-white border border-gray-200 overflow-hidden relative">
                 <img id="fabMascot" src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NmpzNWR2andkemZsZ2VndXVmOW5tdnJjdHZkcWQ4MmR6bGY2bGsyZiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/O0DmL0WTkudXLfsUil/giphy.gif" class="w-full h-full object-cover">
             </button>
-
             <button onclick="openListModal('news')" class="fab-btn bg-blue-500 text-white">
                 <i class="fa-solid fa-newspaper"></i>
             </button>
-
             <button onclick="openListModal('video')" class="fab-btn bg-red-600 text-white">
                 <i class="fa-brands fa-youtube"></i>
             </button>
-
             <button onclick="openToolsModal()" class="fab-btn bg-purple-600 text-white">
                 <i class="fa-solid fa-rocket"></i>
             </button>
@@ -144,9 +137,9 @@
         </div>
         <div id="listContainer" class="p-4 space-y-4 pb-20"></div>
         <div class="fixed bottom-0 w-full bg-white p-4 border-t flex justify-between z-20">
-            <button onclick="prevPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
+            <button id="btnPrev" onclick="prevPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
             <span id="pageInfo" class="font-bold">1/1</span>
-            <button onclick="nextPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Next</button>
+            <button id="btnNext" onclick="nextPage()" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Next</button>
         </div>
     </div>
 
@@ -171,7 +164,7 @@
         </div>
         <div class="max-w-5xl mx-auto bg-white min-h-screen pb-24">
             <div class="relative w-full h-[50vh] md:h-[70vh] bg-black overflow-hidden group"> 
-                <div id="news-slideshow-container" class="w-full h-full relative"></div>
+                <div id="news-slideshow-container" class="w-full h-full relative cursor-pointer"></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20"></div>
                 <div class="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white z-30 pointer-events-none">
                     <div class="max-w-3xl mx-auto">
@@ -246,8 +239,9 @@
             <div class="lg:w-1/2 relative h-96 md:h-[500px] w-full"> 
                 <div class="absolute -top-4 -left-4 w-24 h-24 bg-secondary rounded-full opacity-20 animate-float"></div>
                 <div class="absolute -bottom-4 -right-4 w-32 h-32 bg-primary rounded-full opacity-20 animate-float" style="animation-delay: 1s;"></div>
-                <div id="profile-container" class="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
-                    <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" class="profile-slide active w-full h-full object-contain drop-shadow-2xl bg-transparent">
+                
+                <div id="profile-container" class="w-full h-full relative rounded-[2rem] shadow-2xl border-8 border-white overflow-hidden bg-white rotate-2 hover:rotate-0 transition-transform duration-500">
+                    <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" class="profile-slide active" alt="Kegiatan 1">
                 </div>
             </div>
             <div class="lg:w-1/2 animate-on-scroll opacity-0 translate-x-10 transition-all duration-1000">
@@ -327,139 +321,73 @@
     <script>
         let allData = { news: [], videos: [], tools: [] };
         let currentPage = 1, itemsPerPage = 10, currentType = 'news';
-
-        // --- DATA AWAL (SESUAI REQUEST) ---
-        let daftarVideo = [{
-            url: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",
-            judul: "Profil sekolah",
-            deskripsi: "Profil TK Baiturrohman."
-        }];
-        
-        let newsData = [{
-            title: "Profil sekolah",
-            date: "20 januari 2026",
-            // KONTEN DENGAN LINK INLINE
-            content: `Tetap stay di web kami bunda.segala informasi nanti kami update bisa <a onclick="openMediaViewer(0, 'foto_1')" class="inline-link">[lihat foto ]</a><br>Untuk melihat aktivitas bisa ke channel video yutube kami bunda <a onclick="openMediaViewer(0, 'video_1')" class="inline-link video-link">[lihat video]</a><br><br><span class="text-xs text-gray-400 italic">jika video tidak bisa dibuka diweb ada tulisan kecil dibawah buka app youtube.</span>`,
-            images: ["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],
-            gallery: [
-                // FOTO INLINE
-                { group: 'foto_1', type: 'image', src: "https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg", caption: "Dokumentasi Profil" },
-                // VIDEO INLINE
-                { group: 'video_1', type: 'video', src: "https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP", caption: "Video Profil Sekolah" }
-            ]
-        }];
-        
-        let track, mainSlider, players = [];
+        let defaultNews=[{title:"Profil sekolah",date:"20 januari 2026",content:`Tetap stay di web kami bunda.segala informasi nanti kami update bisa <a onclick="openMediaViewer(0, 'foto_1')" class="inline-link">[lihat foto ]</a><br>Untuk melihat aktivitas bisa ke channel video yutube kami bunda <a onclick="openMediaViewer(0, 'video_1')" class="inline-link video-link">[lihat video]</a><br><br><span class="text-xs text-gray-400 italic">jika video tidak bisa dibuka diweb ada tulisan kecil dibawah buka app youtube.</span>`,images:["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],gallery:[{group:'foto_1',type:'image',src:"https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg",caption:"Dokumentasi"},{group:'video_1',type:'video',src:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",caption:"Video Profil"}]}];
+        let defaultVideos=[{url:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",judul:"Profil sekolah",deskripsi:"Profil TK Baiturrohman."}];
+        let currentNewsIndex = 0; // GLOBAL STATE FOR CLICKABLE LINKS
 
         async function loadContent() {
             try {
-                // Fetch dengan cache busting
-                const response = await fetch('/api/content?t=' + new Date().getTime());
-                if (!response.ok) throw new Error('API Error');
-                const data = await response.json();
-
-                // MERGE DATA DB DENGAN DEFAULT JIKA KOSONG
-                allData.news = (data.news && data.news.length > 0) ? data.news : newsData;
-                allData.videos = (data.videos && data.videos.length > 0) ? data.videos : daftarVideo;
+                const res = await fetch('/api/content?t=' + new Date().getTime());
+                const data = await res.json();
+                allData.news = (data.news && data.news.length > 0) ? data.news : defaultNews;
+                allData.videos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
                 allData.tools = data.tools || [];
 
-                // UPDATE VARIABLE GLOBAL UTAMA AGAR TAMPIL DI HOMEPAGE
-                newsData = allData.news;
-                daftarVideo = allData.videos;
-
-                if (data.config) {
-                    if (data.config.logoUrl) document.querySelectorAll('.logo-tk').forEach(img => img.src = data.config.logoUrl);
-                    if (data.config.mascotUrl) document.getElementById('fabMascot').src = data.config.mascotUrl; // Update mascot di FAB
-                    if (data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
-                    if (data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
-                    if (data.config.heroImages && data.config.heroImages.length > 0) {
+                if(data.config) {
+                    if(data.config.logoUrl) document.querySelectorAll('.logo-tk').forEach(img => img.src = data.config.logoUrl);
+                    if(data.config.mascotUrl) document.getElementById('fabMascot').src = data.config.mascotUrl;
+                    if(data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
+                    if(data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
+                    if(data.config.heroImages && data.config.heroImages.length > 0) {
                         const h = document.getElementById('slider-container'); h.innerHTML = '';
-                        data.config.heroImages.forEach((src, i) => {
+                        data.config.heroImages.forEach((src,i) => {
                             h.innerHTML += `<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`;
                         });
                         startHeroLoop();
                     }
-                    if (data.config.profileImages && data.config.profileImages.length > 0) {
+                    if(data.config.profileImages && data.config.profileImages.length > 0) {
                         const p = document.getElementById('profile-container'); p.innerHTML = '';
-                        data.config.profileImages.forEach((src, i) => {
+                        data.config.profileImages.forEach((src,i) => {
                             const img = document.createElement('img'); img.src = src; img.className = `profile-slide ${i===0?'active':''}`;
                             p.appendChild(img);
                         });
                         startProfileLoop();
                     }
                 }
-                
-                renderVideoSlider();
-                renderNewsSlider();
-
-            } catch (e) {
-                // Fallback jika API gagal
-                renderVideoSlider(); renderNewsSlider(); 
+                renderNewsSlider(); renderVideoSlider();
+            } catch(e) { 
+                allData.news = defaultNews; allData.videos = defaultVideos; renderNewsSlider(); renderVideoSlider();
             }
         }
 
-        function startHeroLoop() { let c = 0; const s = document.querySelectorAll('.slide'); if (s.length > 1) setInterval(() => { s[c].classList.remove('active'); c = (c + 1) % s.length; s[c].classList.add('active') }, 6000) }
-        function startProfileLoop() { let c = 0; const p = document.querySelectorAll('.profile-slide'); if (p.length > 1) setInterval(() => { p[c].classList.remove('active'); c = (c + 1) % p.length; p[c].classList.add('active') }, 4000) }
+        function startHeroLoop(){let c=0;const s=document.querySelectorAll('.slide');if(s.length>1)setInterval(()=>{s[c].classList.remove('active');c=(c+1)%s.length;s[c].classList.add('active')},6000)}
+        function startProfileLoop(){let c=0;const p=document.querySelectorAll('.profile-slide');if(p.length>1)setInterval(()=>{p[c].classList.remove('active');c=(c+1)%p.length;p[c].classList.add('active')},4000)}
 
-        // --- PISAHAN LOGIKA MENU (FIX BUG) ---
-        
-        // 1. Toggle Header Menu (Hanya untuk Navbar)
-        function toggleNavbarMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
-        }
-
-        // 2. Toggle Floating Button (Hanya untuk Menu Bawah)
+        function toggleNavbarMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleFab() { 
-            const c = document.getElementById('fabContainer'); 
-            const i = document.getElementById('fabIcon');
+            const c = document.getElementById('fabContainer'); const i = document.getElementById('fabIcon');
             c.classList.toggle('active');
             if(c.classList.contains('active')) { i.classList.remove('fa-bars'); i.classList.add('fa-xmark'); }
             else { i.classList.remove('fa-xmark'); i.classList.add('fa-bars'); }
         }
-
-        // 3. Helper: Sembunyikan FAB saat modal terbuka
         function hideFab() { document.getElementById('fabContainer').classList.add('hidden-state'); }
         function showFab() { document.getElementById('fabContainer').classList.remove('hidden-state'); }
 
-        // --- NEW FEATURES LOGIC ---
-
-        function openListModal(type) { 
-            currentType = type; currentPage = 1; 
-            document.getElementById('listModal').classList.add('active'); 
-            renderList(); 
-            hideFab(); // Sembunyikan FAB
-        }
-        function closeListModal() { 
-            document.getElementById('listModal').classList.remove('active'); 
-            showFab(); // Munculkan FAB
-        }
-
-        function openToolsModal() {
-            const c = document.getElementById('toolsContainer'); c.innerHTML = '';
-            if(allData.tools.length === 0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
-            allData.tools.forEach(t => {
-                c.innerHTML += `<div onclick="openIframe('${t.url}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
-            });
-            document.getElementById('toolsModal').classList.add('active');
-            hideFab(); // Sembunyikan FAB
-        }
-        function closeToolsModal() { 
-            document.getElementById('toolsModal').classList.remove('active'); 
-            showFab(); // Munculkan FAB
-        }
+        function openListModal(type) { currentType = type; currentPage = 1; document.getElementById('listModal').classList.add('active'); renderList(); hideFab(); }
+        function closeListModal() { document.getElementById('listModal').classList.remove('active'); showFab(); }
         
-        function openIframe(url, name) {
-            document.getElementById('mainIframe').src = url;
-            document.getElementById('iframeTitle').innerText = name;
-            document.getElementById('iframeView').classList.add('active');
-            hideFab();
+        function openToolsModal() { 
+            const c = document.getElementById('toolsContainer'); c.innerHTML = '';
+            if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
+            allData.tools.forEach(t => {
+                const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
+                c.innerHTML += `<div onclick="openIframe('${link}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
+            });
+            document.getElementById('toolsModal').classList.add('active'); hideFab();
         }
-        function closeIframe() {
-            document.getElementById('iframeView').classList.remove('active');
-            document.getElementById('mainIframe').src = '';
-            showFab();
-        }
+        function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); showFab(); }
+        function openIframe(url, name) { document.getElementById('mainIframe').src = url; document.getElementById('iframeTitle').innerText = name; document.getElementById('iframeView').classList.add('active'); hideFab(); }
+        function closeIframe() { document.getElementById('iframeView').classList.remove('active'); document.getElementById('mainIframe').src = ''; showFab(); }
 
         function renderList() {
             const container = document.getElementById('listContainer'); container.innerHTML = '';
@@ -470,23 +398,24 @@
             const start = (currentPage - 1) * itemsPerPage;
             const paginated = filtered.slice(start, start + itemsPerPage);
             
-            document.getElementById('pageInfo').innerText = `${currentPage} / ${Math.ceil(filtered.length/itemsPerPage) || 1}`;
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const maxPage = Math.ceil(filtered.length/itemsPerPage) || 1;
+            
+            btnPrev.disabled = currentPage <= 1; btnPrev.style.opacity = currentPage <= 1 ? '0.5' : '1';
+            btnNext.disabled = currentPage >= maxPage; btnNext.style.opacity = currentPage >= maxPage ? '0.5' : '1';
+            document.getElementById('pageInfo').innerText = `${currentPage} / ${maxPage}`;
 
             paginated.forEach((item, idx) => {
                 const globalIdx = source.indexOf(item);
                 const title = item.title || item.judul;
                 const date = item.date || 'Video';
                 let thumb = "https://files.catbox.moe/3tf995.png";
-                
                 if(currentType === 'news' && item.images?.length) thumb = item.images[0];
-                if(currentType === 'video' && item.url) { 
-                    const vid = item.url.match(/v=([^&]+)/) || item.url.match(/youtu\.be\/([^?]+)/); 
-                    if(vid) thumb = `https://img.youtube.com/vi/${vid[1]}/default.jpg`; 
-                }
-                if (thumb.includes('cloudinary')) thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/'); // Optimize thumb
-
-                const clickAction = currentType === 'news' ? `openFullPageNews(${globalIdx}); closeListModal()` : `window.open('${item.url}', '_blank')`;
+                if(currentType === 'video' && item.url) { const vid = item.url.match(/v=([^&]+)/) || item.url.match(/youtu\.be\/([^?]+)/); if(vid) thumb = `https://img.youtube.com/vi/${vid[1]}/default.jpg`; }
+                if(thumb.includes('cloudinary')) thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/');
                 
+                const clickAction = currentType === 'news' ? `openFullPageNews(${globalIdx}); closeListModal()` : `window.open('${item.url}', '_blank')`;
                 container.innerHTML += `<div onclick="${clickAction}" class="flex gap-4 bg-gray-50 p-3 rounded-lg shadow-sm cursor-pointer hover:bg-gray-100"><img src="${thumb}" class="w-20 h-20 object-cover rounded-md bg-gray-200"><div><h4 class="font-bold text-gray-800 line-clamp-2 text-sm">${title}</h4><span class="text-xs text-gray-500">${date}</span></div></div>`;
             });
         }
@@ -494,83 +423,35 @@
         function prevPage() { if(currentPage > 1) { currentPage--; renderList(); } }
         function nextPage() { currentPage++; renderList(); }
 
-        // --- YOUTUBE NOCOOKIE (ANTI BOT) ---
-        function renderVideoSlider() {
-            const t = document.getElementById('trackVideo');
-            if (!t) return;
-            t.innerHTML = '';
-            daftarVideo.forEach((v, i) => {
-                const id = getYouTubeVideoId(v.url);
-                if (id) {
-                    const thumb = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
-                    t.innerHTML += `<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all">
-                        <div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div>
-                        <div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p>
-                        <div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div>
-                    </div>`
-                }
-            })
-        }
+        function renderVideoSlider(){const t=document.getElementById('trackVideo');if(!t)return;t.innerHTML='';allData.videos.forEach((v,i)=>{const id=getYouTubeVideoId(v.url);if(id){const thumb=`https://img.youtube.com/vi/${id}/maxresdefault.jpg`;t.innerHTML+=`<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all"><div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div><div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p><div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div></div>`}})}
+        function loadYtIframe(el){const id=el.getAttribute('data-id');const f=document.createElement('iframe');f.setAttribute('src',`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);f.className='yt-iframe';f.setAttribute('frameborder','0');f.setAttribute('allowfullscreen','true');f.setAttribute('allow','autoplay');el.innerHTML='';el.appendChild(f);document.getElementById('mainSlider').classList.add('video-playing')}
+        function getYouTubeVideoId(u){const m=u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);return(m&&m[1].length==11)?m[1]:null}
+        function geserSlider(d){const f=document.querySelectorAll('.yt-iframe');f.forEach(x=>{const p=x.parentElement;const id=p.getAttribute('data-id');p.innerHTML=`<div class="play-btn"></div><img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.8;transition:0.3s">`});document.getElementById('mainSlider').classList.remove('video-playing');const t=document.getElementById('trackVideo');const i=t.querySelector('div');const w=i?i.clientWidth+24:300;t.scrollBy({left:d*w,behavior:'smooth'})}
 
-        function loadYtIframe(el) {
-            const id = el.getAttribute('data-id');
-            const f = document.createElement('iframe');
-            f.setAttribute('src', `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);
-            f.className = 'yt-iframe';
-            f.setAttribute('frameborder', '0');
-            f.setAttribute('allowfullscreen', 'true');
-            f.setAttribute('allow', 'autoplay');
-            el.innerHTML = '';
-            el.appendChild(f);
-            document.getElementById('mainSlider').classList.add('video-playing');
-        }
+        function renderNewsSlider(){const s=document.getElementById('gallery-slider');if(!s)return;s.innerHTML='';allData.news.forEach((n,i)=>{let img=n.images&&n.images.length>0?n.images[0]:"https://files.catbox.moe/3tf995.png";if(img.includes('cloudinary'))img=img.replace('/upload/','/upload/w_600,q_auto,f_auto/');s.innerHTML+=`<div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${i})"><div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div><img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105"><div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20"><span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span><h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3><p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p></div></div>`})}
 
-        function getYouTubeVideoId(u) { const m = u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/); return (m && m[1].length == 11) ? m[1] : null; }
-        
-        function geserSlider(d) {
-            const f = document.querySelectorAll('.yt-iframe');
-            f.forEach(x => { const p = x.parentElement; const id = p.getAttribute('data-id'); p.innerHTML = `<div class="play-btn"></div><img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.8;transition:0.3s">` });
-            document.getElementById('mainSlider').classList.remove('video-playing');
-            const t = document.getElementById('trackVideo');
-            const i = t.querySelector('div');
-            const w = i ? i.clientWidth + 24 : 300;
-            t.scrollBy({ left: d * w, behavior: 'smooth' })
-        }
-
-        function renderNewsSlider() {
-            const s = document.getElementById('gallery-slider');
-            if (!s) return;
-            s.innerHTML = '';
-            newsData.forEach((n, i) => {
-                let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
-                if (img.includes('cloudinary')) img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
-                s.innerHTML += `<div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${i})"><div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div><img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105"><div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20"><span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span><h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3><p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p></div></div>`
-            })
-        }
-
-        const infoModal = document.getElementById('infoModal');
-        function openInfoModal() { infoModal.classList.remove('hidden'); setTimeout(() => infoModal.classList.add('visible'), 10); hideFab(); }
-        function closeInfoModal() { infoModal.classList.remove('visible'); setTimeout(() => infoModal.classList.add('hidden'), 300); showFab(); }
-        
-        const newsFullPage = document.getElementById('newsFullPage');
-        let newsSlideshowInterval;
-
-        function openFullPageNews(index) {
-            const data = newsData[index];
+        const newsFullPage=document.getElementById('newsFullPage'); let newsSlideshowInterval;
+        function openFullPageNews(index){
+            currentNewsIndex = index; // SET GLOBAL INDEX FOR INLINE CLICK
+            const data = allData.news[index];
             if (!data) return;
             document.getElementById('news-title').innerText = data.title;
             document.getElementById('news-date').innerText = data.date;
             document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
             const container = document.getElementById('news-slideshow-container');
             container.innerHTML = '';
-            if (data.images && data.images.length > 0) {
-                data.images.forEach((src, i) => {
+            
+            // Header Image Logic (Clickable to Fullscreen)
+            container.onclick = function() { openMediaViewer(index, 'all'); };
+
+            if(data.images && data.images.length > 0) {
+                data.images.forEach((src,i) => {
                     const div = document.createElement('div');
                     div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
                     div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
-                    container.appendChild(div)
+                    container.appendChild(div);
                 });
-                startNewsSlideshow()
+                startNewsSlideshow();
             }
             history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
             newsFullPage.classList.add('active');
@@ -578,52 +459,50 @@
             hideFab();
         }
         
-        const mediaViewer = document.getElementById('mediaViewer');
-        const mediaViewerContent = document.getElementById('mediaViewerContent');
+        function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow();showFab()}
+        function startNewsSlideshow(){stopNewsSlideshow();const slides=document.querySelectorAll('.news-slide-wrapper');if(slides.length<=1)return;let current=0;newsSlideshowInterval=setInterval(()=>{slides[current].classList.remove('active');current=(current+1)%slides.length;slides[current].classList.add('active')},3000)}
+        function stopNewsSlideshow(){if(newsSlideshowInterval)clearInterval(newsSlideshowInterval)}
 
-        function openMediaViewer(newsIndex, filter) {
-            const data = newsData[newsIndex];
-            if (!data || !data.gallery) return;
-            mediaViewerContent.innerHTML = '';
-            const filtered = data.gallery.filter(item => { if (filter === 'all') return true; return item.group === filter });
-            if (filtered.length === 0) { alert("Galeri belum tersedia."); return }
-            filtered.forEach(item => {
-                let el = '';
-                if (item.type === 'image') el = `<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;
-                else if (item.type === 'video') {
-                    const vid = getYouTubeVideoId(item.src);
-                    el = `<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`
+        const mediaViewer=document.getElementById('mediaViewer');const mediaViewerContent=document.getElementById('mediaViewerContent');
+        function openMediaViewer(newsIndex,filter){
+            const data=allData.news[newsIndex];
+            if(!data||!data.gallery)return;
+            mediaViewerContent.innerHTML='';
+            
+            const filtered=data.gallery.filter(item=>{if(filter==='all')return true;return item.group===filter});
+            if(filtered.length===0){alert("Galeri belum tersedia.");return}
+            
+            filtered.forEach(item=>{
+                let el='';
+                if(item.type==='image') el=`<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;
+                else if(item.type==='video'){
+                    const vid=getYouTubeVideoId(item.src);
+                    el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`
                 }
-                mediaViewerContent.innerHTML += el
+                mediaViewerContent.innerHTML+=el;
             });
-            history.pushState({ newsOpen: true, mediaOpen: true }, "", "#lihat-media");
-            mediaViewer.classList.add('active')
+            history.pushState({newsOpen:true,mediaOpen:true},"","#lihat-media"); mediaViewer.classList.add('active');
         }
+        function closeMediaViewer(){mediaViewer.classList.remove('active');setTimeout(()=>{mediaViewerContent.innerHTML=''},300)}
 
-        function closeMediaViewer() { mediaViewer.classList.remove('active'); setTimeout(() => { mediaViewerContent.innerHTML = '' }, 300) }
-        function closeFullPageNews() { newsFullPage.classList.remove('active'); document.body.style.overflow = 'auto'; stopNewsSlideshow(); showFab(); }
-        function goBack() { if (history.state && history.state.mediaOpen) history.back(); else if (history.state && history.state.newsOpen) history.back(); else { closeMediaViewer(); closeFullPageNews(); closeListModal(); closeToolsModal(); closeIframe(); showFab(); } }
-        window.addEventListener('popstate', function(event) { if (mediaViewer.classList.contains('active')) closeMediaViewer(); else if (newsFullPage.classList.contains('active')) closeFullPageNews() });
+        function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews();closeListModal();closeToolsModal();closeIframe();showFab()}}
+        window.addEventListener('popstate',function(event){if(mediaViewer.classList.contains('active'))closeMediaViewer();else if(newsFullPage.classList.contains('active'))closeFullPageNews()});
+        function sendToWhatsappSimple(){window.open("https://wa.me/6281211862924","_blank")}
+        function sendToWhatsapp(e){e.preventDefault();const namaAnak=document.getElementById('namaAnak').value;const umur=document.getElementById('umur').value;const jk=document.getElementById('jk').value;const namaOrtu=document.getElementById('namaOrtu').value;const alamat=document.getElementById('alamat').value;const phone="6281211862924";const msg=`Halo Admin TK BAITURROHMAN, saya ingin mendaftarkan anak saya. Berikut datanya:\n\n📋 *FORMULIR PENDAFTARAN*\n--------------------------------\n👤 *Nama Anak:* ${namaAnak}\n🎂 *Umur:* ${umur} Tahun\n⚧ *Jenis Kelamin:* ${jk}\n👨‍👩‍👧 *Nama Ortu:* ${namaOrtu}\n🏠 *Alamat:* ${alamat}\n--------------------------------\nMohon info selanjutnya. Terima kasih.`;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank')}
+        
+        const mobileBtn=document.getElementById('mobile-btn'),mobileMenu=document.getElementById('mobile-menu'),navbar=document.getElementById('navbar');
+        mobileBtn.addEventListener('click',()=>{mobileMenu.classList.toggle('hidden');mobileMenu.classList.toggle('flex')});
+        window.addEventListener('scroll',()=>{if(window.scrollY>50){navbar.classList.add('py-2');navbar.classList.remove('py-4')}else{navbar.classList.add('py-4');navbar.classList.remove('py-2')}});
+        
+        const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('opacity-0','translate-y-10');e.target.classList.add('opacity-100','translate-y-0');observer.unobserve(e.target)}})},{threshold:0.1});
+        document.querySelectorAll('.animate-on-scroll').forEach(el=>observer.observe(el));
+        function scrollSection(id,dir){const c=document.getElementById(id);c.scrollBy({left:dir*c.clientWidth,behavior:'smooth'})}
+        const gallerySlider=document.getElementById('gallery-slider');let galleryInterval;
+        function startGAP(){galleryInterval=setInterval(()=>{if(gallerySlider.scrollLeft+gallerySlider.clientWidth>=gallerySlider.scrollWidth-10)gallerySlider.scrollTo({left:0,behavior:'smooth'});else gallerySlider.scrollBy({left:gallerySlider.clientWidth,behavior:'smooth'})},5000)}
+        function stopGAP(){clearInterval(galleryInterval)}
+        startGAP();gallerySlider.addEventListener('mouseenter',stopGAP);gallerySlider.addEventListener('mouseleave',startGAP);gallerySlider.addEventListener('touchstart',stopGAP);gallerySlider.addEventListener('touchend',startGAP);
 
-        function startNewsSlideshow() { stopNewsSlideshow(); const slides = document.querySelectorAll('.news-slide-wrapper'); if (slides.length <= 1) return; let current = 0; newsSlideshowInterval = setInterval(() => { slides[current].classList.remove('active'); current = (current + 1) % slides.length; slides[current].classList.add('active') }, 3000) }
-        function stopNewsSlideshow() { if (newsSlideshowInterval) clearInterval(newsSlideshowInterval) }
-
-        function sendToWhatsappSimple() { window.open("https://wa.me/6281211862924", "_blank") }
-        function sendToWhatsapp(e) { e.preventDefault(); const namaAnak = document.getElementById('namaAnak').value; const umur = document.getElementById('umur').value; const jk = document.getElementById('jk').value; const namaOrtu = document.getElementById('namaOrtu').value; const alamat = document.getElementById('alamat').value; const phone = "6281211862924"; const msg = `Halo Admin TK BAITURROHMAN, saya ingin mendaftarkan anak saya. Berikut datanya:\n\n📋 *FORMULIR PENDAFTARAN*\n--------------------------------\n👤 *Nama Anak:* ${namaAnak}\n🎂 *Umur:* ${umur} Tahun\n⚧ *Jenis Kelamin:* ${jk}\n👨‍👩‍👧 *Nama Ortu:* ${namaOrtu}\n🏠 *Alamat:* ${alamat}\n--------------------------------\nMohon info selanjutnya. Terima kasih.`; window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank') }
-
-        const mobileBtn = document.getElementById('mobile-btn'), mobileMenu = document.getElementById('mobile-menu'), navbar = document.getElementById('navbar');
-        mobileBtn.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); mobileMenu.classList.toggle('flex') });
-        window.addEventListener('scroll', () => { if (window.scrollY > 50) { navbar.classList.add('py-2'); navbar.classList.remove('py-4') } else { navbar.classList.add('py-4'); navbar.classList.remove('py-2') } });
-
-        const observer = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) { e.target.classList.remove('opacity-0', 'translate-y-10'); e.target.classList.add('opacity-100', 'translate-y-0'); observer.unobserve(e.target) } }) }, { threshold: 0.1 });
-        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
-        function scrollSection(id, dir) { const c = document.getElementById(id); c.scrollBy({ left: dir * c.clientWidth, behavior: 'smooth' }) }
-        const gallerySlider = document.getElementById('gallery-slider'); let galleryInterval;
-        function startGAP() { galleryInterval = setInterval(() => { if (gallerySlider.scrollLeft + gallerySlider.clientWidth >= gallerySlider.scrollWidth - 10) gallerySlider.scrollTo({ left: 0, behavior: 'smooth' }); else gallerySlider.scrollBy({ left: gallerySlider.clientWidth, behavior: 'smooth' }) }, 5000) }
-        function stopGAP() { clearInterval(galleryInterval) }
-        startGAP(); gallerySlider.addEventListener('mouseenter', stopGAP); gallerySlider.addEventListener('mouseleave', startGAP); gallerySlider.addEventListener('touchstart', stopGAP); gallerySlider.addEventListener('touchend', startGAP);
-
-        document.addEventListener('DOMContentLoaded', () => { loadContent(); renderVideoSlider() });
+        document.addEventListener('DOMContentLoaded',()=>{loadContent();renderVideoSlider(); setInterval(loadContent, 15000);});
     </script>
 </body>
 </html>
