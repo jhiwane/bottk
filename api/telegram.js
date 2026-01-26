@@ -265,22 +265,57 @@ export default async function handler(req, res) {
 
         // --- C. INPUT HANDLER (TEXT / FILE / PHOTO) ---
 
-        // 1. TOOLS WIZARD (Baru)
+        // A. TOOL WIZARD (SUPPORT FILE & LINK)
         if (text === '🛠️ Kelola Tools') {
             await bot.sendMessage(chatId, "Menu Pengelolaan Tools:", toolsMenu);
             return res.send('ok');
         }
+
+        // STEP 1: TERIMA INPUT (LINK atau FILE)
         if (userState.step === 'tool_content') {
-            let content = null;
-            if (text.startsWith('http')) {
-                content = text.trim();
-                await stateCol.updateOne({ _id: chatId }, { $set: { step: 'tool_name', tool_content: content } });
-                await bot.sendMessage(chatId, "Link diterima. Sekarang kirim **NAMA TOOL** (Contoh: Absensi, E-Raport):", cancelMenu);
+            let contentUrl = null;
+            const waitMsg = await bot.sendMessage(chatId, "⏳ Menganalisa file/link...");
+
+            // KASUS 1: USER KIRIM FILE (PDF, HTML, DOCX, APK, dll)
+            if (update.message.document) {
+                const activeCloud = await cloudCol.findOne({ active: true });
+                if (!activeCloud) {
+                    await bot.deleteMessage(chatId, waitMsg.message_id);
+                    await bot.sendMessage(chatId, "⚠️ Error: Cloudinary belum diset. Tidak bisa upload file.");
+                    return res.send('ok');
+                }
+
+                // Ambil link download dari Telegram
+                const fileId = update.message.document.file_id;
+                const fileLink = await bot.getFileLink(fileId);
+                
+                // Upload ke Cloudinary (Mode Auto: Raw/Image/Video)
+                contentUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
+            } 
+            // KASUS 2: USER KIRIM LINK TEKS
+            else if (text && text.startsWith('http')) {
+                contentUrl = text.trim();
+            }
+
+            await bot.deleteMessage(chatId, waitMsg.message_id);
+
+            if (contentUrl) {
+                // Simpan URL sementara
+                await stateCol.updateOne({ _id: chatId }, { $set: { step: 'tool_name', tool_content: contentUrl } });
+                
+                // Minta Nama
+                let msg = "✅ **File/Link Diterima!**\n";
+                msg += `URL: \`${contentUrl}\`\n\n`;
+                msg += "Sekarang kirim **NAMA TOOL** (Contoh: Absensi, Game HTML, Jadwal PDF):";
+                
+                await bot.sendMessage(chatId, msg, {parse_mode:'Markdown', ...cancelMenu});
             } else {
-                await bot.sendMessage(chatId, "❌ Harap kirim Link URL yang valid (awalan http/https).");
+                await bot.sendMessage(chatId, "❌ Gagal memproses. Kirim Link URL (http) atau File Dokumen yang valid.");
             }
             return res.send('ok');
         }
+
+        // STEP 2: SIMPAN NAMA (Sama seperti sebelumnya)
         if (userState.step === 'tool_name') {
             await toolsCol.insertOne({
                 name: text,
@@ -288,7 +323,7 @@ export default async function handler(req, res) {
                 date: new Date()
             });
             await stateCol.deleteOne({ _id: chatId });
-            await bot.sendMessage(chatId, `✅ Tool **"${text}"** berhasil ditambahkan ke menu Tools!`, mainMenu);
+            await bot.sendMessage(chatId, `✅ Tool **"${text}"** berhasil ditambahkan!`, mainMenu);
             return res.send('ok');
         }
 
