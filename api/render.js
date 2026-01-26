@@ -1,41 +1,36 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri);
+let cachedClient = null;
+
+async function connectToDatabase() {
+    if (cachedClient) return cachedClient;
+    const client = new MongoClient(uri);
+    await client.connect();
+    cachedClient = client;
+    return client;
+}
 
 export default async function handler(req, res) {
-    // Ambil ID dari URL (contoh: /api/render?id=65a...)
     const { id } = req.query;
-
-    if (!id) return res.status(400).send('ID Tool tidak ditemukan');
+    if (!id) return res.status(400).send('ID null');
 
     try {
-        await client.connect();
+        const client = await connectToDatabase();
         const db = client.db('school_db');
         const toolsCol = db.collection('tools');
 
-        // Cari data tool berdasarkan ID
         const tool = await toolsCol.findOne({ _id: new ObjectId(id) });
 
-        if (!tool) return res.status(404).send('Tool/File tidak ditemukan di database');
+        if (!tool) return res.status(404).send('Not Found');
 
-        // PENTING: Jika tipe datanya HTML Content (disimpan di DB)
         if (tool.type === 'html_code') {
-            // Beritahu browser bahwa ini adalah file HTML, bukan text biasa
             res.setHeader('Content-Type', 'text/html');
-            // Tampilkan isinya
             return res.send(tool.content);
-        } 
-        
-        // Jika tipe link biasa (Google Form dll), redirect saja
-        else {
+        } else {
             return res.redirect(tool.url);
         }
-
     } catch (e) {
-        console.error(e);
-        res.status(500).send('Terjadi kesalahan server saat memuat tool.');
-    } finally {
-        await client.close();
+        res.status(500).send('Server Error');
     }
 }
