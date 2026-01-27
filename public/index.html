@@ -40,6 +40,11 @@
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #0EA5E9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
         
+        /* LOADER */
+        .loader-overlay { position: fixed; inset: 0; background: white; z-index: 50000; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .loader-overlay.hidden { opacity: 0; pointer-events: none; }
+        .loading-gif { width: 100px; height: 100px; object-fit: contain; }
+
         /* SLIDESHOW HERO */
         .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
         .slide.active { opacity: 1; z-index: 0; }
@@ -131,6 +136,10 @@
 </head>
 <body class="font-sans text-gray-700 antialiased overflow-x-hidden bg-gray-50">
 
+    <div id="globalLoader" class="loader-overlay">
+        <img src="https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUybTVnbXJwM20zM3NwbHN4c3E5YTN3MjQ5aXVpcDl6a3l2N2xua3Y1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/M4IGqz0zBUHaIyA0Zi/giphy.gif" class="loading-gif">
+    </div>
+
     <div class="fab-container" id="fabContainer">
         <button onclick="toggleFab()" class="w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition-transform hover:scale-105 z-50 animate-pulse-slow">
             <i id="fabIcon" class="fa-solid fa-bars"></i>
@@ -207,7 +216,7 @@
     <div id="iframeView" class="full-page-view z-[11000]">
         <div class="h-full flex flex-col">
             <div class="bg-black text-white p-2 flex justify-between items-center"><span id="iframeTitle" class="font-bold ml-2">App</span><button onclick="closeIframe()" class="bg-red-600 px-3 py-1 rounded">Tutup</button></div>
-            <iframe id="mainIframe" class="flex-1 w-full bg-white border-0" src=""></iframe>
+            <iframe id="mainIframe" class="flex-1 w-full bg-white border-0" src="" onload="hideLoader()"></iframe>
         </div>
     </div>
 
@@ -382,7 +391,11 @@
         let defaultVideos=[{url:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",judul:"Profil sekolah",deskripsi:"Profil TK Baiturrohman."}];
         let currentNewsIndex = 0;
 
+        function showLoader() { document.getElementById('globalLoader').classList.remove('hidden'); }
+        function hideLoader() { document.getElementById('globalLoader').classList.add('hidden'); }
+
         async function loadContent() {
+            showLoader();
             try {
                 const res = await fetch('/api/content?t=' + new Date().getTime());
                 const data = await res.json();
@@ -415,6 +428,8 @@
             } catch(e) { 
                 allData.news = defaultNews; allData.videos = defaultVideos; renderNewsSlider(); renderVideoSlider();
             }
+            // Delay sedikit biar animasi tidak 'kedip' terlalu cepat
+            setTimeout(hideLoader, 500);
         }
 
         function startHeroLoop(){let c=0;const s=document.querySelectorAll('.slide');if(s.length>1)setInterval(()=>{s[c].classList.remove('active');c=(c+1)%s.length;s[c].classList.add('active')},6000)}
@@ -458,23 +473,44 @@
         function closeZoomModal() {
             document.getElementById('zoomModal').style.display = 'none';
         }
-        // FUNGSI TOGGLE ZOOM DIHAPUS KARENA TIDAK DIPAKAI LAGI
 
         // --- LIST & TOOLS ---
-        function openListModal(type) { currentType = type; currentPage = 1; document.getElementById('listModal').classList.add('active'); renderList(); hideFab(); }
+        function openListModal(type) { 
+            currentType = type; 
+            currentPage = 1; 
+            document.getElementById('listModal').classList.add('active'); 
+            renderList(); 
+            hideFab();
+            history.pushState({modal:'list'}, null, '#cari'); // Support Back Button
+        }
         function closeListModal() { document.getElementById('listModal').classList.remove('active'); showFab(); }
         
         function openToolsModal() { 
-            const c = document.getElementById('toolsContainer'); c.innerHTML = '';
-            if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
-            allData.tools.forEach(t => {
-                const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
-                c.innerHTML += `<div onclick="openIframe('${link}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
-            });
-            document.getElementById('toolsModal').classList.add('active'); hideFab();
+            // Tampilkan loader sebentar seolah-olah memuat tools
+            showLoader();
+            setTimeout(() => {
+                const c = document.getElementById('toolsContainer'); c.innerHTML = '';
+                if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
+                allData.tools.forEach(t => {
+                    const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
+                    c.innerHTML += `<div onclick="openIframe('${link}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
+                });
+                document.getElementById('toolsModal').classList.add('active'); 
+                hideFab();
+                hideLoader();
+                history.pushState({modal:'tools'}, null, '#tools'); // Support Back Button
+            }, 300);
         }
         function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); showFab(); }
-        function openIframe(url, name) { document.getElementById('mainIframe').src = url; document.getElementById('iframeTitle').innerText = name; document.getElementById('iframeView').classList.add('active'); hideFab(); }
+        
+        function openIframe(url, name) { 
+            showLoader(); // Show loader waiting for iframe
+            document.getElementById('mainIframe').src = url; 
+            document.getElementById('iframeTitle').innerText = name; 
+            document.getElementById('iframeView').classList.add('active'); 
+            hideFab();
+            history.pushState({modal:'iframe'}, null, '#app'); // Support Back Button
+        }
         function closeIframe() { document.getElementById('iframeView').classList.remove('active'); document.getElementById('mainIframe').src = ''; showFab(); }
 
         function renderList() {
@@ -519,33 +555,37 @@
 
         const newsFullPage=document.getElementById('newsFullPage'); let newsSlideshowInterval;
         function openFullPageNews(index){
-            currentNewsIndex = index;
-            const data = allData.news[index];
-            if (!data) return;
-            document.getElementById('news-title').innerText = data.title;
-            document.getElementById('news-date').innerText = data.date;
-            document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
-            const container = document.getElementById('news-slideshow-container');
-            container.innerHTML = '';
-            
-            // Header Image Click Logic
-            container.onclick = function() { 
-                if(data.images && data.images.length > 0) openZoomModal(data.images[0]); 
-            };
+            showLoader();
+            setTimeout(() => {
+                currentNewsIndex = index;
+                const data = allData.news[index];
+                if (!data) { hideLoader(); return; }
+                document.getElementById('news-title').innerText = data.title;
+                document.getElementById('news-date').innerText = data.date;
+                document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
+                const container = document.getElementById('news-slideshow-container');
+                container.innerHTML = '';
+                
+                // Header Image Click Logic
+                container.onclick = function() { 
+                    if(data.images && data.images.length > 0) openZoomModal(data.images[0]); 
+                };
 
-            if(data.images && data.images.length > 0) {
-                data.images.forEach((src,i) => {
-                    const div = document.createElement('div');
-                    div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
-                    div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
-                    container.appendChild(div);
-                });
-                startNewsSlideshow();
-            }
-            history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
-            newsFullPage.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            hideFab();
+                if(data.images && data.images.length > 0) {
+                    data.images.forEach((src,i) => {
+                        const div = document.createElement('div');
+                        div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
+                        div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
+                        container.appendChild(div);
+                    });
+                    startNewsSlideshow();
+                }
+                history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
+                newsFullPage.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                hideFab();
+                hideLoader();
+            }, 300); // Fake delay for smooth transition
         }
         
         function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow();showFab()}
@@ -578,7 +618,35 @@
         function closeMediaViewer(){mediaViewer.classList.remove('active');setTimeout(()=>{mediaViewerContent.innerHTML=''},300)}
 
         function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews();closeListModal();closeToolsModal();closeIframe();showFab();closeZoomModal()}}
-        window.addEventListener('popstate',function(event){if(mediaViewer.classList.contains('active'))closeMediaViewer();else if(newsFullPage.classList.contains('active'))closeFullPageNews()});
+        
+        // --- MOBILE SYSTEM BACK BUTTON SUPPORT ---
+        window.addEventListener('popstate', function(event) {
+            // Tutup Media Viewer
+            if (document.getElementById('mediaViewer').classList.contains('active')) {
+                closeMediaViewer();
+            } 
+            // Tutup Berita Full Page
+            else if (document.getElementById('newsFullPage').classList.contains('active')) {
+                closeFullPageNews();
+            }
+            // Tutup Modal Tools
+            else if (document.getElementById('toolsModal').classList.contains('active')) {
+                closeToolsModal();
+            }
+            // Tutup Iframe App
+            else if (document.getElementById('iframeView').classList.contains('active')) {
+                closeIframe();
+            }
+            // Tutup List Modal
+            else if (document.getElementById('listModal').classList.contains('active')) {
+                closeListModal();
+            }
+            // Tutup Zoom Image
+            else if (document.getElementById('zoomModal').style.display === 'block') {
+                closeZoomModal();
+            }
+        });
+
         function sendToWhatsappSimple(){window.open("https://wa.me/6281211862924","_blank")}
         function sendToWhatsapp(e){e.preventDefault();const namaAnak=document.getElementById('namaAnak').value;const umur=document.getElementById('umur').value;const jk=document.getElementById('jk').value;const namaOrtu=document.getElementById('namaOrtu').value;const alamat=document.getElementById('alamat').value;const phone="6281211862924";const msg=`Halo Admin TK BAITURROHMAN, saya ingin mendaftarkan anak saya. Berikut datanya:\n\n📋 *FORMULIR PENDAFTARAN*\n--------------------------------\n👤 *Nama Anak:* ${namaAnak}\n🎂 *Umur:* ${umur} Tahun\n⚧ *Jenis Kelamin:* ${jk}\n👨‍👩‍👧 *Nama Ortu:* ${namaOrtu}\n🏠 *Alamat:* ${alamat}\n--------------------------------\nMohon info selanjutnya. Terima kasih.`;window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank')}
         
