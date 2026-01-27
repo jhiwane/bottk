@@ -334,34 +334,40 @@
             </div>
         </div>
     </section>
-
     <section id="daftar" class="py-20 px-6 bg-blue-50 relative overflow-hidden">
-        <div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden">
-            <div class="md:w-5/12 bg-gradient-to-br from-primary to-blue-600 p-10 text-white"><h3 class="font-bold text-3xl mb-4">Pendaftaran Online</h3><p class="mb-8">Silahkan isi formulir di samping.</p><div class="space-y-4"><div class="flex items-center gap-4"><i class="fa-solid fa-phone"></i><span>0812-1186-2924</span></div></div></div>
+        <div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-100 animate-on-scroll opacity-0 translate-y-20 transition-all duration-1000">
+            <div class="md:w-5/12 bg-gradient-to-br from-primary to-blue-600 p-10 text-white flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div class="relative z-10"><h3 class="font-display text-3xl font-bold mb-4">Pendaftaran Online</h3><p class="text-blue-100 mb-8">Silahkan isi formulir di samping. Data akan langsung terkirim ke WhatsApp Admin kami.</p><div class="space-y-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-sm"><i class="fa-solid fa-phone text-xl"></i></div><span class="font-semibold text-lg">0812-1186-2924</span></div><div class="flex items-start gap-4"><div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-sm mt-1"><i class="fa-solid fa-location-dot text-xl"></i></div><span class="font-semibold leading-relaxed">Jl. Andong kencono No. III, Pulodarat RT 19 RW 02, Pecangaan, Jepara, Jawa Tengah.</span></div></div></div>
+                <div class="mt-12 relative z-10 w-full flex justify-center"><img src="https://files.catbox.moe/dlbpqp.png" class="w-24 opacity-90  drop-shadow-md"></div>
+            </div>
             <div class="md:w-7/12 p-8 md:p-12">
                 <h3 class="font-display text-2xl font-bold text-gray-800 mb-6">Data Calon Siswa</h3>
                 <form id="waForm" class="space-y-5" onsubmit="sendToWhatsapp(event)">
-                    <div><input type="text" id="namaAnak" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border" placeholder="Nama Lengkap"></div>
-                    <div><input type="text" id="umur" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border" placeholder="Umur"></div>
-                    <div><input type="text" id="namaOrtu" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border" placeholder="Nama Ortu"></div>
-                    <div><textarea id="alamat" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border" placeholder="Alamat"></textarea></div>
-                    <button type="submit" class="w-full bg-secondary text-white font-bold py-4 rounded-xl shadow-lg">Kirim</button>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Anak</label><input type="text" id="namaAnak" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Contoh: Ahmad Zaky"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Umur (Tahun)</label><input type="number" id="umur" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Ex: 5"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label><select id="jk" class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors"><option>Laki-laki</option><option>Perempuan</option></select></div>
+                    </div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Nama Orang Tua / Wali</label><input type="text" id="namaOrtu" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Contoh: Bpk. Budi"></div>
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Alamat Domisili</label><textarea id="alamat" rows="2" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white transition-colors" placeholder="Alamat lengkap..."></textarea></div>
+                    <button type="submit" class="w-full bg-secondary hover:bg-yellow-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex justify-center items-center gap-2"><i class="fa-brands fa-whatsapp text-xl"></i> Kirim Pendaftaran</button>
                 </form>
             </div>
         </div>
     </section>
 
     <section id="lokasi" class="py-12 px-6 bg-white border-t border-gray-100 overflow-hidden">
-        <div class="max-w-5xl mx-auto text-center"><h2 class="font-display text-3xl font-bold text-gray-800 mb-6">Lokasi Sekolah</h2><div class="w-full h-96 rounded-3xl overflow-hidden shadow-lg border-2 border-gray-100"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" class="w-full h-full border-0" allowfullscreen></iframe></div></div>
+        <div class="max-w-5xl mx-auto text-center"><h2 class="font-display text-3xl font-bold text-gray-800 mb-6">Lokasi Sekolah</h2><div class="w-full h-96 rounded-3xl overflow-hidden shadow-lg border-2 border-gray-100 relative group"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" class="w-full h-full border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div></div>
     </section>
 
     <footer class="bg-dark text-white pt-16 pb-8 px-6 mb-16 md:mb-0 overflow-hidden">
         <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div class="col-span-1 md:col-span-2"><div class="flex items-center gap-3 mb-6"><img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk h-16 object-contain"><span class="font-display font-bold text-2xl">TK BAITURROHMAN</span></div><p class="text-gray-400">Membentuk generasi Baiti.</p></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Tautan Cepat</h4><ul class="space-y-3 text-gray-400"><li><a href="#beranda" class="hover:text-white">Beranda</a></li></ul></div>
-            <div><h4 class="font-bold text-lg mb-6 text-primary">Hubungi Kami</h4><ul class="space-y-3 text-gray-400"><li>0812-1186-2924</li></ul></div>
+            <div class="col-span-1 md:col-span-2"><div class="flex items-center gap-3 mb-6"><img src="https://files.catbox.moe/dlbpqp.png" class="logo-tk h-16 w-auto object-contain drop-shadow-md"><span class="font-display font-bold text-2xl">TK BAITURROHMAN</span></div><p class="text-gray-400 mb-6 max-w-sm">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p></div>
+            <div><h4 class="font-bold text-lg mb-6 text-primary">Tautan Cepat</h4><ul class="space-y-3 text-gray-400"><li><a href="#beranda" class="hover:text-white">Beranda</a></li><li><a href="#profil" class="hover:text-white">Tentang Kami</a></li><li><a href="#galeri" class="hover:text-white">Galeri Foto</a></li><li><a href="#daftar" class="hover:text-white">Info PPDB</a></li></ul></div>
+            <div><h4 class="font-bold text-lg mb-6 text-primary">Hubungi Kami</h4><ul class="space-y-3 text-gray-400"><li class="flex items-center gap-3"><i class="fa-brands fa-whatsapp"></i><span>0812-1186-2924</span></li><li class="flex items-center gap-3"><i class="fa-solid fa-envelope"></i><span>dapodiktkbaiturrohman@gmail.com</span></li></ul></div>
         </div>
-        <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm"><p>© 2026 TK Baiturrohman.</p></div>
+        <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm"><p>© 2026 TK Baiturrohman. All Rights Reserved.</p></div>
     </footer>
 
     <script>
