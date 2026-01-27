@@ -91,7 +91,7 @@
         .fab-btn { width: 3rem; height: 3rem; border-radius: 9999px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
         .fab-btn:active { transform: scale(0.95); }
 
-        /* === PERBAIKAN: REAL FULLSCREEN ZOOM SCROLL === */
+        /* === REAL FULLSCREEN ZOOM SCROLL === */
         #zoomModal {
             display: none;
             position: fixed;
@@ -120,13 +120,11 @@
 
         /* Mode ZOOM (Besar - Native Scroll) */
         .img-zoomed-scroll {
-            /* PERBAIKAN: Jangan hardcode 200vw. Biarkan auto agar gambar resolusi asli keluar */
             width: auto; 
             height: auto;
             max-width: none;
             max-height: none;
             cursor: zoom-out;
-            /* Tambahkan margin auto agar saat di-zoom tetap bisa di tengah jika belum full layar */
             margin: auto;
         }
     </style>
@@ -177,14 +175,14 @@
 
     <div id="zoomModal">
         <div class="fixed top-0 left-0 w-full p-4 flex justify-between z-[12001] bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
-            <span class="text-white text-sm font-bold pointer-events-auto drop-shadow-md">Tap 2x / Klik untuk Zoom</span>
+            <span class="text-white text-sm font-bold pointer-events-auto drop-shadow-md">Gunakan 2 jari untuk Zoom</span>
             <button onclick="closeZoomModal()" class="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white pointer-events-auto hover:bg-white/40 border border-white/30">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
         
         <div class="zoom-content-wrapper">
-            <img id="zoomImage" src="" class="img-fit-screen" onclick="toggleNativeZoom(this)">
+            <img id="zoomImage" src="" class="img-fit-screen">
         </div>
     </div>
 
@@ -460,16 +458,7 @@
         function closeZoomModal() {
             document.getElementById('zoomModal').style.display = 'none';
         }
-        function toggleNativeZoom(img) {
-            // TUKAR CLASS ANTARA FIT dan SCROLL
-            if(img.classList.contains('img-fit-screen')) {
-                img.classList.remove('img-fit-screen');
-                img.classList.add('img-zoomed-scroll');
-            } else {
-                img.classList.remove('img-zoomed-scroll');
-                img.classList.add('img-fit-screen');
-            }
-        }
+        // FUNGSI TOGGLE ZOOM DIHAPUS KARENA TIDAK DIPAKAI LAGI
 
         // --- LIST & TOOLS ---
         function openListModal(type) { currentType = type; currentPage = 1; document.getElementById('listModal').classList.add('active'); renderList(); hideFab(); }
