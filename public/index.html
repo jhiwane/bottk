@@ -427,7 +427,16 @@
                         startProfileLoop();
                     }
                 }
-                renderNewsSlider(); renderVideoSlider();
+                
+                // CEK JIKA VIDEO SEDANG DIPUTAR, JANGAN RE-RENDER SLIDER VIDEO
+                const isVideoPlaying = document.getElementById('mainSlider').classList.contains('video-playing');
+                
+                renderNewsSlider(); 
+                
+                if (!isVideoPlaying) { 
+                    renderVideoSlider(); 
+                }
+
             } catch(e) { 
                 allData.news = defaultNews; allData.videos = defaultVideos; renderNewsSlider(); renderVideoSlider();
             }
@@ -493,15 +502,20 @@
         function closeListModal() { document.getElementById('listModal').classList.remove('active'); showFab(); }
         
         function openToolsModal() { 
-            const c = document.getElementById('toolsContainer'); c.innerHTML = '';
-            if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
-            allData.tools.forEach(t => {
-                const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
-                c.innerHTML += `<div onclick="openIframe('${link}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
-            });
-            document.getElementById('toolsModal').classList.add('active'); 
-            hideFab();
-            history.pushState({modal:'tools'}, null, '#tools'); // Support Back Button
+            // Tampilkan loader sebentar seolah-olah memuat tools
+            showLoader();
+            setTimeout(() => {
+                const c = document.getElementById('toolsContainer'); c.innerHTML = '';
+                if(allData.tools.length===0) c.innerHTML = '<p class="col-span-2 text-center text-gray-500">Belum ada tools.</p>';
+                allData.tools.forEach(t => {
+                    const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
+                    c.innerHTML += `<div onclick="openIframe('${link}', '${t.name}')" class="bg-white p-4 rounded-xl shadow border flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition"><div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2 text-primary"><i class="fa-solid fa-bolt"></i></div><span class="font-bold text-center text-sm">${t.name}</span></div>`;
+                });
+                document.getElementById('toolsModal').classList.add('active'); 
+                hideFab();
+                hideLoader();
+                history.pushState({modal:'tools'}, null, '#tools'); // Support Back Button
+            }, 300);
         }
         function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); showFab(); }
         
@@ -557,33 +571,37 @@
 
         const newsFullPage=document.getElementById('newsFullPage'); let newsSlideshowInterval;
         function openFullPageNews(index){
-            currentNewsIndex = index;
-            const data = allData.news[index];
-            if (!data) return;
-            document.getElementById('news-title').innerText = data.title;
-            document.getElementById('news-date').innerText = data.date;
-            document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
-            const container = document.getElementById('news-slideshow-container');
-            container.innerHTML = '';
-            
-            // Header Image Click Logic
-            container.onclick = function() { 
-                if(data.images && data.images.length > 0) openZoomModal(data.images[0]); 
-            };
+            showLoader();
+            setTimeout(() => {
+                currentNewsIndex = index;
+                const data = allData.news[index];
+                if (!data) { hideLoader(); return; }
+                document.getElementById('news-title').innerText = data.title;
+                document.getElementById('news-date').innerText = data.date;
+                document.getElementById('news-content').innerHTML = `<div class="drop-cap">${data.content}</div>`;
+                const container = document.getElementById('news-slideshow-container');
+                container.innerHTML = '';
+                
+                // Header Image Click Logic
+                container.onclick = function() { 
+                    if(data.images && data.images.length > 0) openZoomModal(data.images[0]); 
+                };
 
-            if(data.images && data.images.length > 0) {
-                data.images.forEach((src,i) => {
-                    const div = document.createElement('div');
-                    div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
-                    div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
-                    container.appendChild(div);
-                });
-                startNewsSlideshow();
-            }
-            history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
-            newsFullPage.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            hideFab();
+                if(data.images && data.images.length > 0) {
+                    data.images.forEach((src,i) => {
+                        const div = document.createElement('div');
+                        div.className = `news-slide-wrapper w-full h-full absolute top-0 left-0 transition-opacity duration-1000 bg-black ${i===0?'active':'opacity-0'}`;
+                        div.innerHTML = `<img src="${src}" class="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"><img src="${src}" class="relative z-10 w-full h-full object-contain">`;
+                        container.appendChild(div);
+                    });
+                    startNewsSlideshow();
+                }
+                history.pushState({ newsOpen: true }, "", "#detail-kegiatan");
+                newsFullPage.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                hideFab();
+                hideLoader();
+            }, 300); // Fake delay for smooth transition
         }
         
         function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow();showFab()}
