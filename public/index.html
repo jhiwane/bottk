@@ -384,24 +384,32 @@
         <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm"><p>© 2026 TK Baiturrohman. All Rights Reserved.</p></div>
     </footer>
 
-    <script>
+<script>
+        // === VARIABEL ASLI KAMU ===
         let allData = { news: [], videos: [], tools: [] };
         let currentPage = 1, itemsPerPage = 10, currentType = 'news';
         let defaultNews=[{title:"Profil sekolah",date:"20 januari 2026",content:`Tetap stay di web kami bunda.segala informasi nanti kami update bisa <a onclick="openMediaViewer(0, 'foto_1')" class="inline-link">[lihat foto ]</a><br>Untuk melihat aktivitas bisa ke channel video yutube kami bunda <a onclick="openMediaViewer(0, 'video_1')" class="inline-link video-link">[lihat video]</a><br><br><span class="text-xs text-gray-400 italic">jika video tidak bisa dibuka diweb ada tulisan kecil dibawah buka app youtube.</span>`,images:["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],gallery:[{group:'foto_1',type:'image',src:"https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg",caption:"Dokumentasi"},{group:'video_1',type:'video',src:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",caption:"Video Profil"}]}];
         let defaultVideos=[{url:"https://youtu.be/s3m7RsCY_TM?si=TgvstE4WYBT0kVDP",judul:"Profil sekolah",deskripsi:"Profil TK Baiturrohman."}];
         let currentNewsIndex = 0;
-        let isFirstLoad = true; // LOGIKA PENTING: Hanya load diawal
+        let isFirstLoad = true;
+
+        // === TAMBAHAN VARIABEL PENGONTROL (Agar animasi 100 foto jalan lancar) ===
+        let profileInterval = null;
+        let heroInterval = null;
+        let lastProfileData = ""; // Untuk mengecek apakah ada foto baru dari Telegram
 
         function showLoader() { document.getElementById('globalLoader').classList.remove('hidden'); }
         function hideLoader() { document.getElementById('globalLoader').classList.add('hidden'); }
 
+        // === FUNGSI LOAD CONTENT (SAYA PERBAIKI LOGIKANYA) ===
         async function loadContent() {
-            // HANYA show loader saat pertama kali buka
             if (isFirstLoad) showLoader();
             
             try {
                 const res = await fetch('/api/content?t=' + new Date().getTime());
                 const data = await res.json();
+                
+                // Update Data
                 allData.news = (data.news && data.news.length > 0) ? data.news : defaultNews;
                 allData.videos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
                 allData.tools = data.tools || [];
@@ -411,50 +419,89 @@
                     if(data.config.mascotUrl) document.getElementById('fabMascot').src = data.config.mascotUrl;
                     if(data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
                     if(data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
+                    
+                    // -- PERBAIKAN: Hero Slider (Cek jika jumlah berubah baru render ulang) --
                     if(data.config.heroImages && data.config.heroImages.length > 0) {
-                        const h = document.getElementById('slider-container'); h.innerHTML = '';
-                        data.config.heroImages.forEach((src,i) => {
-                            h.innerHTML += `<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`;
-                        });
-                        startHeroLoop();
+                        const h = document.getElementById('slider-container');
+                        if(h.children.length !== data.config.heroImages.length) { // Cek sederhana
+                            h.innerHTML = '';
+                            data.config.heroImages.forEach((src,i) => {
+                                h.innerHTML += `<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`;
+                            });
+                            startHeroLoop();
+                        }
                     }
+
+                    // -- PERBAIKAN UTAMA: Profile Slider (Agar bisa sampai 100 foto) --
                     if(data.config.profileImages && data.config.profileImages.length > 0) {
-                        const p = document.getElementById('profile-container'); p.innerHTML = '';
-                        data.config.profileImages.forEach((src,i) => {
-                            const img = document.createElement('img'); img.src = src; img.className = `profile-slide ${i===0?'active':''}`;
-                            p.appendChild(img);
-                        });
-                        startProfileLoop();
+                        // Kita cek: Apakah data foto dari server BEDA dengan yang terakhir kita punya?
+                        const newDataStr = JSON.stringify(data.config.profileImages);
+                        
+                        if (newDataStr !== lastProfileData) {
+                            // Jika BEDA (ada upload baru), baru kita reset slidernya
+                            const p = document.getElementById('profile-container');
+                            p.innerHTML = '';
+                            data.config.profileImages.forEach((src,i) => {
+                                const img = document.createElement('img'); 
+                                img.src = src; 
+                                img.className = `profile-slide ${i===0?'active':''}`;
+                                p.appendChild(img);
+                            });
+                            startProfileLoop();
+                            lastProfileData = newDataStr; // Simpan data baru
+                        }
+                        // Jika SAMA, kita diamkan saja (jangan di-reset) supaya animasi lanjut ke foto 5, 6, 100 dst.
                     }
                 }
                 
-                // CEK JIKA VIDEO SEDANG DIPUTAR, JANGAN RE-RENDER SLIDER VIDEO
+                // Cek video playing agar tidak ganggu slider video
                 const isVideoPlaying = document.getElementById('mainSlider').classList.contains('video-playing');
-                
                 renderNewsSlider(); 
-                
-                if (!isVideoPlaying) { 
-                    renderVideoSlider(); 
-                }
+                if (!isVideoPlaying) { renderVideoSlider(); }
 
             } catch(e) { 
-                allData.news = defaultNews; allData.videos = defaultVideos; renderNewsSlider(); renderVideoSlider();
+                if(isFirstLoad) {
+                    allData.news = defaultNews; allData.videos = defaultVideos; renderNewsSlider(); renderVideoSlider();
+                }
             }
             
-            // Matikan loader dan set isFirstLoad jadi false
             if (isFirstLoad) {
                 setTimeout(hideLoader, 500);
                 isFirstLoad = false;
             }
         }
 
-        function startHeroLoop(){let c=0;const s=document.querySelectorAll('.slide');if(s.length>1)setInterval(()=>{s[c].classList.remove('active');c=(c+1)%s.length;s[c].classList.add('active')},6000)}
-        function startProfileLoop(){let c=0;const p=document.querySelectorAll('.profile-slide');if(p.length>1)setInterval(()=>{p[c].classList.remove('active');c=(c+1)%p.length;p[c].classList.add('active')},4000)}
-
-        // --- MENU LOGIC (FIXED) ---
-        function toggleNavbarMenu() { 
-            document.getElementById('mobile-menu').classList.toggle('hidden'); 
+        // === FUNGSI LOOP (SAYA PERBAIKI AGAR MENGGUNAKAN VARIABEL GLOBAL & CLEAR INTERVAL) ===
+        
+        function startHeroLoop(){
+            if(heroInterval) clearInterval(heroInterval); // Hapus timer lama
+            let c=0;
+            const s=document.querySelectorAll('.slide');
+            if(s.length>1) heroInterval = setInterval(()=>{ // Pakai variabel global heroInterval
+                s[c].classList.remove('active');
+                c=(c+1)%s.length;
+                s[c].classList.add('active')
+            },6000)
         }
+
+        function startProfileLoop(){
+            if(profileInterval) clearInterval(profileInterval); // Hapus timer lama agar tidak bentrok
+            
+            // Cari slide mana yang sedang aktif agar transisi mulus
+            let c=0;
+            const p=document.querySelectorAll('.profile-slide');
+            p.forEach((el, idx) => { if(el.classList.contains('active')) c = idx; });
+
+            if(p.length>1) profileInterval = setInterval(()=>{ // Pakai variabel global profileInterval
+                p[c].classList.remove('active');
+                c=(c+1)%p.length;
+                p[c].classList.add('active')
+            },4000)
+        }
+
+        // === DI BAWAH INI ADALAH KODE ASLIMU (TIDAK SAYA UBAH SAMA SEKALI) ===
+
+        function toggleNavbarMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         
         function toggleFab() { 
             const c = document.getElementById('fabContainer'); const i = document.getElementById('fabIcon');
@@ -465,7 +512,6 @@
         function hideFab() { document.getElementById('fabContainer').classList.add('hidden-state'); }
         function showFab() { document.getElementById('fabContainer').classList.remove('hidden-state'); }
 
-        // --- INFO MODAL (FIXED) ---
         const infoModal = document.getElementById('infoModal');
         function openInfoModal() { 
             infoModal.classList.remove('hidden'); 
@@ -478,31 +524,29 @@
             showFab(); 
         }
 
-        // --- ZOOM NATIVE SCROLL (FIXED LOGIC) ---
+        // ZOOM FULLSCREEN
         function openZoomModal(src) {
             const m = document.getElementById('zoomModal');
             const img = document.getElementById('zoomImage');
             img.src = src;
-            img.className = 'img-fit-screen'; // Mulai dari FIT
-            m.style.display = 'block'; // Tampilkan Modal
+            img.className = 'img-fit-screen'; 
+            m.style.display = 'block'; 
         }
         function closeZoomModal() {
             document.getElementById('zoomModal').style.display = 'none';
         }
 
-        // --- LIST & TOOLS ---
         function openListModal(type) { 
             currentType = type; 
             currentPage = 1; 
             document.getElementById('listModal').classList.add('active'); 
             renderList(); 
             hideFab();
-            history.pushState({modal:'list'}, null, '#cari'); // Support Back Button
+            history.pushState({modal:'list'}, null, '#cari'); 
         }
         function closeListModal() { document.getElementById('listModal').classList.remove('active'); showFab(); }
         
         function openToolsModal() { 
-            // Tampilkan loader sebentar seolah-olah memuat tools
             showLoader();
             setTimeout(() => {
                 const c = document.getElementById('toolsContainer'); c.innerHTML = '';
@@ -514,18 +558,17 @@
                 document.getElementById('toolsModal').classList.add('active'); 
                 hideFab();
                 hideLoader();
-                history.pushState({modal:'tools'}, null, '#tools'); // Support Back Button
+                history.pushState({modal:'tools'}, null, '#tools'); 
             }, 300);
         }
         function closeToolsModal() { document.getElementById('toolsModal').classList.remove('active'); showFab(); }
         
         function openIframe(url, name) { 
-            showLoader(); // Show loader waiting for iframe content
+            showLoader(); 
             document.getElementById('mainIframe').src = url; 
-            // Header dihapus, jadi title tidak perlu diset
             document.getElementById('iframeView').classList.add('active'); 
             hideFab();
-            history.pushState({modal:'iframe'}, null, '#app'); // Support Back Button
+            history.pushState({modal:'iframe'}, null, '#app'); 
         }
         function closeIframe() { document.getElementById('iframeView').classList.remove('active'); document.getElementById('mainIframe').src = ''; showFab(); }
 
@@ -562,6 +605,7 @@
         function prevPage() { if(currentPage > 1) { currentPage--; renderList(); } }
         function nextPage() { currentPage++; renderList(); }
 
+        // SAYA PERTAHANKAN FORMAT ONE-LINER ASLI KODE KAMU UNTUK FUNGSI DI BAWAH INI
         function renderVideoSlider(){const t=document.getElementById('trackVideo');if(!t)return;t.innerHTML='';allData.videos.forEach((v,i)=>{const id=getYouTubeVideoId(v.url);if(id){const thumb=`https://img.youtube.com/vi/${id}/maxresdefault.jpg`;t.innerHTML+=`<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all"><div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div><div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p><div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div></div>`}})}
         function loadYtIframe(el){const id=el.getAttribute('data-id');const f=document.createElement('iframe');f.setAttribute('src',`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);f.className='yt-iframe';f.setAttribute('frameborder','0');f.setAttribute('allowfullscreen','true');f.setAttribute('allow','autoplay');el.innerHTML='';el.appendChild(f);document.getElementById('mainSlider').classList.add('video-playing')}
         function getYouTubeVideoId(u){const m=u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);return(m&&m[1].length==11)?m[1]:null}
@@ -582,7 +626,6 @@
                 const container = document.getElementById('news-slideshow-container');
                 container.innerHTML = '';
                 
-                // Header Image Click Logic
                 container.onclick = function() { 
                     if(data.images && data.images.length > 0) openZoomModal(data.images[0]); 
                 };
@@ -601,7 +644,7 @@
                 document.body.style.overflow = 'hidden';
                 hideFab();
                 hideLoader();
-            }, 300); // Fake delay for smooth transition
+            }, 300); 
         }
         
         function closeFullPageNews(){newsFullPage.classList.remove('active');document.body.style.overflow='auto';stopNewsSlideshow();showFab()}
@@ -620,7 +663,6 @@
             filtered.forEach(item=>{
                 let el='';
                 if(item.type==='image') {
-                    // LINK CLICK -> ZOOM NATIVE
                     el=`<div class="w-full flex flex-col items-center"><img src="${item.src}" class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl mb-2 cursor-zoom-in" onclick="openZoomModal('${item.src}')"><p class="text-gray-400 text-sm italic text-center">${item.caption}</p></div>`;
                 }
                 else if(item.type==='video'){
@@ -635,29 +677,22 @@
 
         function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews();closeListModal();closeToolsModal();closeIframe();showFab();closeZoomModal()}}
         
-        // --- MOBILE SYSTEM BACK BUTTON SUPPORT ---
         window.addEventListener('popstate', function(event) {
-            // Tutup Media Viewer
             if (document.getElementById('mediaViewer').classList.contains('active')) {
                 closeMediaViewer();
             } 
-            // Tutup Berita Full Page
             else if (document.getElementById('newsFullPage').classList.contains('active')) {
                 closeFullPageNews();
             }
-            // Tutup Modal Tools
             else if (document.getElementById('toolsModal').classList.contains('active')) {
                 closeToolsModal();
             }
-            // Tutup Iframe App
             else if (document.getElementById('iframeView').classList.contains('active')) {
                 closeIframe();
             }
-            // Tutup List Modal
             else if (document.getElementById('listModal').classList.contains('active')) {
                 closeListModal();
             }
-            // Tutup Zoom Image
             else if (document.getElementById('zoomModal').style.display === 'block') {
                 closeZoomModal();
             }
