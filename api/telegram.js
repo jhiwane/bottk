@@ -38,7 +38,7 @@ const toolsMenu = {
     reply_markup: {
         inline_keyboard: [
             [{ text: '➕ Tambah Tool Baru', callback_data: 'add_tool' }],
-            [{ text: '✏️ Edit / Hapus Tool', callback_data: 'list_tools_edit' }] // Diupdate
+            [{ text: '✏️ Edit / Hapus Tool', callback_data: 'list_tools_edit' }]
         ]
     }
 };
@@ -170,7 +170,6 @@ export default async function handler(req, res) {
                 await stateCol.updateOne({ _id: chatId }, { $set: { step: 'tool_content' } }, { upsert: true });
                 await bot.sendMessage(chatId, "Kirim **File HTML/PDF** atau **Link URL** untuk Tool ini:", cancelMenu);
             }
-            // --- UPDATE: List Tools untuk Edit/Hapus ---
             if (data === 'list_tools_edit' || data === 'del_tool_list') {
                 const items = await toolsCol.find({}).toArray();
                 if(items.length === 0) await bot.sendMessage(chatId, "Belum ada tools.");
@@ -223,12 +222,9 @@ export default async function handler(req, res) {
             if (data.startsWith('sel_')) {
                 const [_, type, id] = data.split('_');
                 
-                // --- UPDATE: Edit Tool Logic (Tidak langsung hapus) ---
+                // Edit Tool Logic
                 if (type === 't') {
-                    // Simpan ID tool yang dipilih ke state
                     await stateCol.updateOne({ _id: chatId }, { $set: { targetId: id, targetType: type } }, { upsert: true });
-                    
-                    // Tampilkan Menu Opsi Tool
                     await bot.sendMessage(chatId, "Apa yang ingin dilakukan pada Tool ini?", {
                         reply_markup: { inline_keyboard: [
                             [{ text: '✏️ Edit Nama', callback_data: 'do_edit_tool_name' }],
@@ -250,16 +246,26 @@ export default async function handler(req, res) {
 
                 // Edit Berita/Video (Masuk ke Menu Opsi)
                 await stateCol.updateOne({ _id: chatId }, { $set: { targetId: id, targetType: type } }, { upsert: true });
+                
+                // --- UPDATE: Logic Dinamis (Beda tombol utk Video dan Berita) ---
+                const actionButtons = [
+                    [{ text: '✏️ Edit Judul', callback_data: 'do_edit_title' }],
+                    [{ text: '📝 Edit Isi/Deskripsi', callback_data: 'do_edit_content' }]
+                ];
+
+                // Jika Tipe Video ('v'), tambahkan tombol Edit Link URL
+                if (type === 'v') {
+                    actionButtons.push([{ text: '🔗 Edit Link URL', callback_data: 'do_edit_video_url' }]);
+                }
+
+                actionButtons.push([{ text: '🗑️ HAPUS DATA', callback_data: 'do_delete' }]);
+
                 await bot.sendMessage(chatId, "Pilih Tindakan:", {
-                    reply_markup: { inline_keyboard: [
-                        [{ text: '✏️ Edit Judul', callback_data: 'do_edit_title' }],
-                        [{ text: '📝 Edit Isi/Deskripsi', callback_data: 'do_edit_content' }],
-                        [{ text: '🗑️ HAPUS DATA', callback_data: 'do_delete' }]
-                    ]}
+                    reply_markup: { inline_keyboard: actionButtons }
                 });
             }
 
-            // --- EKSEKUSI EDIT / DELETE TOOL (BARU) ---
+            // --- EKSEKUSI EDIT / DELETE TOOL ---
             if (data === 'do_delete_tool') {
                 await toolsCol.deleteOne({ _id: new ObjectId(userState.targetId) });
                 await bot.sendMessage(chatId, "🗑️ Tool berhasil dihapus.", mainMenu);
@@ -274,7 +280,7 @@ export default async function handler(req, res) {
                 await bot.sendMessage(chatId, "Silahkan kirim **File HTML/PDF Baru** atau **Link URL Baru**:", cancelMenu);
             }
 
-            // EKSEKUSI EDIT / DELETE BERITA & VIDEO
+            // --- EKSEKUSI EDIT / DELETE BERITA & VIDEO ---
             if (data === 'do_delete') {
                 const col = userState.targetType === 'n' ? newsCol : videoCol;
                 await col.deleteOne({ _id: new ObjectId(userState.targetId) });
@@ -288,6 +294,11 @@ export default async function handler(req, res) {
             if (data === 'do_edit_content') {
                 await stateCol.updateOne({ _id: chatId }, { $set: { step: 'editing_content' } });
                 await bot.sendMessage(chatId, "Silahkan kirim **Isi Konten Baru**:", cancelMenu);
+            }
+            // --- UPDATE: Handler tombol edit Video URL ---
+            if (data === 'do_edit_video_url') {
+                await stateCol.updateOne({ _id: chatId }, { $set: { step: 'editing_video_url' } });
+                await bot.sendMessage(chatId, "Silahkan kirim **Link YouTube Baru**:", cancelMenu);
             }
 
             return res.send('ok');
@@ -306,21 +317,17 @@ export default async function handler(req, res) {
             const waitMsg = await bot.sendMessage(chatId, "⏳ Memproses data...");
             let toolData = {};
 
-            // 1. JIKA FILE HTML/TXT
             if (update.message.document) {
                 try {
                     const fileId = update.message.document.file_id;
                     const fileName = update.message.document.file_name;
                     
-                    // Khusus File HTML: Download isinya, simpan Text-nya ke DB
                     if (fileName.endsWith('.html') || fileName.endsWith('.htm') || fileName.endsWith('.txt')) {
                         const fileLink = await bot.getFileLink(fileId);
                         const response = await axios.get(fileLink, { responseType: 'text' });
-                        const htmlContent = response.data;
-                        toolData = { type: 'html_code', content: htmlContent };
+                        toolData = { type: 'html_code', content: response.data };
                         
                     } else {
-                        // Jika PDF/APK/DOC -> Tetap Upload ke Cloudinary (Fallback)
                         const activeCloud = await cloudCol.findOne({ active: true });
                         if(!activeCloud) throw new Error("Cloudinary belum diset.");
                         
@@ -335,7 +342,6 @@ export default async function handler(req, res) {
                     return res.send('ok');
                 }
             } 
-            // 2. JIKA LINK URL
             else if (text.startsWith('http')) {
                 toolData = { type: 'url', content: text.trim() };
             } 
@@ -346,8 +352,6 @@ export default async function handler(req, res) {
             }
 
             await bot.deleteMessage(chatId, waitMsg.message_id);
-            
-            // Simpan Data Sementara & Lanjut ke Nama
             await stateCol.updateOne({ _id: chatId }, { 
                 $set: { step: 'tool_name', tempTool: toolData } 
             });
@@ -370,7 +374,7 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // --- UPDATE: EDIT TOOL HANDLERS ---
+        // --- EDIT TOOL HANDLERS ---
         if (userState.step === 'editing_tool_name') {
             await toolsCol.updateOne({_id: new ObjectId(userState.targetId)}, {$set: {name: text}});
             await bot.sendMessage(chatId, "✅ Nama Tool berhasil diupdate!", mainMenu);
@@ -382,7 +386,6 @@ export default async function handler(req, res) {
             const waitMsg = await bot.sendMessage(chatId, "⏳ Mengupload ulang...");
             let toolUpdate = {};
 
-            // Copy logika upload dari 'tool_content'
             if (update.message.document) {
                 try {
                     const fileId = update.message.document.file_id;
@@ -418,7 +421,7 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // 2. BERITA WIZARD (LOGIKA CERDAS: FOTO vs VIDEO)
+        // 2. BERITA WIZARD
         if (text === '📰 Buat Berita') {
             await stateCol.updateOne({ _id: chatId }, { 
                 $set: { step: 'news_photos_upload', draft: { gallery: [], images: [] } } 
@@ -440,7 +443,6 @@ export default async function handler(req, res) {
             let type = 'image';
             const waitMsg = await bot.sendMessage(chatId, "⏳ Memproses...");
 
-            // Cek FOTO (Upload ke Cloudinary)
             if (update.message.photo) {
                 const activeCloud = await cloudCol.findOne({ active: true });
                 if(!activeCloud) { 
@@ -452,12 +454,10 @@ export default async function handler(req, res) {
                 finalUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
             
             } else if (text) {
-                // Cek YOUTUBE
                 if (text.includes('youtu.be') || text.includes('youtube.com')) {
                     finalUrl = text.trim();
                     type = 'video';
                 } 
-                // Cek LINK GAMBAR (Fallback)
                 else if (text.startsWith('http')) {
                     finalUrl = text.trim();
                     type = 'image';
@@ -468,11 +468,9 @@ export default async function handler(req, res) {
 
             if (finalUrl) {
                 const currentIndex = userState.draft.gallery.length + 1;
-                const pid = `media_${currentIndex}`; // ID Unik
+                const pid = `media_${currentIndex}`; // ID Unik (mengandung underscore)
                 
-                // LOGIKA PISAH HEADER & GALERI
                 if (type === 'image') {
-                    // Foto: Masuk Header (images) DAN Galeri
                     await stateCol.updateOne({_id:chatId}, {
                         $push: {
                             "draft.gallery": { group: pid, type: type, src: finalUrl, caption: 'Dokumentasi' },
@@ -480,7 +478,6 @@ export default async function handler(req, res) {
                         }
                     });
                 } else {
-                    // Video: HANYA Masuk Galeri
                     await stateCol.updateOne({_id:chatId}, {
                         $push: {
                             "draft.gallery": { group: pid, type: type, src: finalUrl, caption: 'Dokumentasi' }
@@ -488,19 +485,21 @@ export default async function handler(req, res) {
                     });
                 }
                 
-                // BERIKAN KODE KE USER
                 let linkCode = type === 'video' 
                     ? `<a onclick="openMediaViewer(currentNewsIndex, '${pid}')" class="inline-link video-link">[Lihat Video]</a>`
                     : `<a onclick="openMediaViewer(currentNewsIndex, '${pid}')" class="inline-link">[Lihat Foto]</a>`;
 
+                // --- PERBAIKAN: Menggunakan HTML Parse Mode & Mengamankan kode ---
+                // Mengubah < menjadi &lt; dan > menjadi &gt; agar tampil sebagai teks kode
+                const displayCode = linkCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
                 await bot.sendMessage(chatId, 
-                    `✅ **${type.toUpperCase()} Tersimpan!** (ID: ${pid})\n\n` +
-                    `Salin kode ini untuk artikel:\n\`${linkCode}\``, 
-                    {parse_mode:'Markdown'}
+                    `✅ <b>${type.toUpperCase()} Tersimpan!</b> (ID: ${pid})\n\n` +
+                    `Salin kode ini untuk artikel:\n<code>${displayCode}</code>`, 
+                    {parse_mode:'HTML'}
                 );
 
             } else if (!text.toLowerCase().includes('selesai') && !text.includes('Batal')) {
-                // Pesan error hanya muncul jika bukan perintah selesai/batal
                 await bot.sendMessage(chatId, "❌ Input tidak dikenali. Kirim Foto atau Link YouTube.");
             }
             return res.send('ok');
@@ -526,10 +525,8 @@ export default async function handler(req, res) {
             const draft = userState.draft;
             draft.content = text;
             
-            // Tambahkan link 'Lihat Semua' otomatis
             draft.content += `<br><br><p class='text-center text-sm text-gray-500'><a onclick="openMediaViewer(currentNewsIndex, 'all')" class='inline-link'>[Lihat Semua Dokumentasi]</a></p>`;
             
-            // Tambahkan group 'all' ke semua item galeri
             const allGrp = draft.gallery.map(g => ({...g, group: 'all'}));
             draft.gallery = [...draft.gallery, ...allGrp];
 
@@ -592,14 +589,11 @@ export default async function handler(req, res) {
                     const field = userState.mode.includes('hero') ? 'heroImages' : 'profileImages';
                     
                     if (userState.mode.includes('reset')) {
-                        // Reset: Timpa array lama
                         await configCol.updateOne({_id:'main'}, {$set: {[field]: [finalUrl]}}, {upsert:true});
-                        // Ubah mode ke 'add'
                         const nextMode = userState.mode.includes('hero') ? 'add_hero' : 'add_profile';
                         await stateCol.updateOne({_id:chatId}, {$set: {mode: nextMode}});
                         await bot.sendMessage(chatId, "✅ Reset Sukses! Data lama dihapus.\nKirim lagi untuk menambah.", cancelMenu);
                     } else {
-                        // Add: Push ke array
                         await configCol.updateOne({_id:'main'}, {$push: {[field]: finalUrl}}, {upsert:true});
                         await bot.sendMessage(chatId, "✅ Slide Ditambah.", cancelMenu);
                     }
@@ -638,6 +632,7 @@ export default async function handler(req, res) {
         }
 
         // 7. EDITING SAVE (BERITA & VIDEO)
+        // Edit Judul / Konten Deskripsi
         if (userState.step === 'editing_title' || userState.step === 'editing_content') {
             const col = userState.targetType === 'n' ? newsCol : videoCol;
             const field = (userState.step === 'editing_title') 
@@ -650,7 +645,15 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // 8. QUICK UPLOAD TOOL (Fitur Lama)
+        // --- UPDATE: Edit Video URL Save ---
+        if (userState.step === 'editing_video_url') {
+            await videoCol.updateOne({_id: new ObjectId(userState.targetId)}, {$set: {url: text}});
+            await bot.sendMessage(chatId, "✅ Link Video Berhasil Update!", mainMenu);
+            await stateCol.deleteOne({_id:chatId});
+            return res.send('ok');
+        }
+
+        // 8. QUICK UPLOAD TOOL
         if (update.message.photo && !userState.step) {
             const activeCloud = await cloudCol.findOne({ active: true });
             if (activeCloud) {
