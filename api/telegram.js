@@ -8,11 +8,11 @@ const mongoUri = process.env.MONGODB_URI;
 const adminId = process.env.ADMIN_TELEGRAM_ID;
 
 const bot = new TelegramBot(token);
-// Client diinisialisasi di luar handler (Best Practice Serverless)
+// Client di luar handler agar koneksi awet (Serverless Friendly)
 const client = new MongoClient(mongoUri);
 
 // ==========================================
-// 1. DEFINISI KEYBOARD (MENU)
+// 1. DEFINISI KEYBOARD (MENU) LENGKAP
 // ==========================================
 
 const mainMenu = {
@@ -73,7 +73,7 @@ const cloudMenu = {
     }
 };
 
-// Helper: Membuat List Tombol
+// Helper: Membuat List Tombol Inline Secara Dinamis
 const createListKeyboard = (items, type) => {
     return {
         inline_keyboard: items.map(item => {
@@ -91,7 +91,6 @@ const createListKeyboard = (items, type) => {
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const update = req.body;
-        
         if (!update.message && !update.callback_query) return res.send('ok');
 
         const msg = update.message || update.callback_query.message;
@@ -105,7 +104,7 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // 2. Koneksi Database (Optimized for Vercel)
+        // 2. Koneksi Database
         try {
             if (!client.topology || !client.topology.isConnected()) {
                 await client.connect();
@@ -126,18 +125,13 @@ export default async function handler(req, res) {
 
         // --- A. GLOBAL CANCEL HANDLER ---
         if (text === '❌ Batal / Selesai' || text === '/start') {
-            if (userState.step === 'news_photos_upload' && text === '❌ Batal / Selesai') {
-                if (userState.draft && userState.draft.gallery && userState.draft.gallery.length > 0) {
-                    await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_title_input' } });
-                    await bot.sendMessage(chatId, "✅ Media tersimpan.\n\nLangkah Selanjutnya: Kirim **JUDUL BERITA**:", cancelMenu);
-                    return res.send('ok');
-                } else {
-                    await bot.sendMessage(chatId, "⚠️ Belum ada media. Yakin batalkan?", {
-                        reply_markup: { inline_keyboard: [[{text:'Ya, Hapus Draft', callback_data:'force_cancel'}]] }
-                    });
-                    return res.send('ok');
-                }
+            // Khusus Berita: Jika sudah ada media tersimpan, jangan langsung hapus, tapi lanjut
+            if (userState.step && userState.step.startsWith('news_') && userState.draft && userState.draft.gallery && userState.draft.gallery.length > 0) {
+                 await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_title_input' } });
+                 await bot.sendMessage(chatId, "✅ Selesai Upload.\n\nLangkah 2: Kirim **JUDUL BERITA**:", cancelMenu);
+                 return res.send('ok');
             }
+            
             await stateCol.deleteOne({ _id: chatId });
             await bot.sendMessage(chatId, "🔄 Kembali ke Menu Utama.", mainMenu);
             return res.send('ok');
@@ -357,6 +351,8 @@ export default async function handler(req, res) {
 
         if (userState.step === 'editing_tool_content') {
             let toolUpdate = {};
+            const waitMsg = await bot.sendMessage(chatId, "⏳ Memproses...");
+            
             if (update.message.document) {
                 const fileLink = await bot.getFileLink(update.message.document.file_id);
                 if (update.message.document.file_name.endsWith('.html')) {
@@ -370,93 +366,138 @@ export default async function handler(req, res) {
             } else if (text.startsWith('http')) {
                 toolUpdate = { type: 'url', content: text.trim(), url: text.trim() };
             }
+            
+            await bot.deleteMessage(chatId, waitMsg.message_id);
             await toolsCol.updateOne({_id: new ObjectId(userState.targetId)}, {$set: toolUpdate});
             await bot.sendMessage(chatId, "✅ Content Updated!", mainMenu);
             await stateCol.deleteOne({_id:chatId});
             return res.send('ok');
         }
 
-        // 2. BERITA WIZARD (MULTI URL & FOTO FIXED)
+        // 2. BERITA WIZARD (LOGIKA BARU: BATCH UPLOAD -> NAMING)
         if (text === '📰 Buat Berita') {
+            // Reset state, siapkan buffer dan draft
             await stateCol.updateOne({ _id: chatId }, { 
-                $set: { step: 'news_photos_upload', draft: { gallery: [], images: [] } } 
+                $set: { step: 'news_photos_upload', draft: { gallery: [], images: [] }, buffer: [] } 
             }, { upsert: true });
             
             await bot.sendMessage(chatId, 
-                "**Langkah 1: Upload Media**\n\n" +
-                "1. **Kirim FOTO** -> Masuk Header & Galeri.\n" +
-                "2. **Kirim Link (YouTube/Gambar)** -> Bisa banyak link sekaligus (pisahkan dengan Enter/Baris Baru).\n\n" +
-                "➡️ Ketik tombol **'Selesai'** jika sudah.", 
+                "**Langkah 1: Upload Media (Batch Upload)**\n\n" +
+                "Kirim **Semua Link Foto/Video** untuk kategori pertama (misal: Dokumentasi).\n" +
+                "Bisa kirim 10 link sekaligus (pisah baris).\n\n" +
+                "➡️ Saya akan minta nama kategori setelah kamu kirim.", 
                 cancelMenu
             );
             return res.send('ok');
         }
 
+        // STEP 1.1: TERIMA FILE/LINK -> MASUKKAN KE BUFFER SEMENTARA
         if (userState.step === 'news_photos_upload') {
             const activeCloud = await cloudCol.findOne({ active: true });
-            let mediaList = []; // Menampung antrian media
+            let newItems = [];
 
-            // 1. Jika Input adalah Foto Telegram
+            // Jika Foto Telegram
             if (update.message.photo) {
-                if(!activeCloud) { await bot.sendMessage(chatId, "⚠️ Set Cloudinary dulu."); return res.send('ok'); }
+                if(!activeCloud) { await bot.sendMessage(chatId, "⚠️ Cloudinary belum diset."); return res.send('ok'); }
                 const fileId = update.message.photo[update.message.photo.length - 1].file_id;
                 const fileLink = await bot.getFileLink(fileId);
                 const url = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
-                if(url) mediaList.push({url, type: 'image'});
+                if(url) newItems.push({url, type: 'image'});
             } 
-            // 2. Jika Input adalah Teks (Bisa Multi URL)
-            else if (text && text.toLowerCase() !== 'selesai' && !text.includes('Batal')) {
-                // Split text berdasarkan baris baru
+            // Jika Teks Link (Multi URL)
+            else if (text && !text.includes('Batal')) {
                 const links = text.split('\n');
-                
                 links.forEach(l => {
-                    const link = l.trim();
-                    if(link.startsWith('http')) {
-                        // Cek apakah YouTube atau Gambar biasa
-                        const type = (link.includes('youtu.be') || link.includes('youtube.com')) ? 'video' : 'image';
-                        mediaList.push({url: link, type});
+                    const cleaned = l.trim();
+                    if(cleaned.startsWith('http')) {
+                        const type = (cleaned.includes('youtu')) ? 'video' : 'image';
+                        newItems.push({url: cleaned, type});
                     }
                 });
             }
 
-            // PROSES ANTRIAN MEDIA
-            if (mediaList.length > 0) {
-                for (const item of mediaList) {
-                    const pid = `media_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-                    const galleryItem = { group: pid, type: item.type, src: item.url, caption: 'Dokumentasi' };
-                    
-                    if (item.type === 'image') {
-                        await stateCol.updateOne({_id:chatId}, {
-                            $push: { "draft.gallery": galleryItem, "draft.images": item.url }
-                        });
-                    } else {
-                        await stateCol.updateOne({_id:chatId}, {
-                            $push: { "draft.gallery": galleryItem }
-                        });
-                    }
+            if (newItems.length > 0) {
+                // Simpan ke BUFFER (Belum ke Draft utama)
+                await stateCol.updateOne({ _id: chatId }, { 
+                    $push: { buffer: { $each: newItems } },
+                    $set: { step: 'news_naming_category' } // Pindah ke step penamaan
+                });
 
-                    // Buat Kode HTML Link
-                    let linkCode = item.type === 'video' 
-                        ? `<a onclick="openMediaViewer(currentNewsIndex, '${pid}')" class="inline-link video-link">[Lihat Video]</a>`
-                        : `<a onclick="openMediaViewer(currentNewsIndex, '${pid}')" class="inline-link">[Lihat Foto]</a>`;
-                    
-                    const displayCode = linkCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                    await bot.sendMessage(chatId, 
-                        `✅ <b>${item.type.toUpperCase()} Tersimpan!</b>\nCopy kode ini: <code>${displayCode}</code>`, 
-                        {parse_mode:'HTML'}
-                    );
-                }
-            } else if (!text.toLowerCase().includes('selesai') && !update.message.photo) {
+                await bot.sendMessage(chatId, 
+                    `✅ **${newItems.length} Media Diterima!**\n\n` +
+                    `Sekarang kirim **NAMA KATEGORI** untuk grup foto ini.\n` +
+                    `(Contoh: *Dokumentasi*, *Fasilitas*, atau *Kegiatan Inti*)`, 
+                    cancelMenu
+                );
+            } else {
                 await bot.sendMessage(chatId, "❌ Link tidak valid atau format salah.");
             }
+            return res.send('ok');
+        }
 
-            // Jika user ketik Selesai
-            if (text.toLowerCase() === 'selesai') {
-                await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_title_input' } });
-                await bot.sendMessage(chatId, "✅ Media Selesai.\n\nLangkah 2: Kirim **JUDUL BERITA**:", cancelMenu);
+        // STEP 1.2: PROSES PENAMAAN KATEGORI & GENERATE KODE
+        if (userState.step === 'news_naming_category') {
+            const categoryName = text; // User mengetik "Dokumentasi"
+            const buffer = userState.buffer || [];
+
+            if (buffer.length === 0) {
+                await bot.sendMessage(chatId, "⚠️ Error: Buffer kosong. Ulangi upload.");
+                await stateCol.updateOne({_id:chatId}, {$set:{step:'news_photos_upload'}});
+                return res.send('ok');
             }
 
+            // Pindahkan Buffer ke Main Draft dengan Label Kategori
+            let galleryItems = [];
+            // ID Spesifik untuk kategori ini (agar bisa dipanggil sebagai album)
+            const catId = categoryName.toLowerCase().replace(/\s+/g, '_') + '_' + Math.floor(Math.random()*1000);
+            
+            // Loop items di buffer
+            for (let i = 0; i < buffer.length; i++) {
+                const item = buffer[i];
+                const uniqueId = `img_${Date.now()}_${i}`; // ID unik per foto
+                
+                galleryItems.push({
+                    id: uniqueId,
+                    group: catId,            // Group ID (untuk filter kategori)
+                    groupName: categoryName, // Nama Kategori (readable)
+                    type: item.type,
+                    src: item.url,
+                    caption: categoryName
+                });
+
+                // Jika image, masukkan juga ke draft.images untuk header slideshow
+                if(item.type === 'image') {
+                    await stateCol.updateOne({_id:chatId}, {$push: {"draft.images": item.url}});
+                }
+            }
+
+            // Push semua ke Gallery Utama
+            await stateCol.updateOne({_id:chatId}, {
+                $push: { "draft.gallery": { $each: galleryItems } },
+                $set: { buffer: [], step: 'news_photos_upload' } // Reset buffer & kembali ke mode upload
+            });
+
+            // --- GENERATE LINK PINTAR ---
+            // 1. Link In-Line Satu Foto (Ambil foto pertama dari batch ini)
+            const singleLink = `<a onclick="openMediaViewer(currentNewsIndex, '${galleryItems[0].id}')" class="inline-link">[Lihat 1 Foto]</a>`;
+            
+            // 2. Link In-Line Kategori Spesifik (Album Dokumentasi)
+            const catLink = `<a onclick="openMediaViewer(currentNewsIndex, '${catId}')" class="inline-link">[Lihat Album ${categoryName}]</a>`;
+            
+            // 3. Link In-Line All Foto (Semua)
+            const allLink = `<a onclick="openMediaViewer(currentNewsIndex, 'all')" class="inline-link">[Lihat Semua Galeri]</a>`;
+
+            const msgReply = 
+                `📂 **Kategori Tersimpan: "${categoryName}"** (${buffer.length} item)\n\n` +
+                `👇 **Salin Kode Link di bawah ini:**\n\n` +
+                `1️⃣ **Link 1 Foto Saja:**\n<code>${singleLink.replace(/</g,'&lt;')}</code>\n\n` +
+                `2️⃣ **Link Album "${categoryName}":**\n<code>${catLink.replace(/</g,'&lt;')}</code>\n\n` +
+                `3️⃣ **Link Semua Galeri:**\n<code>${allLink.replace(/</g,'&lt;')}</code>\n\n` +
+                `---\n` +
+                `🔄 **Mau tambah kategori lain?** Kirim Link/Foto lagi sekarang.\n` +
+                `✅ **Jika sudah semua**, ketik tombol **'Selesai'**.`;
+
+            await bot.sendMessage(chatId, msgReply, {parse_mode:'HTML'});
             return res.send('ok');
         }
 
@@ -468,7 +509,7 @@ export default async function handler(req, res) {
 
         if (userState.step === 'news_date_input') {
             await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_content_input', "draft.date": text } });
-            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA** (Gunakan kode yang tadi dicopy):", cancelMenu);
+            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA** (Tempel kode link tadi disini):", cancelMenu);
             return res.send('ok');
         }
 
@@ -476,10 +517,6 @@ export default async function handler(req, res) {
             const draft = userState.draft;
             draft.content = text + `<br><br><p class='text-center text-sm text-gray-500'><a onclick="openMediaViewer(currentNewsIndex, 'all')" class='inline-link'>[Lihat Semua Dokumentasi]</a></p>`;
             
-            // Tambahkan group 'all' ke semua item galeri
-            const allGrp = (draft.gallery || []).map(g => ({...g, group: 'all'}));
-            draft.gallery = [...(draft.gallery || []), ...allGrp];
-
             await newsCol.insertOne(draft);
             await stateCol.deleteOne({ _id: chatId });
             await bot.sendMessage(chatId, "✅ **BERITA BERHASIL DITERBITKAN!**", mainMenu);
