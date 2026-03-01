@@ -393,15 +393,17 @@
         let currentNewsIndex = 0;
         let isFirstLoad = true;
 
-        // === TAMBAHAN VARIABEL PENGONTROL (Agar animasi 100 foto jalan lancar) ===
+        // === TAMBAHAN VARIABEL PENGONTROL ===
         let profileInterval = null;
         let heroInterval = null;
         let lastProfileData = ""; // Untuk mengecek apakah ada foto baru dari Telegram
+        let lastNewsData = ""; // Mencegah galeri berita flicker
+        let lastVideosData = ""; // Mencegah video flicker
 
         function showLoader() { document.getElementById('globalLoader').classList.remove('hidden'); }
         function hideLoader() { document.getElementById('globalLoader').classList.add('hidden'); }
 
-        // === FUNGSI LOAD CONTENT (SAYA PERBAIKI LOGIKANYA) ===
+        // === FUNGSI LOAD CONTENT ===
         async function loadContent() {
             if (isFirstLoad) showLoader();
             
@@ -410,8 +412,8 @@
                 const data = await res.json();
                 
                 // Update Data
-                allData.news = (data.news && data.news.length > 0) ? data.news : defaultNews;
-                allData.videos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
+                const newNews = (data.news && data.news.length > 0) ? data.news : defaultNews;
+                const newVideos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
                 allData.tools = data.tools || [];
 
                 if(data.config) {
@@ -420,10 +422,9 @@
                     if(data.config.infoTitle) document.getElementById('info-title').innerText = data.config.infoTitle;
                     if(data.config.infoContent) document.getElementById('info-content').innerText = data.config.infoContent;
                     
-                    // -- PERBAIKAN: Hero Slider (Cek jika jumlah berubah baru render ulang) --
                     if(data.config.heroImages && data.config.heroImages.length > 0) {
                         const h = document.getElementById('slider-container');
-                        if(h.children.length !== data.config.heroImages.length) { // Cek sederhana
+                        if(h.children.length !== data.config.heroImages.length) { 
                             h.innerHTML = '';
                             data.config.heroImages.forEach((src,i) => {
                                 h.innerHTML += `<div class="slide ${i===0?'active':''}"><img src="${src}" class="w-full h-full object-cover animate-kenburns"></div>`;
@@ -432,13 +433,9 @@
                         }
                     }
 
-                    // -- PERBAIKAN UTAMA: Profile Slider (Agar bisa sampai 100 foto) --
                     if(data.config.profileImages && data.config.profileImages.length > 0) {
-                        // Kita cek: Apakah data foto dari server BEDA dengan yang terakhir kita punya?
                         const newDataStr = JSON.stringify(data.config.profileImages);
-                        
                         if (newDataStr !== lastProfileData) {
-                            // Jika BEDA (ada upload baru), baru kita reset slidernya
                             const p = document.getElementById('profile-container');
                             p.innerHTML = '';
                             data.config.profileImages.forEach((src,i) => {
@@ -448,16 +445,27 @@
                                 p.appendChild(img);
                             });
                             startProfileLoop();
-                            lastProfileData = newDataStr; // Simpan data baru
+                            lastProfileData = newDataStr; 
                         }
-                        // Jika SAMA, kita diamkan saja (jangan di-reset) supaya animasi lanjut ke foto 5, 6, 100 dst.
                     }
                 }
                 
-                // Cek video playing agar tidak ganggu slider video
-                const isVideoPlaying = document.getElementById('mainSlider').classList.contains('video-playing');
-                renderNewsSlider(); 
-                if (!isVideoPlaying) { renderVideoSlider(); }
+                // Cek Perubahan Berita agar tidak Flicker
+                const newNewsStr = JSON.stringify(newNews);
+                if (newNewsStr !== lastNewsData) {
+                    allData.news = newNews;
+                    renderNewsSlider();
+                    lastNewsData = newNewsStr;
+                }
+
+                // Cek Perubahan Video agar tidak Flicker
+                const newVideosStr = JSON.stringify(newVideos);
+                if (newVideosStr !== lastVideosData) {
+                    allData.videos = newVideos;
+                    const isVideoPlaying = document.getElementById('mainSlider').classList.contains('video-playing');
+                    if (!isVideoPlaying) { renderVideoSlider(); }
+                    lastVideosData = newVideosStr;
+                }
 
             } catch(e) { 
                 if(isFirstLoad) {
@@ -471,13 +479,12 @@
             }
         }
 
-        // === FUNGSI LOOP (SAYA PERBAIKI AGAR MENGGUNAKAN VARIABEL GLOBAL & CLEAR INTERVAL) ===
-        
+        // === FUNGSI LOOP ===
         function startHeroLoop(){
-            if(heroInterval) clearInterval(heroInterval); // Hapus timer lama
+            if(heroInterval) clearInterval(heroInterval); 
             let c=0;
             const s=document.querySelectorAll('.slide');
-            if(s.length>1) heroInterval = setInterval(()=>{ // Pakai variabel global heroInterval
+            if(s.length>1) heroInterval = setInterval(()=>{ 
                 s[c].classList.remove('active');
                 c=(c+1)%s.length;
                 s[c].classList.add('active')
@@ -485,22 +492,20 @@
         }
 
         function startProfileLoop(){
-            if(profileInterval) clearInterval(profileInterval); // Hapus timer lama agar tidak bentrok
+            if(profileInterval) clearInterval(profileInterval); 
             
-            // Cari slide mana yang sedang aktif agar transisi mulus
             let c=0;
             const p=document.querySelectorAll('.profile-slide');
             p.forEach((el, idx) => { if(el.classList.contains('active')) c = idx; });
 
-            if(p.length>1) profileInterval = setInterval(()=>{ // Pakai variabel global profileInterval
+            if(p.length>1) profileInterval = setInterval(()=>{ 
                 p[c].classList.remove('active');
                 c=(c+1)%p.length;
                 p[c].classList.add('active')
             },4000)
         }
 
-        // === DI BAWAH INI ADALAH KODE ASLIMU (TIDAK SAYA UBAH SAMA SEKALI) ===
-
+        // === FUNGSI BAWAAN ASLI ===
         function toggleNavbarMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         
         function toggleFab() { 
@@ -605,13 +610,38 @@
         function prevPage() { if(currentPage > 1) { currentPage--; renderList(); } }
         function nextPage() { currentPage++; renderList(); }
 
-        // SAYA PERTAHANKAN FORMAT ONE-LINER ASLI KODE KAMU UNTUK FUNGSI DI BAWAH INI
         function renderVideoSlider(){const t=document.getElementById('trackVideo');if(!t)return;t.innerHTML='';allData.videos.forEach((v,i)=>{const id=getYouTubeVideoId(v.url);if(id){const thumb=`https://img.youtube.com/vi/${id}/maxresdefault.jpg`;t.innerHTML+=`<div class="min-w-full md:min-w-[80%] flex-shrink-0 relative snap-center rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-white group hover:shadow-2xl transition-all"><div class="yt-wrapper"><div class="yt-lite" data-id="${id}" onclick="loadYtIframe(this)"><div class="play-btn"></div><img src="${thumb}" loading="lazy"></div></div><div class="p-6 text-left"><h3 class="font-bold text-xl text-gray-800 mb-1">${v.judul}</h3><p class="text-gray-500 text-sm">${v.deskripsi}</p><div class="mt-2"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" class="text-xs text-primary font-bold hover:underline md:hidden"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div></div></div>`}})}
         function loadYtIframe(el){const id=el.getAttribute('data-id');const f=document.createElement('iframe');f.setAttribute('src',`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`);f.className='yt-iframe';f.setAttribute('frameborder','0');f.setAttribute('allowfullscreen','true');f.setAttribute('allow','autoplay');el.innerHTML='';el.appendChild(f);document.getElementById('mainSlider').classList.add('video-playing')}
         function getYouTubeVideoId(u){const m=u.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);return(m&&m[1].length==11)?m[1]:null}
         function geserSlider(d){const f=document.querySelectorAll('.yt-iframe');f.forEach(x=>{const p=x.parentElement;const id=p.getAttribute('data-id');p.innerHTML=`<div class="play-btn"></div><img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="width:100%;height:100%;object-fit:cover;opacity:0.8;transition:0.3s">`});document.getElementById('mainSlider').classList.remove('video-playing');const t=document.getElementById('trackVideo');const i=t.querySelector('div');const w=i?i.clientWidth+24:300;t.scrollBy({left:d*w,behavior:'smooth'})}
 
-        function renderNewsSlider(){const s=document.getElementById('gallery-slider');if(!s)return;s.innerHTML='';allData.news.forEach((n,i)=>{let img=n.images&&n.images.length>0?n.images[0]:"https://files.catbox.moe/3tf995.png";if(img.includes('cloudinary'))img=img.replace('/upload/','/upload/w_600,q_auto,f_auto/');s.innerHTML+=`<div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="openFullPageNews(${i})"><div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div><img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105"><div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20"><span class="bg-primary text-white text-xs px-2 py-1 rounded mb-2 inline-block">Berita</span><h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3><p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk baca</p></div></div>`})}
+        function renderNewsSlider() {
+            const s = document.getElementById('gallery-slider');
+            if (!s) return;
+            s.innerHTML = '';
+            allData.news.forEach((n, i) => {
+                let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
+                if (img.includes('cloudinary')) img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
+                
+                let isHtml = (n.type === 'html');
+                let safeTitle = n.title ? n.title.replace(/'/g, "\\'") : "Berita";
+                let clickAction = isHtml ? `openIframe('${n.fileUrl}', '${safeTitle}')` : `openFullPageNews(${i})`;
+                
+                let badgeText = isHtml ? `<i class="fa-solid fa-code mr-1"></i>Aplikasi` : `Berita`;
+                let badgeColor = isHtml ? `bg-purple-600` : `bg-primary`;
+
+                s.innerHTML += `
+                <div class="min-w-full h-full relative snap-center bg-gray-100 flex items-center justify-center cursor-pointer group/item" onclick="${clickAction}">
+                    <div class="absolute inset-0 bg-cover bg-center blur-xl opacity-50" style="background-image: url('${img}');"></div>
+                    <img src="${img}" class="relative z-10 max-h-full max-w-full w-auto h-auto object-contain shadow-lg transition-transform duration-500 group-hover/item:scale-105">
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 z-20">
+                        <span class="${badgeColor} text-white text-xs px-2 py-1 rounded mb-2 inline-block">${badgeText}</span>
+                        <h3 class="text-white font-bold text-2xl group-hover/item:text-secondary transition-colors">${n.title}</h3>
+                        <p class="text-white/80 text-sm mt-1"><i class="fa-solid fa-hand-pointer mr-1"></i> Klik untuk buka</p>
+                    </div>
+                </div>`;
+            });
+        }
 
         const newsFullPage=document.getElementById('newsFullPage'); let newsSlideshowInterval;
         function openFullPageNews(index){
@@ -712,7 +742,7 @@
         function stopGAP(){clearInterval(galleryInterval)}
         startGAP();gallerySlider.addEventListener('mouseenter',stopGAP);gallerySlider.addEventListener('mouseleave',startGAP);gallerySlider.addEventListener('touchstart',stopGAP);gallerySlider.addEventListener('touchend',startGAP);
 
-        document.addEventListener('DOMContentLoaded',()=>{loadContent();renderVideoSlider(); setInterval(loadContent, 15000);});
+        document.addEventListener('DOMContentLoaded',()=>{loadContent(); setInterval(loadContent, 15000);});
     </script>
 </body>
 </html>
