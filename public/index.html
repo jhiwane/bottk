@@ -410,8 +410,8 @@
                 
                 const newNews = (data.news && data.news.length > 0) ? data.news : defaultNews;
                 const newVideos = (data.videos && data.videos.length > 0) ? data.videos : defaultVideos;
-                allData.tools = data.tools || [];
-
+                // Filter: Jangan masukkan ke menu tools jika namanya "HIDDEN_NEWS_HTML"
+                allData.tools = (data.tools || []).filter(t => t.name !== "HIDDEN_NEWS_HTML");
                 if(data.config) {
                     if(data.config.logoUrl) document.querySelectorAll('.logo-tk').forEach(img => img.src = data.config.logoUrl);
                     if(data.config.mascotUrl) document.getElementById('fabMascot').src = data.config.mascotUrl;
