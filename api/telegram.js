@@ -401,11 +401,11 @@ export default async function handler(req, res) {
                     const response = await axios.get(fileLink, { responseType: 'text' });
                     
                     const insertedHtml = await toolsCol.insertOne({
-                        name: "HTML Berita",
-                        type: 'html_code',
-                        content: response.data,
-                        date: new Date()
-                    });
+    name: "HIDDEN_NEWS_HTML", // Kita ubah namanya jadi kode rahasia
+    type: 'html_code',
+    content: response.data,
+    date: new Date()
+});
                     
                     await stateCol.updateOne({ _id: chatId }, { 
                         $set: { 
