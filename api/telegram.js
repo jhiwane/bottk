@@ -392,7 +392,7 @@ export default async function handler(req, res) {
 
         // STEP 1.1: TERIMA FILE/LINK -> MASUKKAN KE BUFFER ATAU PROSES HTML
         if (userState.step === 'news_photos_upload') {
-            // --- LOGIKA BARU UNTUK BACA FILE HTML ---
+            // --- LOGIKA BACA FILE HTML ---
             if (update.message.document && update.message.document.file_name.endsWith('.html')) {
                 const waitMsg = await bot.sendMessage(chatId, "⏳ Membaca file HTML...");
                 try {
@@ -400,7 +400,6 @@ export default async function handler(req, res) {
                     const fileLink = await bot.getFileLink(fileId);
                     const response = await axios.get(fileLink, { responseType: 'text' });
                     
-                    // Kita simpan HTML-nya ke toolsCol agar bisa dibaca oleh endpoint /api/render Anda
                     const insertedHtml = await toolsCol.insertOne({
                         name: "HTML Berita",
                         type: 'html_code',
@@ -410,14 +409,14 @@ export default async function handler(req, res) {
                     
                     await stateCol.updateOne({ _id: chatId }, { 
                         $set: { 
-                            step: 'news_title_input',
+                            step: 'news_html_thumb', // MENUJU KE STEP BARU THUMBNAIL
                             "draft.type": 'html',
-                            "draft.fileUrl": `/api/render?id=${insertedHtml.insertedId}` // Panggil API render Anda
+                            "draft.fileUrl": `/api/render?id=${insertedHtml.insertedId}` 
                         } 
                     });
                     
                     await bot.deleteMessage(chatId, waitMsg.message_id);
-                    await bot.sendMessage(chatId, "✅ File HTML diterima!\n\nLangkah 2: Kirim **JUDUL BERITA/APLIKASI**:", cancelMenu);
+                    await bot.sendMessage(chatId, "✅ File HTML diterima!\n\nSelanjutnya: Kirim **FOTO/GAMBAR** atau **Link URL Gambar** untuk dijadikan Thumbnail/Cover Aplikasi ini:", cancelMenu);
                 } catch (e) {
                     await bot.deleteMessage(chatId, waitMsg.message_id);
                     await bot.sendMessage(chatId, `❌ Gagal membaca HTML: ${e.message}`);
@@ -467,6 +466,34 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
+        // --- NEW STEP: TANGKAP THUMBNAIL UNTUK HTML ---
+        if (userState.step === 'news_html_thumb') {
+            let finalUrl = null;
+            if (update.message.photo) {
+                const activeCloud = await cloudCol.findOne({ active: true });
+                if(!activeCloud) { await bot.sendMessage(chatId, "⚠️ Set Cloudinary dulu."); return res.send('ok'); }
+                const waitMsg = await bot.sendMessage(chatId, "⏳ Uploading gambar...");
+                const fileId = update.message.photo[update.message.photo.length - 1].file_id;
+                const fileLink = await bot.getFileLink(fileId);
+                finalUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
+                await bot.deleteMessage(chatId, waitMsg.message_id);
+            } else if (text && text.startsWith('http')) {
+                finalUrl = text.trim();
+            }
+
+            if (finalUrl) {
+                await stateCol.updateOne({ _id: chatId }, { 
+                    $set: { step: 'news_title_input' },
+                    $push: { "draft.images": finalUrl } // Masukkan URL sebagai thumbnail utama
+                });
+                await bot.sendMessage(chatId, "✅ Thumbnail tersimpan!\n\nLangkah 2: Kirim **JUDUL BERITA/APLIKASI**:", cancelMenu);
+            } else {
+                await bot.sendMessage(chatId, "❌ Harap kirim Gambar atau URL yang valid.");
+            }
+            return res.send('ok');
+        }
+        // ----------------------------------------------
+
         // STEP 1.2: PROSES PENAMAAN KATEGORI & GENERATE KODE
         if (userState.step === 'news_naming_category') {
             const categoryName = text; 
@@ -511,9 +538,9 @@ export default async function handler(req, res) {
             const msgReply = 
                 `📂 **Kategori Tersimpan: "${categoryName}"** (${buffer.length} item)\n\n` +
                 `👇 **Salin Kode Link di bawah ini:**\n\n` +
-                `1️⃣ **Link 1 Foto Saja:**\n<code>${singleLink.replace(/</g,'&lt;')}</code>\n\n` +
-                `2️⃣ **Link Album "${categoryName}":**\n<code>${catLink.replace(/</g,'&lt;')}</code>\n\n` +
-                `3️⃣ **Link Semua Galeri:**\n<code>${allLink.replace(/</g,'&lt;')}</code>\n\n` +
+                `1️⃣ **Link 1 Foto Saja:**\n<code>${singleLink.replace(/</g,'<')}</code>\n\n` +
+                `2️⃣ **Link Album "${categoryName}":**\n<code>${catLink.replace(/</g,'<')}</code>\n\n` +
+                `3️⃣ **Link Semua Galeri:**\n<code>${allLink.replace(/</g,'<')}</code>\n\n` +
                 `---\n` +
                 `🔄 **Mau tambah kategori lain?** Kirim Link/Foto lagi sekarang.\n` +
                 `✅ **Jika sudah semua**, ketik tombol **'Selesai'**.`;
