@@ -374,25 +374,58 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // 2. BERITA WIZARD (LOGIKA BARU: BATCH UPLOAD -> NAMING)
+        // 2. BERITA WIZARD (LOGIKA BARU: SUPPORT HTML & BATCH UPLOAD)
         if (text === '📰 Buat Berita') {
-            // Reset state, siapkan buffer dan draft
             await stateCol.updateOne({ _id: chatId }, { 
                 $set: { step: 'news_photos_upload', draft: { gallery: [], images: [] }, buffer: [] } 
             }, { upsert: true });
             
             await bot.sendMessage(chatId, 
-                "**Langkah 1: Upload Media (Batch Upload)**\n\n" +
-                "Kirim **Semua Link Foto/Video** untuk kategori pertama (misal: Dokumentasi).\n" +
-                "Bisa kirim 10 link sekaligus (pisah baris).\n\n" +
-                "➡️ Saya akan minta nama kategori setelah kamu kirim.", 
+                "**Langkah 1: Upload Media**\n\n" +
+                "Kirim **Semua Link Foto/Video** (Bisa kirim banyak / Batch Upload).\n" +
+                "👉 **ATAU** kirim **File dokumen .html** jika ingin membuat Berita berupa Web/Aplikasi interaktif.\n\n" +
+                "➡️ Saya akan minta nama kategori/judul setelah kamu kirim.", 
                 cancelMenu
             );
             return res.send('ok');
         }
 
-        // STEP 1.1: TERIMA FILE/LINK -> MASUKKAN KE BUFFER SEMENTARA
+        // STEP 1.1: TERIMA FILE/LINK -> MASUKKAN KE BUFFER ATAU PROSES HTML
         if (userState.step === 'news_photos_upload') {
+            // --- LOGIKA BARU UNTUK BACA FILE HTML ---
+            if (update.message.document && update.message.document.file_name.endsWith('.html')) {
+                const waitMsg = await bot.sendMessage(chatId, "⏳ Membaca file HTML...");
+                try {
+                    const fileId = update.message.document.file_id;
+                    const fileLink = await bot.getFileLink(fileId);
+                    const response = await axios.get(fileLink, { responseType: 'text' });
+                    
+                    // Kita simpan HTML-nya ke toolsCol agar bisa dibaca oleh endpoint /api/render Anda
+                    const insertedHtml = await toolsCol.insertOne({
+                        name: "HTML Berita",
+                        type: 'html_code',
+                        content: response.data,
+                        date: new Date()
+                    });
+                    
+                    await stateCol.updateOne({ _id: chatId }, { 
+                        $set: { 
+                            step: 'news_title_input',
+                            "draft.type": 'html',
+                            "draft.fileUrl": `/api/render?id=${insertedHtml.insertedId}` // Panggil API render Anda
+                        } 
+                    });
+                    
+                    await bot.deleteMessage(chatId, waitMsg.message_id);
+                    await bot.sendMessage(chatId, "✅ File HTML diterima!\n\nLangkah 2: Kirim **JUDUL BERITA/APLIKASI**:", cancelMenu);
+                } catch (e) {
+                    await bot.deleteMessage(chatId, waitMsg.message_id);
+                    await bot.sendMessage(chatId, `❌ Gagal membaca HTML: ${e.message}`);
+                }
+                return res.send('ok');
+            }
+            // ----------------------------------------
+
             const activeCloud = await cloudCol.findOne({ active: true });
             let newItems = [];
 
@@ -417,10 +450,9 @@ export default async function handler(req, res) {
             }
 
             if (newItems.length > 0) {
-                // Simpan ke BUFFER (Belum ke Draft utama)
                 await stateCol.updateOne({ _id: chatId }, { 
                     $push: { buffer: { $each: newItems } },
-                    $set: { step: 'news_naming_category' } // Pindah ke step penamaan
+                    $set: { step: 'news_naming_category' }
                 });
 
                 await bot.sendMessage(chatId, 
@@ -437,7 +469,7 @@ export default async function handler(req, res) {
 
         // STEP 1.2: PROSES PENAMAAN KATEGORI & GENERATE KODE
         if (userState.step === 'news_naming_category') {
-            const categoryName = text; // User mengetik "Dokumentasi"
+            const categoryName = text; 
             const buffer = userState.buffer || [];
 
             if (buffer.length === 0) {
@@ -446,45 +478,34 @@ export default async function handler(req, res) {
                 return res.send('ok');
             }
 
-            // Pindahkan Buffer ke Main Draft dengan Label Kategori
             let galleryItems = [];
-            // ID Spesifik untuk kategori ini (agar bisa dipanggil sebagai album)
             const catId = categoryName.toLowerCase().replace(/\s+/g, '_') + '_' + Math.floor(Math.random()*1000);
             
-            // Loop items di buffer
             for (let i = 0; i < buffer.length; i++) {
                 const item = buffer[i];
-                const uniqueId = `img_${Date.now()}_${i}`; // ID unik per foto
+                const uniqueId = `img_${Date.now()}_${i}`; 
                 
                 galleryItems.push({
                     id: uniqueId,
-                    group: catId,            // Group ID (untuk filter kategori)
-                    groupName: categoryName, // Nama Kategori (readable)
+                    group: catId,            
+                    groupName: categoryName, 
                     type: item.type,
                     src: item.url,
                     caption: categoryName
                 });
 
-                // Jika image, masukkan juga ke draft.images untuk header slideshow
                 if(item.type === 'image') {
                     await stateCol.updateOne({_id:chatId}, {$push: {"draft.images": item.url}});
                 }
             }
 
-            // Push semua ke Gallery Utama
             await stateCol.updateOne({_id:chatId}, {
                 $push: { "draft.gallery": { $each: galleryItems } },
-                $set: { buffer: [], step: 'news_photos_upload' } // Reset buffer & kembali ke mode upload
+                $set: { buffer: [], step: 'news_photos_upload' } 
             });
 
-            // --- GENERATE LINK PINTAR ---
-            // 1. Link In-Line Satu Foto (Ambil foto pertama dari batch ini)
             const singleLink = `<a onclick="openMediaViewer(currentNewsIndex, '${galleryItems[0].id}')" class="inline-link">[Lihat 1 Foto]</a>`;
-            
-            // 2. Link In-Line Kategori Spesifik (Album Dokumentasi)
             const catLink = `<a onclick="openMediaViewer(currentNewsIndex, '${catId}')" class="inline-link">[Lihat Album ${categoryName}]</a>`;
-            
-            // 3. Link In-Line All Foto (Semua)
             const allLink = `<a onclick="openMediaViewer(currentNewsIndex, 'all')" class="inline-link">[Lihat Semua Galeri]</a>`;
 
             const msgReply = 
@@ -509,17 +530,25 @@ export default async function handler(req, res) {
 
         if (userState.step === 'news_date_input') {
             await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_content_input', "draft.date": text } });
-            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA** (Tempel kode link tadi disini):", cancelMenu);
+            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA / DESKRIPSI SINGKAT**:", cancelMenu);
             return res.send('ok');
         }
 
         if (userState.step === 'news_content_input') {
             const draft = userState.draft;
-            draft.content = text + `<br><br><p class='text-center text-sm text-gray-500'><a onclick="openMediaViewer(currentNewsIndex, 'all')" class='inline-link'>[Lihat Semua Dokumentasi]</a></p>`;
             
+            // --- LOGIKA HTML CEK ---
+            // Jika ini file HTML, kita tidak butuh link [Lihat Semua Dokumentasi]
+            if (draft.type === 'html') {
+                draft.content = text; 
+            } else {
+                draft.content = text + `<br><br><p class='text-center text-sm text-gray-500'><a onclick="openMediaViewer(currentNewsIndex, 'all')" class='inline-link'>[Lihat Semua Dokumentasi]</a></p>`;
+            }
+            // -----------------------
+
             await newsCol.insertOne(draft);
             await stateCol.deleteOne({ _id: chatId });
-            await bot.sendMessage(chatId, "✅ **BERITA BERHASIL DITERBITKAN!**", mainMenu);
+            await bot.sendMessage(chatId, "✅ **BERITA/APLIKASI BERHASIL DITERBITKAN!**", mainMenu);
             return res.send('ok');
         }
 
