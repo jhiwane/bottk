@@ -710,7 +710,13 @@
                 }
                 else if(item.type==='video'){
                     const vid=getYouTubeVideoId(item.src);
-                    el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`
+                    if (vid) {
+                        // Jika ini video YouTube
+                        el=`<div class="w-full flex flex-col items-center"><div class="w-full aspect-video rounded-lg overflow-hidden shadow-2xl mb-2 bg-black"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${vid}?rel=0" frameborder="0" allowfullscreen></iframe></div><p class="text-gray-400 text-sm italic text-center mb-1">${item.caption}</p><a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs text-primary font-bold hover:underline mb-4"><i class="fa-brands fa-youtube"></i> Buka di App YouTube</a></div>`
+                    } else {
+                        // Jika ini video langsung (seperti .mp4 dari Catbox)
+                        el=`<div class="w-full flex flex-col items-center"><video controls class="w-full max-h-[85vh] rounded-lg shadow-2xl mb-2 bg-black"><source src="${item.src}" type="video/mp4">Browser Anda tidak mendukung tag video.</video><p class="text-gray-400 text-sm italic text-center mb-4">${item.caption}</p></div>`;
+                    }
                 }
                 mediaViewerContent.innerHTML+=el;
             });
