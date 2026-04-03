@@ -84,6 +84,11 @@ const createListKeyboard = (items, type) => {
     };
 };
 
+// Helper: Escape HTML agar kode bisa disalin di Telegram
+const escapeHtml = (str) => {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
 // ==========================================
 // 2. MAIN HANDLER FUNCTION
 // ==========================================
@@ -313,8 +318,8 @@ export default async function handler(req, res) {
                     await bot.sendMessage(chatId, `❌ Error: ${e.message}`);
                     return res.send('ok');
                 }
-            } else if (text.startsWith('http')) {
-                toolData = { type: 'url', content: text.trim() };
+            } else if (text.match(/(https?:\/\/[^\s]+)/)) {
+                toolData = { type: 'url', content: text.match(/(https?:\/\/[^\s]+)/)[0] };
             } else {
                 await bot.deleteMessage(chatId, waitMsg.message_id);
                 await bot.sendMessage(chatId, "❌ Input salah.");
@@ -363,8 +368,9 @@ export default async function handler(req, res) {
                     const url = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
                     toolUpdate = { type: 'url', content: url, url: url };
                 }
-            } else if (text.startsWith('http')) {
-                toolUpdate = { type: 'url', content: text.trim(), url: text.trim() };
+            } else if (text.match(/(https?:\/\/[^\s]+)/)) {
+                const extUrl = text.match(/(https?:\/\/[^\s]+)/)[0];
+                toolUpdate = { type: 'url', content: extUrl, url: extUrl };
             }
             
             await bot.deleteMessage(chatId, waitMsg.message_id);
@@ -374,7 +380,7 @@ export default async function handler(req, res) {
             return res.send('ok');
         }
 
-        // 2. BERITA WIZARD (LOGIKA BARU: SUPPORT HTML & BATCH UPLOAD)
+        // 2. BERITA WIZARD (LOGIKA BARU: SUPPORT HTML, BATCH UPLOAD & LINK OTOMATIS)
         if (text === '📰 Buat Berita') {
             await stateCol.updateOne({ _id: chatId }, { 
                 $set: { step: 'news_photos_upload', draft: { gallery: [], images: [] }, buffer: [] } 
@@ -382,7 +388,7 @@ export default async function handler(req, res) {
             
             await bot.sendMessage(chatId, 
                 "**Langkah 1: Upload Media**\n\n" +
-                "Kirim **Semua Link Foto/Video** (Bisa kirim banyak / Batch Upload).\n" +
+                "Kirim **Semua Link Foto/Video** (Bisa kirim banyak / Batch Upload) atau Upload Foto Langsung.\n" +
                 "👉 **ATAU** kirim **File dokumen .html** jika ingin membuat Berita berupa Web/Aplikasi interaktif.\n\n" +
                 "➡️ Saya akan minta nama kategori/judul setelah kamu kirim.", 
                 cancelMenu
@@ -401,11 +407,11 @@ export default async function handler(req, res) {
                     const response = await axios.get(fileLink, { responseType: 'text' });
                     
                     const insertedHtml = await toolsCol.insertOne({
-    name: "HIDDEN_NEWS_HTML", // Kita ubah namanya jadi kode rahasia
-    type: 'html_code',
-    content: response.data,
-    date: new Date()
-});
+                        name: "HIDDEN_NEWS_HTML", // Kita ubah namanya jadi kode rahasia
+                        type: 'html_code',
+                        content: response.data,
+                        date: new Date()
+                    });
                     
                     await stateCol.updateOne({ _id: chatId }, { 
                         $set: { 
@@ -428,7 +434,7 @@ export default async function handler(req, res) {
             const activeCloud = await cloudCol.findOne({ active: true });
             let newItems = [];
 
-            // Jika Foto Telegram
+            // Jika Upload Foto Biasa (via Telegram)
             if (update.message.photo) {
                 if(!activeCloud) { await bot.sendMessage(chatId, "⚠️ Cloudinary belum diset."); return res.send('ok'); }
                 const fileId = update.message.photo[update.message.photo.length - 1].file_id;
@@ -436,15 +442,15 @@ export default async function handler(req, res) {
                 const url = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
                 if(url) newItems.push({url, type: 'image'});
             } 
-            // Jika Teks Link (Multi URL)
-            else if (text && !text.includes('Batal')) {
-                const links = text.split('\n');
-                links.forEach(l => {
-                    const cleaned = l.trim();
-                    if(cleaned.startsWith('http')) {
-                        const type = (cleaned.includes('youtu')) ? 'video' : 'image';
-                        newItems.push({url: cleaned, type});
-                    }
+            
+            // Perbaikan Logika Membaca Link URL Teks dengan Regex (Bisa baca text panjang yang mengandung URL)
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const extractedLinks = text.match(urlRegex) || []; // Ambil semua URL yang ada di pesan
+            
+            if (extractedLinks.length > 0 && !text.includes('Batal')) {
+                extractedLinks.forEach(l => {
+                    const type = (l.includes('youtu')) ? 'video' : 'image';
+                    newItems.push({url: l, type});
                 });
             }
 
@@ -460,7 +466,7 @@ export default async function handler(req, res) {
                     `(Contoh: *Dokumentasi*, *Fasilitas*, atau *Kegiatan Inti*)`, 
                     cancelMenu
                 );
-            } else {
+            } else if (!update.message.photo) { // Cegah membalas salah jika itu sekadar foto yg lagi proses upload
                 await bot.sendMessage(chatId, "❌ Link tidak valid atau format salah.");
             }
             return res.send('ok');
@@ -477,8 +483,8 @@ export default async function handler(req, res) {
                 const fileLink = await bot.getFileLink(fileId);
                 finalUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
                 await bot.deleteMessage(chatId, waitMsg.message_id);
-            } else if (text && text.startsWith('http')) {
-                finalUrl = text.trim();
+            } else if (text && text.match(/(https?:\/\/[^\s]+)/)) {
+                finalUrl = text.match(/(https?:\/\/[^\s]+)/)[0];
             }
 
             if (finalUrl) {
@@ -531,20 +537,23 @@ export default async function handler(req, res) {
                 $set: { buffer: [], step: 'news_photos_upload' } 
             });
 
-            const singleLink = `<a onclick="openMediaViewer(currentNewsIndex, '${galleryItems[0].id}')" class="inline-link">[Lihat 1 Foto]</a>`;
+            // Pembuatan Teks HTML
+            const singleLink = `<a onclick="openMediaViewer(currentNewsIndex, '${galleryItems[0].id}')" class="inline-link">[Lihat Media]</a>`;
             const catLink = `<a onclick="openMediaViewer(currentNewsIndex, '${catId}')" class="inline-link">[Lihat Album ${categoryName}]</a>`;
             const allLink = `<a onclick="openMediaViewer(currentNewsIndex, 'all')" class="inline-link">[Lihat Semua Galeri]</a>`;
 
+            // PERBAIKAN: Menampilkan Kode yang aman untuk Telegram HTML mode (biar bisa dicopy langsung via tap)
             const msgReply = 
-                `📂 **Kategori Tersimpan: "${categoryName}"** (${buffer.length} item)\n\n` +
-                `👇 **Salin Kode Link di bawah ini:**\n\n` +
-                `1️⃣ **Link 1 Foto Saja:**\n<code>${singleLink.replace(/</g,'<')}</code>\n\n` +
-                `2️⃣ **Link Album "${categoryName}":**\n<code>${catLink.replace(/</g,'<')}</code>\n\n` +
-                `3️⃣ **Link Semua Galeri:**\n<code>${allLink.replace(/</g,'<')}</code>\n\n` +
+                `📂 <b>Kategori Tersimpan: "${categoryName}"</b> (${buffer.length} item)\n\n` +
+                `👇 <b>Salin Kode Link di bawah ini (Klik/Tap kodenya agar otomatis tersalin):</b>\n\n` +
+                `1️⃣ <b>Link 1 Foto Saja:</b>\n<code>${escapeHtml(singleLink)}</code>\n\n` +
+                `2️⃣ <b>Link Album "${categoryName}":</b>\n<code>${escapeHtml(catLink)}</code>\n\n` +
+                `3️⃣ <b>Link Semua Galeri:</b>\n<code>${escapeHtml(allLink)}</code>\n\n` +
                 `---\n` +
-                `🔄 **Mau tambah kategori lain?** Kirim Link/Foto lagi sekarang.\n` +
-                `✅ **Jika sudah semua**, ketik tombol **'Selesai'**.`;
+                `🔄 <b>Mau tambah kategori media lain?</b> Kirim Link/Foto lagi sekarang.\n` +
+                `✅ <b>Jika sudah semua (selesai upload media)</b>, klik tombol <b>'❌ Batal / Selesai'</b>.`;
 
+            // Gunakan parse_mode HTML agar fungsi salin (code block) Telegram bekerja dengan sempurna.
             await bot.sendMessage(chatId, msgReply, {parse_mode:'HTML'});
             return res.send('ok');
         }
@@ -557,7 +566,7 @@ export default async function handler(req, res) {
 
         if (userState.step === 'news_date_input') {
             await stateCol.updateOne({ _id: chatId }, { $set: { step: 'news_content_input', "draft.date": text } });
-            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA / DESKRIPSI SINGKAT**:", cancelMenu);
+            await bot.sendMessage(chatId, "Langkah 4: Kirim **ISI BERITA / DESKRIPSI SINGKAT**:\n\n*(Saran: Paste/tempelkan kode link galeri yang tadi sudah kamu salin di dalam teks ini)*", cancelMenu);
             return res.send('ok');
         }
 
@@ -611,8 +620,8 @@ export default async function handler(req, res) {
                 const fileId = update.message.photo[update.message.photo.length - 1].file_id;
                 const fileLink = await bot.getFileLink(fileId);
                 finalUrl = await uploadToCloudinary(fileLink, activeCloud.name, activeCloud.preset);
-            } else if (text && text.startsWith('http')) {
-                finalUrl = text.trim();
+            } else if (text && text.match(/(https?:\/\/[^\s]+)/)) {
+                finalUrl = text.match(/(https?:\/\/[^\s]+)/)[0];
             }
 
             if (finalUrl) {
