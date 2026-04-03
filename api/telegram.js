@@ -449,7 +449,9 @@ export default async function handler(req, res) {
             
             if (extractedLinks.length > 0 && !text.includes('Batal')) {
                 extractedLinks.forEach(l => {
-                    const type = (l.includes('youtu')) ? 'video' : 'image';
+                    // Cek apakah link mengandung 'youtu' ATAU berakhiran file video (.mp4, .webm, .ogg)
+                    const isVideo = l.includes('youtu') || l.match(/\.(mp4|webm|ogg)$/i);
+                    const type = isVideo ? 'video' : 'image';
                     newItems.push({url: l, type});
                 });
             }
