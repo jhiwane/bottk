@@ -576,8 +576,14 @@
             // Simpan URL aplikasinya agar bisa diakses langsung via link
             history.pushState({modal:'iframe'}, null, '#app?url=' + encodeURIComponent(url)); 
         }
-        function closeIframe() { document.getElementById('iframeView').classList.remove('active'); document.getElementById('mainIframe').src = ''; showFab(); }
-
+        function closeIframe() { 
+    document.getElementById('iframeView').classList.remove('active'); 
+    showFab();
+    // Tunggu animasi turun selesai (300ms) baru kosongkan iframe agar tidak blank putih
+    setTimeout(() => {
+        document.getElementById('mainIframe').src = ''; 
+    }, 300);
+}
         function renderList() {
             const container = document.getElementById('listContainer'); container.innerHTML = '';
             const query = document.getElementById('searchInput').value.toLowerCase();
@@ -727,6 +733,10 @@
         function goBack(){if(history.state&&history.state.mediaOpen)history.back();else if(history.state&&history.state.newsOpen)history.back();else{closeMediaViewer();closeFullPageNews();closeListModal();closeToolsModal();closeIframe();showFab();closeZoomModal()}}
         
         window.addEventListener('popstate', function(event) {
+            // 1. Tampilkan loader animasi saat tombol back HP ditekan
+            showLoader();
+
+            // 2. Tutup elemen yang sedang terbuka
             if (document.getElementById('mediaViewer').classList.contains('active')) {
                 closeMediaViewer();
             } 
@@ -745,6 +755,11 @@
             else if (document.getElementById('zoomModal').style.display === 'block') {
                 closeZoomModal();
             }
+
+            // 3. Sembunyikan loader setelah animasi penutupan menu selesai (300 milidetik)
+            setTimeout(() => {
+                hideLoader();
+            }, 300);
         });
 
         function sendToWhatsappSimple(){window.open("https://wa.me/62895391001402","_blank")}
