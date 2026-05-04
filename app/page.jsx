@@ -158,7 +158,7 @@ export default function Page() {
       <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl md:rounded-full shadow-lg px-4 py-3 md:px-6 border border-white/50">
         <a href="#beranda" className="flex items-center gap-3">
           {/* Logo Tanpa Pembungkus */}
-          <img src="logotk.webp" alt="Logo" className="h-10 md:h-14 w-auto object-contain drop-shadow-md" />
+          <img src="/logotk.webp" alt="Logo" className="h-10 md:h-14 w-auto object-contain drop-shadow-md" />
           <div className="flex flex-col leading-none">
             {/* Teks Logo Diubah Ke Biru */}
             <span className="font-bold text-base md:text-xl text-blue-600 tracking-wide drop-shadow-sm">TK BAITURROHMAN</span>
@@ -404,7 +404,7 @@ export default function Page() {
           
           <div className="px-6 md:px-10 max-w-3xl mx-auto relative z-10 pt-8">
             <div className="flex items-center gap-4 border-b border-gray-100 pb-6 mb-6">
-              <img src="logotk.webp" loading="lazy" className="w-14 h-14 object-contain drop-shadow-md" alt="Admin" />
+              <img src="/logotk.webp" loading="lazy" className="w-14 h-14 object-contain drop-shadow-md" alt="Admin" />
               <div><p className="font-bold text-gray-800 text-lg">Admin TK</p><p className="text-sm text-gray-500">Kegiatan Sekolah</p></div>
             </div>
             
@@ -730,7 +730,7 @@ export default function Page() {
                 </div>
                 <div className="mt-12 relative z-10 w-full flex justify-center">
                    {/* Logo Murni */}
-                   <img src="logotk.webp" loading="lazy" className="w-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] object-contain hover:scale-105 transition-transform" alt="Logo"/>
+                   <img src="/logotk.webp" loading="lazy" className="w-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] object-contain hover:scale-105 transition-transform" alt="Logo"/>
                 </div>
              </div>
              
@@ -786,7 +786,7 @@ export default function Page() {
              <div className="col-span-1 md:col-span-2">
                 <div className="flex items-center gap-5 mb-6">
                    {/* Logo Footer Murni */}
-                   <img src="logotk.webp" loading="lazy" className="h-20 w-auto object-contain drop-shadow-[0_5px_15px_rgba(255,255,255,0.2)]" alt="Logo"/>
+                   <img src="/logotk.webp" loading="lazy" className="h-20 w-auto object-contain drop-shadow-[0_5px_15px_rgba(255,255,255,0.2)]" alt="Logo"/>
                    <span className="font-bold text-3xl text-white drop-shadow-md tracking-wide">TK BAITURROHMAN</span>
                 </div>
                 <p className="text-gray-300 mb-6 max-w-sm text-lg font-medium leading-relaxed">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p>
