@@ -26,11 +26,21 @@ export default async function handler(req, res) {
 
         if (tool.type === 'html_code') {
             res.setHeader('Content-Type', 'text/html');
-            return res.send(tool.content);
+            
+            // FIX BUG HIDE LOADER: Menyuntikkan script kosong agar kode lama di DB tidak error saat memanggil hideLoader()
+            let safeContent = tool.content;
+            if (safeContent.includes('<head>')) {
+                safeContent = safeContent.replace('<head>', '<head><script>window.hideLoader = function(){}; window.showLoader = function(){};</script>');
+            } else {
+                safeContent = `<script>window.hideLoader = function(){}; window.showLoader = function(){};</script>` + safeContent;
+            }
+
+            return res.send(safeContent);
         } else {
             return res.redirect(tool.url);
         }
     } catch (e) {
+        console.error("Render Error:", e);
         res.status(500).send('Server Error');
     }
 }
