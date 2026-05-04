@@ -226,11 +226,11 @@ export default function Page() {
           <hr className="border-gray-200" />
 
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-white border-2 border-blue-600 text-blue-600 text-center py-3 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm">
-            <FileText size={20} /> Form Google (PPDB)
+            <FileText size={20} /> Form Pendaftaran
           </a>
 
           <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-orange-600 hover:-translate-y-1 transition-all">
-            Daftar Sekarang (Web)
+            Daftar Sekarang
           </a>
           <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
             <MessageCircle size={20} /> Hubungi WhatsApp
@@ -711,7 +711,7 @@ export default function Page() {
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
                 <div className="relative z-10">
                    <h3 className="font-bold text-4xl mb-6 drop-shadow-md">Pendaftaran Online</h3>
-                   <p className="text-blue-50 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis dirangkai menjadi format pesan WhatsApp untuk Admin.</p>
+                   <p className="text-blue-50 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis terkirim ke nomor kepala sekolah.</p>
                    {/* Info Kontak Tanpa Pembungkus */}
                    <div className="space-y-6">
                       <div className="flex items-center gap-4">
