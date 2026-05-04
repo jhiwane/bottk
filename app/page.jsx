@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { 
   Menu, X, MessageCircle, Info, Newspaper, Youtube, Rocket, 
   ArrowLeft, BookOpen, Heart, Shapes, CheckCircle, ChevronLeft, 
@@ -149,7 +150,7 @@ export default function Page() {
 
   const renderLoader = () => (
     <div className={`fixed inset-0 bg-white/95 backdrop-blur-xl z-[50000] flex justify-center items-center transition-opacity duration-500 ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <img src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." className="w-48 h-48 object-contain" />
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain" />
     </div>
   );
 
@@ -157,10 +158,9 @@ export default function Page() {
     <nav className="fixed w-full z-50 top-0 py-4 px-4 md:px-8 transition-all duration-300">
       <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl md:rounded-full shadow-lg px-4 py-3 md:px-6 border border-white/50">
         <a href="#beranda" className="flex items-center gap-3">
-          {/* Logo Tanpa Pembungkus */}
-          <img src="/logotk.webp" alt="Logo" className="h-10 md:h-14 w-auto object-contain drop-shadow-md" />
+          {/* Logo dengan bg-white untuk mencegah efek X-Ray */}
+          <Image src="/logotk.webp" alt="Logo" width={56} height={56} className="h-10 md:h-14 w-auto object-contain drop-shadow-md bg-white p-1 rounded-full" />
           <div className="flex flex-col leading-none">
-            {/* Teks Logo Diubah Ke Biru */}
             <span className="font-bold text-base md:text-xl text-blue-600 tracking-wide drop-shadow-sm">TK BAITURROHMAN</span>
             <span className="text-[10px] md:text-xs font-bold text-gray-500 tracking-wide mt-1">Membangun Generasi Baiti</span>
           </div>
@@ -194,7 +194,6 @@ export default function Page() {
           </button>
         </div>
         
-        {/* Menu Items: Konsisten dan Formal (Hanya Biru & Oranye) */}
         <div className="flex flex-col p-6 gap-5 overflow-y-auto">
           <a href="#beranda" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors">
             <div className="w-8 flex justify-center text-blue-600"><Home size={20} /></div> Beranda
@@ -228,7 +227,6 @@ export default function Page() {
 
           <hr className="border-gray-200" />
 
-          {/* Tombol-Tombol Aksi (Hanya Biru & Oranye) */}
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-white border-2 border-blue-600 text-blue-600 text-center py-3 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm">
             <FileText size={20} /> Form Pendaftaran
           </a>
@@ -300,7 +298,7 @@ export default function Page() {
                   className="flex gap-4 bg-white p-3 rounded-2xl shadow-sm cursor-pointer hover:shadow-md transition-all hover:scale-[0.98] active:scale-95 border border-gray-100"
                 >
                   <div className="relative w-24 h-24 flex-shrink-0">
-                    <img src={thumb} loading="lazy" className="w-full h-full object-cover rounded-xl bg-gray-100 border border-gray-50" alt="Thumbnail" />
+                    <Image src={thumb} fill sizes="96px" className="object-cover rounded-xl bg-gray-100 border border-gray-50" alt="Thumbnail" />
                   </div>
                   <div className="flex flex-col justify-center">
                     <h4 className="font-bold text-gray-800 line-clamp-2 text-sm md:text-base">{title}</h4>
@@ -388,8 +386,8 @@ export default function Page() {
           <div className="relative w-full h-[50vh] md:h-[70vh] bg-black overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) setZoomImage(currentDetail.images[newsSlideIndex]); }}>
             {currentDetail.images?.map((src, i) => (
               <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 bg-black ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                <img src={src} loading="lazy" className="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110 z-0" alt="blur-bg" />
-                <img src={src} loading="lazy" className="relative z-10 w-full h-full object-contain" alt="slide" />
+                <Image src={src} fill sizes="100vw" className="object-cover blur-md opacity-60 scale-110 z-0" alt="blur-bg" />
+                <Image src={src} fill sizes="100vw" className="object-contain z-10" alt="slide" />
               </div>
             ))}
             
@@ -404,7 +402,7 @@ export default function Page() {
           
           <div className="px-6 md:px-10 max-w-3xl mx-auto relative z-10 pt-8">
             <div className="flex items-center gap-4 border-b border-gray-100 pb-6 mb-6">
-              <img src="/logotk.webp" loading="lazy" className="w-14 h-14 object-contain drop-shadow-md" alt="Admin" />
+              <Image src="/logotk.png" width={56} height={56} className="w-14 h-14 object-contain drop-shadow-md bg-white p-1 rounded-full" alt="Admin" />
               <div><p className="font-bold text-gray-800 text-lg">Admin TK</p><p className="text-sm text-gray-500">Kegiatan Sekolah</p></div>
             </div>
             
@@ -447,7 +445,7 @@ export default function Page() {
             if (item.type === 'image') {
               return (
                 <div key={i} className="w-full flex flex-col items-center relative">
-                  <img src={item.src} loading="lazy" className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl mb-2 cursor-zoom-in" onClick={() => setZoomImage(item.src)} alt="Galeri" />
+                  <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl mb-2 cursor-zoom-in" onClick={() => setZoomImage(item.src)} alt="Galeri" />
                   <p className="text-gray-400 text-sm italic text-center mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
                 </div>
               );
@@ -548,7 +546,7 @@ export default function Page() {
                  <X size={28} />
              </button>
           </div>
-          <img src={zoomImage} className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out" onClick={() => setZoomImage(null)} alt="Zoom" />
+          <Image src={zoomImage} width={1920} height={1080} className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out" onClick={() => setZoomImage(null)} alt="Zoom" />
         </div>
       )}
 
@@ -560,7 +558,7 @@ export default function Page() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/10 z-10 pointer-events-none"></div>
           {defaultHeroImages.map((src, i) => (
             <div key={i} className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${i === heroIndex ? 'opacity-100 z-0' : 'opacity-0 -z-10'}`}>
-               <img src={src} loading="lazy" className="w-full h-full object-cover animate-kenburns" alt="Hero Background" />
+               <Image src={src} fill priority={i === 0} sizes="100vw" className="object-cover animate-kenburns" alt="Hero Background" />
             </div>
           ))}
           
@@ -590,7 +588,7 @@ export default function Page() {
           </div>
         </header>
 
-        {/* FEATURES (Konsisten Biru & Oranye Saja) */}
+        {/* FEATURES */}
         <section className="relative -mt-10 z-30 px-6 overflow-hidden">
           <div className="max-w-6xl mx-auto bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-8 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-8 border border-white/60">
              <div className="text-center group">
@@ -618,7 +616,7 @@ export default function Page() {
                <div className="absolute -top-4 -left-4 w-32 h-32 bg-orange-400/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/60"></div>
                <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-blue-400/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/60" style={{animationDelay: '1s'}}></div>
                <div className="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
-                 <img src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" loading="lazy" className="absolute inset-0 w-full h-full object-cover drop-shadow-2xl border-[10px] border-white/90 rounded-[3rem] z-20 shadow-[0_20px_50px_rgba(0,0,0,0.15)]" alt="Profile"/>
+                 <Image src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" fill sizes="(max-width: 768px) 100vw, 50vw" className="absolute inset-0 w-full h-full object-cover drop-shadow-2xl border-[10px] border-white/90 rounded-[3rem] z-20 shadow-[0_20px_50px_rgba(0,0,0,0.15)]" alt="Profile"/>
                </div>
              </div>
              <div className="lg:w-1/2 bg-white/70 backdrop-blur-xl p-8 md:p-10 rounded-[3rem] shadow-xl border border-white/60">
@@ -652,8 +650,8 @@ export default function Page() {
                   const isHtml = n.type === 'html';
                   return (
                     <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { setCurrentDetail(n); setActiveView('detailNews'); } }} className="min-w-[85vw] md:min-w-[45%] lg:min-w-[35%] h-full relative snap-center rounded-[2.5rem] flex items-center justify-center cursor-pointer group/item flex-shrink-0 overflow-hidden shadow-lg border border-white/60 bg-black">
-                      <img src={img} loading="lazy" className="absolute inset-0 w-full h-full object-cover blur-xl opacity-70 scale-110 z-0" alt="News Blur" />
-                      <img src={img} loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110 z-10" alt="News"/>
+                      <Image src={img} fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover blur-xl opacity-70 scale-110 z-0" alt="News Blur" />
+                      <Image src={img} fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover transition-transform duration-700 group-hover/item:scale-110 z-10" alt="News"/>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-8 z-20">
                          <span className={`${isHtml ? 'bg-purple-600' : 'bg-blue-600'} text-white text-xs px-3.5 py-1.5 rounded-full mb-3 inline-block font-bold shadow-md border border-white/20 tracking-wide`}>{isHtml ? 'Aplikasi' : 'Berita'}</span>
                          <h3 className="text-white font-bold text-2xl group-hover/item:text-orange-400 transition-colors drop-shadow-md">{n.title}</h3>
@@ -666,7 +664,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* VIDEO (LAYOUT KARTU KREDIT) */}
+        {/* VIDEO */}
         <section id="video" className="py-24 px-6 relative">
           <div className="max-w-5xl mx-auto text-center mb-12">
              <h2 className="font-bold text-4xl md:text-5xl text-gray-900 drop-shadow-sm bg-white/60 px-8 py-3 rounded-full inline-block backdrop-blur-md border border-white/50 shadow-sm">Video Kegiatan</h2>
@@ -676,7 +674,6 @@ export default function Page() {
              <button onClick={() => handleScroll(videoRef, -1)} className="absolute -left-6 md:-left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronLeft size={32}/></button>
              <button onClick={() => handleScroll(videoRef, 1)} className="absolute -right-6 md:-right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronRight size={32}/></button>
              
-             {/* Layout Kartu Rasio Pas (Sekitar 380px) */}
              <div ref={videoRef} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scroll gap-6 pb-4 pt-2 px-2">
                 {videoData.map((v, i) => {
                   const id = getYouTubeId(v.url);
@@ -685,9 +682,8 @@ export default function Page() {
                   return (
                     <div key={i} className="w-[85vw] sm:w-[360px] md:w-[400px] flex-shrink-0 relative snap-center rounded-[2rem] overflow-hidden shadow-lg border border-white/80 bg-white/90 backdrop-blur-md group/vid hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                       <div className="relative w-full aspect-video bg-black cursor-pointer overflow-hidden border-b border-gray-100" onClick={() => window.open(v.url, '_blank')}>
-                         <img src={thumb} loading="lazy" className="absolute top-0 left-0 w-full h-full object-cover opacity-90 group-hover/vid:opacity-100 group-hover/vid:scale-105 transition-all duration-500 z-0" alt="Thumb"/>
+                         <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover opacity-90 group-hover/vid:opacity-100 group-hover/vid:scale-105 transition-all duration-500 z-0" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
-                            {/* Play Button Konsisten dengan Palet (Oranye) */}
                             <div className="w-[64px] h-[46px] bg-orange-500/95 backdrop-blur-sm rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform shadow-[0_8px_15px_rgba(249,115,22,0.4)] border border-orange-400/50">
                               <PlayCircle className="text-white" size={28}/>
                             </div>
@@ -707,7 +703,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* REGISTRATION (TEMA BIRU) */}
+        {/* REGISTRATION */}
         <section id="daftar" className="py-24 px-6 relative bg-white/40 backdrop-blur-xl border-y border-white/50 shadow-inner">
           <div className="max-w-5xl mx-auto bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/80">
              
@@ -716,7 +712,6 @@ export default function Page() {
                 <div className="relative z-10">
                    <h3 className="font-bold text-4xl mb-6 drop-shadow-md">Pendaftaran Online</h3>
                    <p className="text-blue-50 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis terkirim ke nomor kepala sekolah.</p>
-                   {/* Info Kontak Tanpa Pembungkus */}
                    <div className="space-y-6">
                       <div className="flex items-center gap-4">
                          <Phone size={24} className="text-orange-400 drop-shadow-sm" />
@@ -729,8 +724,8 @@ export default function Page() {
                    </div>
                 </div>
                 <div className="mt-12 relative z-10 w-full flex justify-center">
-                   {/* Logo Murni */}
-                   <img src="/logotk.webp" loading="lazy" className="w-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] object-contain hover:scale-105 transition-transform" alt="Logo"/>
+                   {/* Bantalan putih tipis untuk logo di pendaftaran */}
+                   <Image src="/logotk.webp" width={128} height={128} className="w-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] object-contain hover:scale-105 transition-transform bg-white p-2 rounded-full" alt="Logo"/>
                 </div>
              </div>
              
@@ -785,8 +780,8 @@ export default function Page() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
              <div className="col-span-1 md:col-span-2">
                 <div className="flex items-center gap-5 mb-6">
-                   {/* Logo Footer Murni */}
-                   <img src="/logotk.webp" loading="lazy" className="h-20 w-auto object-contain drop-shadow-[0_5px_15px_rgba(255,255,255,0.2)]" alt="Logo"/>
+                   {/* Bantalan putih tipis untuk logo di footer */}
+                   <Image src="/logotk.webp" width={80} height={80} className="h-20 w-auto object-contain drop-shadow-[0_5px_15px_rgba(255,255,255,0.2)] bg-white p-1.5 rounded-full" alt="Logo"/>
                    <span className="font-bold text-3xl text-white drop-shadow-md tracking-wide">TK BAITURROHMAN</span>
                 </div>
                 <p className="text-gray-300 mb-6 max-w-sm text-lg font-medium leading-relaxed">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p>
@@ -802,7 +797,6 @@ export default function Page() {
              </div>
              <div>
                 <h4 className="font-bold text-xl mb-6 text-orange-500">Hubungi Kami</h4>
-                {/* Info Footer Tanpa Pembungkus */}
                 <ul className="space-y-4 text-gray-300 font-medium">
                    <li className="flex items-center gap-4 transition-colors"><Phone size={20} className="text-blue-500"/><span className="font-bold text-white">0895-3910-01402</span></li>
                    <li className="flex items-center gap-4 transition-colors"><Mail size={20} className="text-blue-500"/><span className="truncate">dapodiktkbaiturrohman@gmail.com</span></li>
