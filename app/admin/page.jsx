@@ -33,7 +33,6 @@ export default function AdminPanel() {
   const [currentNews, setCurrentNews] = useState(null);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', images: [], gallery: [], date: '' });
   
-  // State Input Folder Galeri Berita Sementara
   const [newGalleryItem, setNewGalleryItem] = useState({ group: '', type: 'image', src: '', caption: '' });
 
   // === FORM VIDEO & TOOLS ===
@@ -47,20 +46,22 @@ export default function AdminPanel() {
 
   // === ASSET LIBRARY STATES ===
   const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
-  const [assetTarget, setAssetTarget] = useState(null); // 'news_images', 'news_gallery', 'editor', 'heroImages', 'profileImages'
+  const [assetTarget, setAssetTarget] = useState(null); 
 
   const [isUploading, setIsUploading] = useState(false);
   const contentRef = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
     const savedPass = sessionStorage.getItem('tk_admin_pass');
     if (savedPass) {
       setAdminPass(savedPass);
       setIsLoggedIn(true);
       fetchData(savedPass);
     } else {
-      setIsLoading(false);
+      if (isMounted) setIsLoading(false);
     }
+    return () => { isMounted = false; };
   }, []);
 
   const pushHistory = () => window.history.pushState({ open: true }, '');
@@ -71,12 +72,13 @@ export default function AdminPanel() {
       const resContent = await fetch('/api/content?t=' + new Date().getTime());
       if (resContent.ok) {
         const data = await resContent.json();
-        setNews(data.news || []);
-        setVideos(data.videos || []);
-        setTools(data.tools || []);
+        // PENGAMAN: Pastikan selalu berupa Array agar tidak crash saat di-map
+        setNews(Array.isArray(data.news) ? data.news : []);
+        setVideos(Array.isArray(data.videos) ? data.videos : []);
+        setTools(Array.isArray(data.tools) ? data.tools : []);
         setConfigForm({
-           heroImages: data.config?.heroImages || [],
-           profileImages: data.config?.profileImages || []
+           heroImages: Array.isArray(data.config?.heroImages) ? data.config.heroImages : [],
+           profileImages: Array.isArray(data.config?.profileImages) ? data.config.profileImages : []
         });
       }
 
@@ -94,7 +96,7 @@ export default function AdminPanel() {
         return;
       }
     } catch (e) {
-      showNotif('Gagal memuat data.', 'error');
+      showNotif('Gagal memuat data dari server.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -148,10 +150,12 @@ export default function AdminPanel() {
   const selectTab = (tab) => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
-    setIsEditingNews(false); setIsEditingVideo(false); setIsEditingTool(false);
+    setIsEditingNews(false); 
+    setIsEditingVideo(false); 
+    setIsEditingTool(false);
   };
 
-  // --- UPLOAD CLOUDINARY AUTO-WEBP ENGINE ---
+  // --- UPLOAD CLOUDINARY ENGINE ---
   const uploadToCloudinary = async (files) => {
     const activeCloud = cloudAccounts.find(c => c.active);
     if (!activeCloud) {
@@ -175,25 +179,29 @@ export default function AdminPanel() {
         if (data.secure_url) {
           const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
           uploadedUrls.push(optimizedUrl);
-        } else showNotif(`Gagal: ${data.error?.message}`, 'error');
-      } catch (err) { showNotif('Error upload.', 'error'); }
+        } else {
+          showNotif(`Gagal: ${data.error?.message}`, 'error');
+        }
+      } catch (err) { 
+        showNotif('Error upload jaringan.', 'error'); 
+      }
     }
     setIsUploading(false);
     return uploadedUrls;
   };
 
-  // --- MENGELOLA TAMPILAN WEB (HERO & PROFIL) ---
+  // --- CONFIG TAMPILAN (HERO & PROFIL) ---
   const handleVisualUpload = async (e, type) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
-    if (urls.length > 0) setConfigForm(prev => ({ ...prev, [type]: [...prev[type], ...urls] }));
+    if (urls.length > 0) setConfigForm(prev => ({ ...prev, [type]: [...(prev[type] || []), ...urls] }));
     e.target.value = '';
   };
   const addVisualUrl = (type) => {
     const url = prompt("Masukkan URL Gambar Publik:");
-    if (url) setConfigForm(prev => ({ ...prev, [type]: [...prev[type], url] }));
+    if (url) setConfigForm(prev => ({ ...prev, [type]: [...(prev[type] || []), url] }));
   };
   const removeVisual = (type, index) => {
-    setConfigForm(prev => ({ ...prev, [type]: prev[type].filter((_, idx) => idx !== index) }));
+    setConfigForm(prev => ({ ...prev, [type]: (prev[type] || []).filter((_, idx) => idx !== index) }));
   };
   const saveVisualConfig = async () => {
     setIsLoading(true);
@@ -229,26 +237,29 @@ export default function AdminPanel() {
   // --- ASSET LIBRARY / HISTORY MANAGER ---
   const getAllHistoryAssets = () => {
     const allUrls = new Set();
-    configForm.heroImages.forEach(u => allUrls.add(u));
-    configForm.profileImages.forEach(u => allUrls.add(u));
-    news.forEach(n => {
-      if (n.images) n.images.forEach(u => allUrls.add(u));
-      if (n.gallery) n.gallery.forEach(g => { if (g.type === 'image') allUrls.add(g.src); });
-    });
+    // PENGAMAN: Cek Array.isArray untuk mencegah Crash forEach is not a function
+    if (Array.isArray(configForm.heroImages)) configForm.heroImages.forEach(u => { if (u) allUrls.add(u); });
+    if (Array.isArray(configForm.profileImages)) configForm.profileImages.forEach(u => { if (u) allUrls.add(u); });
+    if (Array.isArray(news)) {
+      news.forEach(n => {
+        if (Array.isArray(n.images)) n.images.forEach(u => { if (u) allUrls.add(u); });
+        if (Array.isArray(n.gallery)) n.gallery.forEach(g => { if (g && g.type === 'image' && g.src) allUrls.add(g.src); });
+      });
+    }
     return Array.from(allUrls);
   };
 
   const handleSelectAsset = (url) => {
     if (assetTarget === 'news_images') {
-      setNewsForm(prev => ({ ...prev, images: [...prev.images, url] }));
+      setNewsForm(prev => ({ ...prev, images: [...(prev.images || []), url] }));
     } else if (assetTarget === 'news_gallery') {
       setNewGalleryItem(prev => ({ ...prev, src: url }));
     } else if (assetTarget === 'editor') {
       insertAtCursor(`<img src="${url}" alt="Gambar Sisipan" loading="lazy" class="rounded-xl my-4 w-full h-auto shadow-sm" />`);
     } else if (assetTarget === 'heroImages') {
-      setConfigForm(prev => ({ ...prev, heroImages: [...prev.heroImages, url] }));
+      setConfigForm(prev => ({ ...prev, heroImages: [...(prev.heroImages || []), url] }));
     } else if (assetTarget === 'profileImages') {
-      setConfigForm(prev => ({ ...prev, profileImages: [...prev.profileImages, url] }));
+      setConfigForm(prev => ({ ...prev, profileImages: [...(prev.profileImages || []), url] }));
     }
     setIsAssetLibraryOpen(false);
     showNotif('Aset ditambahkan!');
@@ -260,7 +271,7 @@ export default function AdminPanel() {
     if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const text = textarea.value;
+    const text = textarea.value || '';
     setNewsForm(prev => ({ ...prev, content: text.substring(0, start) + textToInsert + text.substring(end) }));
     setTimeout(() => {
       textarea.focus();
@@ -309,13 +320,13 @@ export default function AdminPanel() {
     }
   };
 
+  // --- BERITA & GALERI MANAGER ---
   const handleNewsFileUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
-    if (urls.length > 0) setNewsForm(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+    if (urls.length > 0) setNewsForm(prev => ({ ...prev, images: [...(prev.images || []), ...urls] }));
     e.target.value = '';
   };
-
-  // --- MANAJEMEN FOLDER GALERI BERITA ---
+  
   const handleGalleryUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
     if (urls.length > 0) setNewGalleryItem(prev => ({ ...prev, src: urls[0] })); 
@@ -329,10 +340,6 @@ export default function AdminPanel() {
     setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), { ...newGalleryItem }] }));
     setNewGalleryItem({ group: '', type: 'image', src: '', caption: '' }); 
     showNotif('Gambar berhasil dimasukkan ke Folder Galeri!');
-  };
-
-  const removeGalleryItem = (index) => {
-    setNewsForm(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== index) }));
   };
 
   const handleSaveNews = async (e) => {
@@ -363,6 +370,7 @@ export default function AdminPanel() {
   // --- CRUD VIDEO & TOOLS ---
   const handleSaveVideo = async (e) => {
     e.preventDefault();
+    if (!videoForm.judul || !videoForm.url) return showNotif('Judul & URL wajib!', 'error');
     setIsLoading(true);
     let res = currentVideo ? await apiCall('PUT', { type: 'videos', id: currentVideo._id, data: videoForm }) : await apiCall('POST', { type: 'videos', data: videoForm });
     if (res.success) { showNotif('Video tersimpan!'); setIsEditingVideo(false); fetchData(adminPass); }
@@ -448,10 +456,12 @@ export default function AdminPanel() {
           <div className="p-4 overflow-y-auto flex-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {assets.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">Belum ada riwayat gambar di database.</p>}
             {assets.map((url, i) => {
-               const thumb = url.includes('cloudinary') ? url.replace('/upload/', '/upload/w_200,q_auto,f_auto/') : url;
+               // PENGAMAN STRING
+               const strUrl = String(url || '');
+               const thumb = strUrl.includes('cloudinary') ? strUrl.replace('/upload/', '/upload/w_200,q_auto,f_auto/') : strUrl;
                return (
-                 <div key={i} onClick={() => handleSelectAsset(url)} className="aspect-square relative rounded-xl overflow-hidden cursor-pointer hover:ring-4 hover:ring-blue-500 transition-all shadow-sm bg-gray-100">
-                   <img src={thumb} className="w-full h-full object-cover" />
+                 <div key={i} onClick={() => handleSelectAsset(strUrl)} className="aspect-square relative rounded-xl overflow-hidden cursor-pointer hover:ring-4 hover:ring-blue-500 transition-all shadow-sm bg-gray-100">
+                   {thumb && <img src={thumb} className="w-full h-full object-cover" />}
                  </div>
                )
             })}
@@ -537,8 +547,8 @@ export default function AdminPanel() {
           <button onClick={() => addVisualUrl('profileImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-          {configForm.profileImages.length === 0 && <p className="text-gray-400 text-sm col-span-4">Belum ada foto profil.</p>}
-          {configForm.profileImages.map((img, i) => (
+          {(!configForm.profileImages || configForm.profileImages.length === 0) && <p className="text-gray-400 text-sm col-span-4">Belum ada foto profil.</p>}
+          {Array.isArray(configForm.profileImages) && configForm.profileImages.map((img, i) => (
             <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm bg-gray-100 border border-gray-200">
               <img src={img} alt="Profile" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
@@ -558,8 +568,8 @@ export default function AdminPanel() {
           <button onClick={() => addVisualUrl('heroImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          {configForm.heroImages.length === 0 && <p className="text-gray-400 text-sm col-span-2">Belum ada foto slide header.</p>}
-          {configForm.heroImages.map((img, i) => (
+          {(!configForm.heroImages || configForm.heroImages.length === 0) && <p className="text-gray-400 text-sm col-span-2">Belum ada foto slide header.</p>}
+          {Array.isArray(configForm.heroImages) && configForm.heroImages.map((img, i) => (
             <div key={i} className="relative aspect-video rounded-2xl overflow-hidden group shadow-sm bg-gray-100 border border-gray-200">
               <img src={img} alt="Hero" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
@@ -573,43 +583,6 @@ export default function AdminPanel() {
       <button onClick={saveVisualConfig} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2 hover:-translate-y-1 transition-all">
         <Save size={20} /> Simpan Tampilan
       </button>
-    </div>
-  );
-
-  const renderCloudSettings = () => (
-    <div className="animate-in fade-in max-w-4xl">
-      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
-      <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa ditumpuk banyak akun.</p>
-
-      <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
-        <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Cloud Name</label><input type="text" value={newCloud.name} onChange={e => setNewCloud({...newCloud, name: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: dpqzxxx" /></div>
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Upload Preset (Unsigned)</label><input type="text" value={newCloud.preset} onChange={e => setNewCloud({...newCloud, preset: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: tk_upload" /></div>
-        </div>
-        <button type="submit" className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition-colors flex justify-center items-center gap-2">
-          <Plus size={20} /> Tambahkan & Simpan Akun
-        </button>
-      </form>
-
-      <h3 className="font-bold text-xl mb-4 text-gray-900">Daftar Akun Tersimpan</h3>
-      <div className="space-y-4">
-        {cloudAccounts.length === 0 && <p className="text-gray-500 bg-white p-6 rounded-2xl border text-center font-medium">Belum ada akun tersimpan.</p>}
-        {cloudAccounts.map(c => (
-          <div key={c._id} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.active ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
-            <div>
-              <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-1">
-                {c.name} {c.active && <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wider">AKTIF DIGUNAKAN</span>}
-              </h4>
-              <p className="text-sm text-gray-500 font-medium">Preset: {c.preset}</p>
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              {!c.active && <button onClick={() => activateCloud(c._id)} className="flex-1 md:flex-none bg-white text-gray-800 border border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold px-5 py-2.5 rounded-xl text-sm shadow-sm transition-all">Gunakan Ini</button>}
-              <button onClick={() => deleteCloud(c._id)} className="w-12 h-11 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 
@@ -645,7 +618,7 @@ export default function AdminPanel() {
                 </div>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                {newsForm.images.map((img, idx) => (
+                {Array.isArray(newsForm.images) && newsForm.images.map((img, idx) => (
                   <div key={idx} className="aspect-square relative rounded-xl overflow-hidden bg-gray-100 group">
                     <img src={img} className="w-full h-full object-cover"/>
                     <button type="button" onClick={() => setNewsForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx)}))} className="absolute inset-0 m-auto w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg"><Trash2 size={14}/></button>
@@ -675,12 +648,12 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {newsForm.gallery?.length > 0 && (
+              {Array.isArray(newsForm.gallery) && newsForm.gallery.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {newsForm.gallery.map((g, idx) => (
                     <div key={idx} className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 relative group text-center">
                       <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-2"><img src={g.src} className="w-full h-full object-cover"/></div>
-                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded block truncate mb-1">{g.group}</span>
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded block truncate mb-1">{g.group || 'Umum'}</span>
                       <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md"><X size={12}/></button>
                     </div>
                   ))}
@@ -717,7 +690,7 @@ export default function AdminPanel() {
       <div className="animate-in fade-in">
         <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
           <h1 className="font-bold text-3xl md:text-4xl text-gray-900">Kelola Berita</h1>
-          <button onClick={() => { pushHistory(); setCurrentNews(null); setNewsForm({ title: '', content: '', images: [], gallery: [], date: '' }); setIsEditingNews(true); }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 shadow-md hover:-translate-y-1 transition-transform"><Plus size={20} /> Tulis Berita Baru</button>
+          <button onClick={() => { pushHistory(); setCurrentNews(null); setNewsForm({ title: '', content: '', images: [], gallery: [], date: '' }); setIsEditingNews(true); }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 shadow-md"><Plus size={20} /> Tulis Berita Baru</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {news.length === 0 && <p className="text-gray-500">Belum ada berita.</p>}
@@ -741,6 +714,54 @@ export default function AdminPanel() {
     );
   };
 
+  const renderVideosManager = () => {
+    if (isEditingVideo) {
+      return (
+        <div className="animate-in fade-in max-w-2xl">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => setIsEditingVideo(false)} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex justify-center items-center shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"><X size={20} className="text-gray-600" /></button>
+            <h1 className="font-display font-bold text-2xl md:text-3xl text-gray-900 tracking-tight">{currentVideo ? 'Edit Video' : 'Video Baru'}</h1>
+          </div>
+          <form onSubmit={handleSaveVideo} className="space-y-6 bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100">
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Judul Video</label><input type="text" value={videoForm.judul} onChange={e => setVideoForm({...videoForm, judul: e.target.value})} required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold" /></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi Singkat</label><textarea value={videoForm.deskripsi} onChange={e => setVideoForm({...videoForm, deskripsi: e.target.value})} required rows="3" className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-none text-sm md:text-base"></textarea></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Link YouTube</label><input type="url" value={videoForm.url} onChange={e => setVideoForm({...videoForm, url: e.target.value})} required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-sm md:text-base" placeholder="https://youtu.be/..." /></div>
+            <div className="pt-2"><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 hover:-translate-y-1"><Save size={20} /> Simpan Video</button></div>
+          </form>
+        </div>
+      );
+    }
+    return (
+      <div className="animate-in fade-in">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-10">
+          <div><h1 className="font-display font-bold text-3xl md:text-4xl text-gray-900 mb-2 tracking-tight">Kelola Video</h1><p className="text-gray-500 font-medium text-sm md:text-base">Pengaturan video YouTube di beranda.</p></div>
+          <button onClick={() => { pushHistory(); setCurrentVideo(null); setVideoForm({ judul: '', deskripsi: '', url: '' }); setIsEditingVideo(true); }} className="w-full md:w-auto bg-orange-500 text-white px-6 py-3.5 rounded-2xl md:rounded-full font-bold shadow-lg shadow-orange-500/30 hover:-translate-y-1 hover:bg-orange-600 transition-all flex items-center justify-center gap-2"><Plus size={20} /> Tambah Video</button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {videos.length === 0 && <p className="text-gray-500 font-medium col-span-2">Belum ada video.</p>}
+          {videos.map((vid) => {
+            // PENGAMAN STRING PADA URL
+            const urlStr = String(vid.url || '');
+            const m = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+            const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
+            
+            return (
+              <div key={vid._id} className="bg-white p-4 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4 md:gap-5">
+                <div className="w-full sm:w-32 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0"><img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80" /><Youtube className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white" size={24} /></div>
+                <div className="flex-1 w-full overflow-hidden text-center sm:text-left"><h4 className="font-bold text-gray-900 truncate mb-1">{vid.judul}</h4><p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
+                  <div className="flex gap-2 justify-center sm:justify-start">
+                    <button onClick={() => { pushHistory(); setCurrentVideo(vid); setVideoForm({ judul: vid.judul, deskripsi: vid.deskripsi, url: vid.url }); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 text-blue-600 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 border border-gray-200"><Edit size={14} /> Edit</button>
+                    <button onClick={() => deleteVideo(vid._id)} className="w-12 bg-red-50 text-red-500 rounded-xl flex justify-center items-center"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderToolsManager = () => {
     if (isEditingTool) {
       return (
@@ -755,7 +776,7 @@ export default function AdminPanel() {
               <label className="block text-sm font-bold text-gray-700 mb-2">Tipe Tujuan</label>
               <select value={toolForm.type} onChange={e => setToolForm({...toolForm, type: e.target.value, url:'', content:''})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer font-bold text-gray-700">
                 <option value="link">Link Web External (URL)</option>
-                <option value="html_code">Aplikasi HTML Internal (Kode/File)</option>
+                <option value="html_code">Aplikasi HTML Internal (Kode)</option>
               </select>
             </div>
             {toolForm.type === 'link' ? (
@@ -784,7 +805,7 @@ export default function AdminPanel() {
             <div key={t._id} className="bg-white p-5 rounded-2xl border text-center flex flex-col items-center">
               <div className="w-14 h-14 bg-purple-50 text-purple-600 flex justify-center items-center rounded-xl mb-3"><FileCode size={24}/></div>
               <h4 className="font-bold text-gray-900 line-clamp-1 text-sm mb-1">{t.name}</h4>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold mb-4">{t.type === 'link' ? 'URL LINK' : 'HTML APP'}</span>
+              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold mb-4">{(!t.type || t.type === 'link') ? 'URL LINK' : 'APP HTML'}</span>
               <div className="flex gap-2 w-full mt-auto">
                  <button onClick={() => { pushHistory(); setCurrentTool(t); setToolForm({ name: t.name, url: t.url||'', type: t.type||'link', content: t.content||'' }); setIsEditingTool(true); }} className="flex-1 bg-gray-50 border text-blue-600 py-2 rounded-lg text-xs font-bold"><Edit size={14} className="mx-auto"/></button>
                  <button onClick={() => deleteTool(t._id)} className="w-10 bg-red-50 text-red-500 rounded-lg flex justify-center items-center"><Trash2 size={14}/></button>
@@ -795,6 +816,43 @@ export default function AdminPanel() {
       </div>
     );
   };
+
+  const renderSettings = () => (
+    <div className="animate-in fade-in max-w-4xl">
+      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
+      <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa ditumpuk banyak akun.</p>
+
+      <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
+        <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Cloud Name</label><input type="text" value={newCloud.name} onChange={e => setNewCloud({...newCloud, name: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: dpqzxxx" /></div>
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Upload Preset (Unsigned)</label><input type="text" value={newCloud.preset} onChange={e => setNewCloud({...newCloud, preset: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: tk_upload" /></div>
+        </div>
+        <button type="submit" className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition-colors flex justify-center items-center gap-2">
+          <Plus size={20} /> Tambahkan Akun
+        </button>
+      </form>
+
+      <h3 className="font-bold text-xl mb-4 text-gray-900">Daftar Akun Tersimpan</h3>
+      <div className="space-y-4">
+        {cloudAccounts.length === 0 && <p className="text-gray-500 bg-white p-6 rounded-2xl border text-center font-medium">Belum ada akun tersimpan.</p>}
+        {cloudAccounts.map(c => (
+          <div key={c._id} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.active ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
+            <div>
+              <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-1">
+                {c.name} {c.active && <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wider">AKTIF DIGUNAKAN</span>}
+              </h4>
+              <p className="text-sm text-gray-500 font-medium">Preset: {c.preset}</p>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              {!c.active && <button onClick={() => activateCloud(c._id)} className="flex-1 md:flex-none bg-white text-gray-800 border border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold px-5 py-2.5 rounded-xl text-sm shadow-sm transition-all">Gunakan Ini</button>}
+              <button onClick={() => deleteCloud(c._id)} className="w-12 h-11 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] font-sans text-gray-800 flex flex-col md:flex-row">
@@ -807,39 +865,9 @@ export default function AdminPanel() {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'visuals' && renderVisualManager()}
           {activeTab === 'news' && renderNewsManager()}
-          {activeTab === 'videos' && (
-             <div className="animate-in fade-in">
-               <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-                 <h1 className="font-bold text-3xl md:text-4xl text-gray-900">Kelola Video</h1>
-                 <button onClick={() => { pushHistory(); setCurrentVideo(null); setVideoForm({ judul: '', deskripsi: '', url: '' }); setIsEditingVideo(true); }} className="w-full md:w-auto bg-orange-500 text-white px-6 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 shadow-md"><Plus size={20} /> Tambah Video</button>
-               </div>
-               {isEditingVideo ? (
-                 <form onSubmit={handleSaveVideo} className="bg-white p-6 rounded-[2rem] border shadow-sm space-y-4 max-w-xl">
-                    <input type="text" value={videoForm.judul} onChange={e=>setVideoForm({...videoForm, judul: e.target.value})} required className="w-full p-4 bg-gray-50 rounded-xl" placeholder="Judul Video" />
-                    <textarea value={videoForm.deskripsi} onChange={e=>setVideoForm({...videoForm, deskripsi: e.target.value})} required className="w-full p-4 bg-gray-50 rounded-xl" placeholder="Deskripsi"></textarea>
-                    <input type="url" value={videoForm.url} onChange={e=>setVideoForm({...videoForm, url: e.target.value})} required className="w-full p-4 bg-gray-50 rounded-xl" placeholder="Link YouTube" />
-                    <button type="submit" className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold">Simpan</button>
-                 </form>
-               ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {videos.map(v => {
-                     const m = v.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-                     const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
-                     return (
-                       <div key={v._id} className="bg-white p-4 rounded-2xl border flex gap-4 items-center">
-                         <div className="w-24 h-16 bg-black rounded-lg shrink-0 flex items-center justify-center overflow-hidden relative"><img src={thumb} className="w-full h-full object-cover opacity-80"/><Youtube className="absolute text-white"/></div>
-                         <div className="flex-1 overflow-hidden"><h4 className="font-bold truncate">{v.judul}</h4><p className="text-xs text-gray-500 truncate mb-2">{v.url}</p>
-                           <div className="flex gap-2"><button onClick={() => { pushHistory(); setCurrentVideo(v); setVideoForm({judul: v.judul, deskripsi: v.deskripsi, url: v.url}); setIsEditingVideo(true); }} className="px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">Edit</button><button onClick={()=>deleteVideo(v._id)} className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg"><Trash2 size={14}/></button></div>
-                         </div>
-                       </div>
-                     )
-                   })}
-                 </div>
-               )}
-             </div>
-          )}
+          {activeTab === 'videos' && renderVideosManager()}
           {activeTab === 'tools' && renderToolsManager()}
-          {activeTab === 'settings' && renderCloudSettings()}
+          {activeTab === 'settings' && renderSettings()}
         </div>
       </main>
     </div>
