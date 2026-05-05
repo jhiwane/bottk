@@ -59,16 +59,30 @@ export default function Page() {
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
 
-  // FIX BUG: Deklarasikan openAppIframe agar tidak terjadi ReferenceError saat diakses fitur Tools/HTML
+  const pushHistory = () => {
+    window.history.pushState({ open: true }, '');
+  };
+
   const openAppIframe = (url, title) => {
+    pushHistory();
     setIsLoadingIframe(true);
     setIframeData({ url, title });
     setActiveView('iframe');
     setIsSidebarOpen(false);
   };
 
+  // SMART VIDEO EMBED: Putar YouTube langsung tanpa pergi ke App
+  const playVideo = (url, title) => {
+    const ytId = getYouTubeId(url);
+    if (ytId) {
+      openAppIframe(`https://www.youtube.com/embed/${ytId}?autoplay=1`, title);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
   useEffect(() => {
-    let isMounted = true; // FIX BUG: Mencegah state update pada komponen yang sudah unmount (memory leak)
+    let isMounted = true; 
     const loadContent = async () => {
       try {
         const res = await fetch('/api/content?t=' + new Date().getTime());
@@ -119,15 +133,35 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
-  // Penghubung fungsi global untuk HTML murni dari DB
+  // === HARDWARE BACK BUTTON (HP SWIPE BACK) ===
+  useEffect(() => {
+    const handlePopState = () => {
+      if (zoomImage) {
+        setZoomImage(null);
+      } else if (infoModalOpen) {
+        setInfoModalOpen(false);
+      } else if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      } else if (activeView !== 'home') {
+        if (activeView === 'mediaViewer') {
+           setActiveView('detailNews'); // Kembali ke berita, bukan ke home
+        } else {
+           setActiveView('home');
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [zoomImage, infoModalOpen, activeView, isSidebarOpen]);
+
   useEffect(() => {
     window.openMediaViewer = (index, filter) => {
       const targetData = newsData[index] || currentDetail;
       if (!targetData) return;
+      pushHistory();
       setMediaViewerData({ ...targetData, activeFilter: filter });
       setActiveView('mediaViewer');
     };
-    // FIX BUG: Menyambungkan window hook ke fungsi lokal yang sudah aman
     window.openIframe = openAppIframe;
     
     return () => {
@@ -186,7 +220,7 @@ export default function Page() {
             Daftar Sekarang
           </a>
           <button 
-            onClick={() => setIsSidebarOpen(true)} 
+            onClick={() => { pushHistory(); setIsSidebarOpen(true); }} 
             className="w-11 h-11 md:w-12 md:h-12 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-300"
           >
             <Menu size={22} />
@@ -226,13 +260,13 @@ export default function Page() {
           
           <div className="h-px bg-gray-100 my-2"></div>
           
-          <button onClick={() => { setActiveView('listNews'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
+          <button onClick={() => { pushHistory(); setActiveView('listNews'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
             <div className="w-8 flex justify-center text-blue-500"><Newspaper size={22} /></div> Daftar Berita
           </button>
-          <button onClick={() => { setActiveView('listVideo'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
+          <button onClick={() => { pushHistory(); setActiveView('listVideo'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
             <div className="w-8 flex justify-center text-blue-500"><Youtube size={22} /></div> Daftar Video
           </button>
-          <button onClick={() => { setActiveView('tools'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
+          <button onClick={() => { pushHistory(); setActiveView('tools'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
             <div className="w-8 flex justify-center text-blue-500"><Rocket size={22} /></div> Tools & Aplikasi
           </button>
           
@@ -289,7 +323,6 @@ export default function Page() {
                 const vid = getYouTubeId(item.url);
                 if (vid) thumb = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
               }
-              // FIX BUG: Cegah error runtime bila 'thumb' ternyata null/undefined dari database
               if (typeof thumb === 'string' && thumb.includes('cloudinary')) {
                   thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/');
               }
@@ -299,8 +332,11 @@ export default function Page() {
                   key={idx} 
                   onClick={() => {
                     if (isNews) {
+                      pushHistory();
                       if (item.type === 'html') { openAppIframe(item.fileUrl, title); } else { setCurrentDetail(item); setActiveView('detailNews'); }
-                    } else { window.open(item.url, '_blank'); }
+                    } else { 
+                      playVideo(item.url, title); 
+                    }
                   }}
                   className="flex gap-5 bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
                 >
@@ -337,7 +373,7 @@ export default function Page() {
             return (
               <div 
                 key={idx} 
-                onClick={() => openAppIframe(link, t.name)} 
+                onClick={() => { pushHistory(); openAppIframe(link, t.name); }} 
                 className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="w-16 h-16 bg-gradient-to-tr from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600 shadow-inner">
@@ -358,7 +394,7 @@ export default function Page() {
         <button onClick={() => setActiveView('home')} className="w-12 h-12 bg-gray-50 hover:bg-gray-100 rounded-full flex justify-center items-center">
           <ArrowLeft size={22} className="text-gray-700" />
         </button>
-        <h3 className="font-bold text-lg text-gray-800 truncate">{iframeData.title || 'Aplikasi'}</h3>
+        <h3 className="font-bold text-lg text-gray-800 truncate">{iframeData.title || 'Aplikasi / Video'}</h3>
       </div>
       <div className="flex-1 w-full relative bg-gray-50">
         {isLoadingIframe && (
@@ -367,7 +403,7 @@ export default function Page() {
           </div>
         )}
         {activeView === 'iframe' && (
-          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-white" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title}/>
+          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-black" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>
         )}
       </div>
     </div>
@@ -385,7 +421,7 @@ export default function Page() {
         </div>
         
         <div className="max-w-4xl mx-auto bg-white min-h-screen pb-24 shadow-2xl">
-          <div className="relative w-full h-[50vh] md:h-[65vh] bg-gray-900 overflow-hidden cursor-pointer" onClick={() => { if(currentDetail.images?.length) setZoomImage(currentDetail.images[newsSlideIndex]); }}>
+          <div className="relative w-full h-[50vh] md:h-[65vh] bg-gray-900 overflow-hidden cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
             {currentDetail.images?.map((src, i) => (
               <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                 <Image src={src} fill sizes="100vw" className="object-cover blur-2xl opacity-60 scale-125 z-0" alt="blur-bg" />
@@ -411,13 +447,12 @@ export default function Page() {
             
             {currentDetail.gallery && currentDetail.gallery.length > 0 && (
                <div className="mb-8 flex gap-3 overflow-x-auto hide-scroll">
-                  <button onClick={() => { setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
+                  <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
                     <ImageIcon size={18}/> Buka Semua Galeri Media
                   </button>
                </div>
             )}
 
-            {/* PERINGATAN: Pastikan DB tersanitasi untuk mencegah XSS. Karena menggunakan dangerouslySetInnerHTML */}
             <div className="py-2 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
             
             <div className="mt-16 bg-gray-50 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 border border-gray-100">
@@ -457,7 +492,7 @@ export default function Page() {
               if (item.type === 'image') {
                 return (
                   <div key={i} className="w-full flex flex-col items-center relative group">
-                    <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl mb-3 cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]" onClick={() => setZoomImage(item.src)} alt="Galeri" />
+                    <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl mb-3 cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]" onClick={() => { pushHistory(); setZoomImage(item.src); }} alt="Galeri" />
                     <p className="text-gray-300 text-sm font-medium italic text-center mt-2">{item.caption}</p>
                   </div>
                 );
@@ -565,7 +600,8 @@ export default function Page() {
                     TK Baiturrohman membentuk karakter anak yang cerdas, kreatif, berakhlak mulia, Bertaqwa, Dan Berguna.
                  </p>
                  <div className="flex justify-center w-full">
-                    <a href="#daftar" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-12 rounded-full text-lg shadow-lg shadow-orange-500/40 transition-all duration-300 hover:-translate-y-1 border border-white/10">
+                    {/* BUTTON HERO LEBIH PRESISI */}
+                    <a href="#daftar" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-10 rounded-full text-base md:text-lg shadow-lg shadow-orange-500/40 transition-all duration-300 hover:-translate-y-1 border border-white/10">
                       Daftar Sekarang
                     </a>
                  </div>
@@ -637,13 +673,12 @@ export default function Page() {
              <div ref={galleryRef} className="flex overflow-x-auto gap-6 hide-scroll snap-x snap-mandatory scroll-smooth pb-10 px-4 md:px-8">
                 {newsData.map((n, i) => {
                   let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
-                  // FIX BUG: Mencegah TypeError jika img ternyata null
                   if (typeof img === 'string' && img.includes('cloudinary')) {
                       img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
                   }
                   const isHtml = n.type === 'html';
                   return (
-                    <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { setCurrentDetail(n); setActiveView('detailNews'); } }} className="w-[85vw] md:w-[400px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 cursor-pointer group/item transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
+                    <div key={i} onClick={() => { pushHistory(); if(isHtml) openAppIframe(n.fileUrl, n.title); else { setCurrentDetail(n); setActiveView('detailNews'); } }} className="w-[85vw] md:w-[400px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 cursor-pointer group/item transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
                       {/* Rasio Kotak Gambar Kunci (Aspect Square) */}
                       <div className="w-full aspect-square relative overflow-hidden bg-gray-100">
                          <Image src={img} fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover transition-transform duration-700 ease-out group-hover/item:scale-105" alt="News"/>
@@ -678,8 +713,8 @@ export default function Page() {
                   const thumb = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
                   return (
                     <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                      {/* Rasio Kotak Video Kunci (Aspect Video 16:9) */}
-                      <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => window.open(v.url, '_blank')}>
+                      {/* SMART VIDEO: Panggil playVideo agar muncul di Iframe */}
+                      <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
                          <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 450px" className="object-cover opacity-80 group-hover/vid:opacity-100 transition-all duration-700 ease-out group-hover/vid:scale-105" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
                             <div className="w-[64px] h-[48px] bg-white/90 backdrop-blur-md rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform duration-300 shadow-xl">
@@ -690,7 +725,7 @@ export default function Page() {
                       <div className="p-8">
                          <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-1 tracking-tight">{v.judul}</h3>
                          <p className="text-gray-500 font-medium line-clamp-2 text-sm leading-relaxed mb-6">{v.deskripsi}</p>
-                         <a href={v.url} target="_blank" rel="noreferrer" className="w-full text-sm bg-gray-50 text-gray-700 font-bold hover:bg-gray-100 hover:text-blue-600 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-200"><Youtube size={18} className="text-red-500"/> Putar di YouTube</a>
+                         <button onClick={() => playVideo(v.url, v.judul)} className="w-full text-sm bg-gray-50 text-gray-700 font-bold hover:bg-gray-100 hover:text-blue-600 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-200"><Youtube size={18} className="text-red-500"/> Tonton Langsung</button>
                       </div>
                     </div>
                   );
@@ -725,16 +760,16 @@ export default function Page() {
                 <form id="waForm" className="space-y-6" onSubmit={openWhatsApp}>
                    <div>
                      <label className="block text-sm font-bold text-gray-700 mb-2">Nama Lengkap Anak</label>
-                     <input type="text" name="namaAnak" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Ahmad Zaky"/>
+                     <input type="text" name="namaAnak" required className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Ahmad Zaky"/>
                    </div>
                    <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Umur (Tahun)</label>
-                        <input type="number" name="umur" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Ex: 5"/>
+                        <input type="number" name="umur" required className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Ex: 5"/>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">Jenis Kelamin</label>
-                        <select name="jk" className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium cursor-pointer">
+                        <select name="jk" className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium cursor-pointer">
                            <option>Laki-laki</option>
                            <option>Perempuan</option>
                         </select>
@@ -742,13 +777,14 @@ export default function Page() {
                    </div>
                    <div>
                      <label className="block text-sm font-bold text-gray-700 mb-2">Nama Orang Tua</label>
-                     <input type="text" name="namaOrtu" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Bpk. Budi"/>
+                     <input type="text" name="namaOrtu" required className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Bpk. Budi"/>
                    </div>
                    <div>
                      <label className="block text-sm font-bold text-gray-700 mb-2">Alamat Domisili</label>
-                     <textarea name="alamat" rows="3" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium resize-none" placeholder="Alamat lengkap..."></textarea>
+                     <textarea name="alamat" rows="3" required className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium resize-none" placeholder="Alamat lengkap..."></textarea>
                    </div>
-                   <button type="submit" className="w-full bg-gray-900 hover:bg-black text-white font-bold text-lg py-5 rounded-2xl shadow-xl shadow-gray-900/20 transition-all duration-300 hover:-translate-y-1 flex justify-center items-center gap-3">
+                   {/* BUTTON SUBMIT LEBIH PRESISI */}
+                   <button type="submit" className="w-full bg-gray-900 hover:bg-black text-white font-bold text-base md:text-lg py-4 rounded-2xl shadow-xl shadow-gray-900/20 transition-all duration-300 hover:-translate-y-1 flex justify-center items-center gap-3">
                       Kirim Pendaftaran
                    </button>
                 </form>
@@ -782,7 +818,7 @@ export default function Page() {
                 <ul className="space-y-4 text-gray-500 font-medium text-sm">
                    <li><a href="#beranda" className="hover:text-blue-600 transition-colors">Beranda</a></li>
                    <li><a href="#profil" className="hover:text-blue-600 transition-colors">Tentang Kami</a></li>
-                   <li><button onClick={() => setActiveView('listNews')} className="hover:text-blue-600 transition-colors">Galeri Foto</button></li>
+                   <li><button onClick={() => { pushHistory(); setActiveView('listNews'); }} className="hover:text-blue-600 transition-colors">Galeri Foto</button></li>
                    <li><a href="#daftar" className="hover:text-blue-600 transition-colors">Info PPDB</a></li>
                 </ul>
              </div>
