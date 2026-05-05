@@ -1,3 +1,6 @@
+export const config = {
+  api: { bodyParser: false },
+};
 const TelegramBot = require('node-telegram-bot-api');
 const { MongoClient, ObjectId } = require('mongodb');
 const { removeBackground, uploadToCloudinary } = require('./utils');
