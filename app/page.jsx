@@ -27,8 +27,6 @@ const defaultVideos = [{
 }];
 
 const defaultHeroImages = [
-  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", 
-  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
 ];
 
 // Fallback default profil agar ada 2 gambar untuk bisa bergantian
@@ -303,7 +301,7 @@ export default function Page() {
           <div className="h-px bg-gray-100 my-2"></div>
 
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-gray-50 border border-gray-200 text-gray-700 text-center py-4 rounded-2xl font-bold hover:bg-gray-100 transition-all flex items-center justify-center gap-2 mt-2">
-            <FileText size={20} className="text-blue-600" /> Form PPDB (Google)
+            <FileText size={20} className="text-blue-600" /> Form Pendaftaran
           </a>
 
           <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all mt-2">
@@ -780,8 +778,8 @@ export default function Page() {
              <div className="md:w-5/12 bg-blue-600 p-10 md:p-16 text-white flex flex-col justify-between relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                 <div className="relative z-10">
-                   <h3 className="font-display font-bold text-4xl md:text-5xl mb-6 tracking-tight">Daftar<br/>Sekarang</h3>
-                   <p className="text-blue-100 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan dirangkai rapi menjadi pesan WhatsApp.</p>
+                   <h3 className="font-display font-bold text-4xl md:text-5xl mb-6 tracking-tight">Daftar Sekarang</h3>
+                   <p className="text-blue-100 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan masuk ke nomor kepala sekolah.</p>
                    <div className="space-y-6 text-sm md:text-base">
                       <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
                          <Phone size={24} className="text-blue-200 shrink-0" />
