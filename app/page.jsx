@@ -8,38 +8,15 @@ import {
   ChevronRight, Phone, MapPin, Mail, PlayCircle, Hand, Home, Image as ImageIcon, Building, FileText
 } from 'lucide-react';
 
-// === DATA BAWAAN / DEFAULT ===
-const defaultNews = [{
-  title: "Profil sekolah",
-  date: "20 januari 2026",
-  content: `Tetap stay di web kami bunda. segala informasi nanti kami update bisa lihat foto. Untuk melihat aktivitas bisa ke channel video youtube kami bunda. <br><br><span class="text-xs text-gray-500 italic">jika video tidak bisa dibuka di web ada tulisan kecil dibawah buka app youtube.</span>`,
-  images: ["https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"],
-  gallery: [
-    { group: 'foto_1', type: 'image', src: "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop", caption: "Dokumentasi Kelas" },
-    { group: 'video_1', type: 'video', src: "https://youtu.be/s3m7RsCY_TM", caption: "Video Profil" }
-  ]
-}];
+const defaultNews = [];
+const defaultVideos = [];
 
-const defaultVideos = [{
-  url: "https://youtu.be/s3m7RsCY_TM",
-  judul: "Profil sekolah",
-  deskripsi: "Profil TK Baiturrohman."
-}];
-
-const defaultHeroImages = [
-  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", 
-  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
-];
-
-const defaultProfileImages = [
-  "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop"
-];
-
+// FIX BUG: Algoritma cerdas untuk mendeteksi semua jenis link YouTube (Shorts, youtu.be, embed, watch)
 const getYouTubeId = (url) => {
   if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-  return m ? m[1] : null;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
 };
 
 export default function Page() {
@@ -47,13 +24,21 @@ export default function Page() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('home'); 
   
+  // Data State
   const [newsData, setNewsData] = useState(defaultNews);
   const [videoData, setVideoData] = useState(defaultVideos);
   const [toolsData, setToolsData] = useState([]);
   
-  const [heroImages, setHeroImages] = useState(defaultHeroImages);
-  const [profileImages, setProfileImages] = useState(defaultProfileImages);
+  // Tampilan (Visuals) State - Default Fallback Images
+  const [heroImages, setHeroImages] = useState([
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
+  ]);
+  const [profileImages, setProfileImages] = useState([
+    "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"
+  ]);
   
+  // Modals
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
   const [currentDetail, setCurrentDetail] = useState(null);
@@ -63,15 +48,13 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [heroIndex, setHeroIndex] = useState(0);
-  const [profileIndex, setProfileIndex] = useState(0);
   const [newsSlideIndex, setNewsSlideIndex] = useState(0);
+  const [profileIndex, setProfileIndex] = useState(0);
+  
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
 
-  // LOGIKA SWIPE BACK HISTORY HP
-  const pushHistory = () => {
-    window.history.pushState({ open: true }, '');
-  };
+  const pushHistory = () => window.history.pushState({ open: true }, '');
 
   const openAppIframe = (url, title) => {
     pushHistory();
@@ -81,18 +64,12 @@ export default function Page() {
     setIsSidebarOpen(false);
   };
 
-  // SMART VIDEO EMBED (Otomatis deteksi YouTube atau URL lain)
   const playVideo = (url, title) => {
     const ytId = getYouTubeId(url);
     if (ytId) {
       openAppIframe(`https://www.youtube.com/embed/${ytId}?autoplay=1`, title);
     } else {
-      // Fallback jika berupa MP4 atau link lain, langsung putar di Iframe
-      if (url.match(/\.(mp4|webm|ogg)$/i)) {
-        openAppIframe(url, title);
-      } else {
-        window.open(url, '_blank');
-      }
+      window.open(url, '_blank');
     }
   };
 
@@ -108,18 +85,15 @@ export default function Page() {
         if (data.videos && data.videos.length > 0) setVideoData(data.videos);
         if (data.tools) setToolsData(data.tools.filter(t => t.name !== "HIDDEN_NEWS_HTML"));
         
+        // Memuat gambar hero dan profil dari Database MongoDB
         if (data.config) {
-          if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
-          if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
+            if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
+            if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
         }
       } catch (e) {
-        if (!isMounted) return;
-        setNewsData(defaultNews);
-        setVideoData(defaultVideos);
+        console.error("Gagal memuat data", e);
       } finally {
-        if (isMounted) {
-          setTimeout(() => setIsLoadingGlobal(false), 800);
-        }
+        if (isMounted) setTimeout(() => setIsLoadingGlobal(false), 800);
       }
     };
     loadContent();
@@ -160,7 +134,6 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
-  // EVENT LISTENER POPSTATE (SWIPE BACK HP)
   useEffect(() => {
     const handlePopState = () => {
       if (zoomImage) setZoomImage(null);
@@ -180,11 +153,11 @@ export default function Page() {
       const targetData = newsData[index] || currentDetail;
       if (!targetData) return;
       pushHistory();
-      setMediaViewerData({ ...targetData, activeFilter: filter });
+      // Filter kategori telah dihapus dari argumen agar viewer terbuka untuk semua file
+      setMediaViewerData({ ...targetData });
       setActiveView('mediaViewer');
     };
     window.openIframe = openAppIframe;
-    
     return () => {
       delete window.openMediaViewer;
       delete window.openIframe;
@@ -218,34 +191,30 @@ export default function Page() {
   };
 
   // === UI RENDERERS ===
+
   const renderLoader = () => (
-    <div className={`fixed inset-0 bg-white/95 backdrop-blur-3xl z-[50000] flex justify-center items-center transition-opacity duration-700 ease-out ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
+    <div className={`fixed inset-0 bg-white/95 backdrop-blur-xl z-[50000] flex justify-center items-center transition-opacity duration-500 ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain" />
     </div>
   );
 
   const renderNavbar = () => (
-    <nav className="fixed w-full z-50 top-0 py-4 px-4 md:px-8 transition-all duration-500">
-      <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/70 backdrop-blur-2xl rounded-3xl md:rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] px-5 py-3 md:px-6 border border-white/60">
-        <a href="#beranda" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+    <nav className="fixed w-full z-50 top-0 py-4 px-4 md:px-8 transition-all duration-300">
+      <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl md:rounded-full shadow-lg px-4 py-3 md:px-6 border border-white/50">
+        <a href="#beranda" className="flex items-center gap-3">
           <div style={logoTightGlowStyle} className="flex items-center justify-center">
-             <Image src="/logotk.webp" alt="Logo" width={56} height={56} className="h-10 md:h-12 w-auto object-contain" />
+             <Image src="/logotk.webp" alt="Logo" width={56} height={56} className="h-10 md:h-14 w-auto object-contain" />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="font-bold text-lg md:text-xl text-blue-600 tracking-tight">TK BAITURROHMAN</span>
-            <span className="text-[10px] md:text-xs font-semibold text-gray-500 tracking-wide">Membangun Generasi Baiti</span>
+          <div className="flex flex-col leading-none">
+            <span className="font-bold text-base md:text-xl text-blue-600 tracking-wide drop-shadow-sm">TK BAITURROHMAN</span>
+            <span className="text-[10px] md:text-xs font-bold text-gray-500 tracking-wide mt-1">Membangun Generasi Baiti</span>
           </div>
         </a>
-        <div className="flex items-center gap-3">
-          <a href="#daftar" className="hidden md:block bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-0.5 text-sm">
+        <div className="flex items-center gap-2">
+          <a href="#daftar" className="hidden md:block bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-full font-bold hover:shadow-xl transition transform hover:-translate-y-1 text-sm mr-4 border border-white/20">
             Daftar Sekarang
           </a>
-          <button 
-            onClick={() => { pushHistory(); setIsSidebarOpen(true); }} 
-            className="w-11 h-11 md:w-12 md:h-12 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full flex items-center justify-center transition-all duration-300"
-          >
-            <Menu size={22} />
-          </button>
+          <button onClick={() => { pushHistory(); setIsSidebarOpen(true); }} className="w-10 h-10 md:w-12 md:h-12 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"><Menu size={24} /></button>
         </div>
       </div>
     </nav>
@@ -253,53 +222,31 @@ export default function Page() {
 
   const renderSidebar = () => (
     <>
-      <div 
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998] transition-opacity duration-500 ease-out ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={() => setIsSidebarOpen(false)}
-      />
-      <div className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-3xl shadow-2xl z-[9999] transform transition-transform duration-500 ease-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col overflow-y-auto border-l border-white/60 rounded-l-[2rem]`}>
-        <div className="p-8 pb-4 flex justify-between items-center shrink-0">
-          <h3 className="font-bold text-2xl text-gray-800 tracking-tight">Menu Utama</h3>
-          <button onClick={() => setIsSidebarOpen(false)} className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+      <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}/>
+      <div className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-2xl shadow-2xl z-[9999] transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col overflow-y-auto border-l border-white/50`}>
+        <div className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white flex justify-between items-center rounded-bl-3xl shrink-0 shadow-md">
+          <h3 className="font-bold text-xl">Menu Utama</h3>
+          <button onClick={() => setIsSidebarOpen(false)} className="hover:rotate-90 transition-transform"><X size={24} /></button>
         </div>
         
-        <div className="flex flex-col p-6 gap-3 overflow-y-auto">
-          <a href="#beranda" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300">
-            <div className="w-8 flex justify-center text-blue-500"><Home size={22} /></div> Beranda
-          </a>
-          <a href="#profil" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300">
-            <div className="w-8 flex justify-center text-blue-500"><Building size={22} /></div> Profil Sekolah
-          </a>
-          <a href="#galeri" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300">
-            <div className="w-8 flex justify-center text-blue-500"><ImageIcon size={22} /></div> Galeri & Berita
-          </a>
-          <a href="#video" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300">
-            <div className="w-8 flex justify-center text-blue-500"><Youtube size={22} /></div> Video Kegiatan
-          </a>
+        <div className="flex flex-col p-6 gap-5 overflow-y-auto">
+          <a href="#beranda" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors"><div className="w-8 flex justify-center text-blue-600"><Home size={20} /></div> Beranda</a>
+          <a href="#profil" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors"><div className="w-8 flex justify-center text-blue-600"><Building size={20} /></div> Profil</a>
+          <a href="#galeri" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors"><div className="w-8 flex justify-center text-blue-600"><ImageIcon size={20} /></div> Galeri</a>
+          <a href="#video" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors"><div className="w-8 flex justify-center text-blue-600"><Youtube size={20} /></div> Video</a>
           
-          <div className="h-px bg-gray-100 my-2"></div>
+          <hr className="border-gray-200" />
           
-          <button onClick={() => { pushHistory(); setActiveView('listNews'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
-            <div className="w-8 flex justify-center text-blue-500"><Newspaper size={22} /></div> Daftar Berita
-          </button>
-          <button onClick={() => { pushHistory(); setActiveView('listVideo'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
-            <div className="w-8 flex justify-center text-blue-500"><Youtube size={22} /></div> Daftar Video
-          </button>
-          <button onClick={() => { pushHistory(); setActiveView('tools'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 w-full">
-            <div className="w-8 flex justify-center text-blue-500"><Rocket size={22} /></div> Tools & Aplikasi
-          </button>
-          
-          <div className="h-px bg-gray-100 my-2"></div>
+          <button onClick={() => { pushHistory(); setActiveView('listNews'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors"><div className="w-8 flex justify-center text-blue-600"><Newspaper size={20} /></div> Daftar Berita</button>
+          <button onClick={() => { pushHistory(); setActiveView('listVideo'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors"><div className="w-8 flex justify-center text-blue-600"><Youtube size={20} /></div> Daftar Video</button>
+          <button onClick={() => { pushHistory(); setActiveView('tools'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors"><div className="w-8 flex justify-center text-blue-600"><Rocket size={20} /></div> Tools & Aplikasi</button>
+          <button onClick={() => { pushHistory(); setInfoModalOpen(true); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors"><div className="w-8 flex justify-center text-blue-600"><Info size={20} /></div> Info Terbaru</button>
 
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-gray-50 border border-gray-200 text-gray-700 text-center py-4 rounded-2xl font-bold hover:bg-gray-100 transition-all flex items-center justify-center gap-2 mt-2">
-            <FileText size={20} className="text-blue-600" /> Form PPDB (Google)
-          </a>
+          <hr className="border-gray-200" />
 
-          <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all mt-2">
-            Daftar Sekarang
-          </a>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-white border-2 border-emerald-500 text-emerald-600 text-center py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 shadow-sm"><FileText size={20} /> Form Google (PPDB)</a>
+          <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-orange-600 hover:-translate-y-1 transition-all border border-white/20">Daftar Sekarang (Web)</a>
+          <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 border border-white/20"><MessageCircle size={20} /> Hubungi WhatsApp</button>
         </div>
       </div>
     </>
@@ -308,66 +255,33 @@ export default function Page() {
   const renderListModal = () => {
     const isNews = activeView === 'listNews';
     const data = isNews ? newsData : videoData;
-    const filteredData = data.filter(item => 
-      (item.title || item.judul || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredData = data.filter(item => (item.title || item.judul || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-      <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-transform duration-500 ease-out flex flex-col ${activeView.startsWith('list') ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="sticky top-0 bg-white/80 backdrop-blur-xl p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
-          <button onClick={() => { setActiveView('home'); setSearchQuery(''); }} className="w-12 h-12 bg-white hover:bg-gray-50 rounded-full shadow-sm border border-gray-100 flex justify-center items-center transition-all duration-300">
-            <ArrowLeft size={22} className="text-gray-700" />
-          </button>
-          <input 
-            type="text" 
-            placeholder={`Cari ${isNews ? 'berita' : 'video'}...`} 
-            className="flex-1 bg-white p-4 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm border border-gray-100 text-gray-700 font-medium transition-all"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 flex flex-col ${activeView.startsWith('list') ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
+          <button onClick={() => { setActiveView('home'); setSearchQuery(''); }} className="p-2 bg-gray-100/50 hover:bg-gray-200/50 rounded-full backdrop-blur-sm"><ArrowLeft size={24} className="text-gray-700" /></button>
+          <input type="text" placeholder={`Cari ${isNews ? 'berita' : 'video'}...`} className="flex-1 bg-gray-100/50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-amber-500/50 backdrop-blur-sm border border-gray-200/50" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-10">
           {filteredData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center mt-20 opacity-50">
-               <ImageIcon size={64} className="mb-4 text-gray-400" />
-               <p className="text-center text-gray-500 font-bold text-lg">Tidak ada data ditemukan.</p>
-            </div>
+            <p className="text-center text-gray-500 mt-10 font-medium bg-white/50 p-6 rounded-2xl backdrop-blur-md">Tidak ada data ditemukan.</p>
           ) : (
             filteredData.map((item, idx) => {
               const title = item.title || item.judul;
-              const date = item.date || 'Video Kegiatan';
+              const date = item.date || 'Video';
               let thumb = "https://files.catbox.moe/3tf995.png";
-              
               if (isNews && item.images && item.images.length > 0) thumb = item.images[0];
               if (!isNews && item.url) {
                 const vid = getYouTubeId(item.url);
                 if (vid) thumb = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
               }
-              if (typeof thumb === 'string' && thumb.includes('cloudinary')) {
-                  thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/');
-              }
+              if (thumb.includes('cloudinary')) thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/');
 
               return (
-                <div 
-                  key={idx} 
-                  onClick={() => {
-                    if (isNews) {
-                      if (item.type === 'html') { openAppIframe(item.fileUrl, title); } 
-                      else { pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); }
-                    } else { 
-                      playVideo(item.url, title); 
-                    }
-                  }}
-                  className="flex gap-5 bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
-                >
-                  <div className="relative w-28 h-28 flex-shrink-0">
-                    <Image src={thumb} fill sizes="112px" className="object-cover rounded-2xl bg-gray-100" alt="Thumbnail" />
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <span className="text-[11px] uppercase tracking-wider text-orange-500 font-bold mb-1">{date}</span>
-                    <h4 className="font-bold text-gray-800 line-clamp-2 text-base md:text-lg leading-snug">{title}</h4>
-                  </div>
+                <div key={idx} onClick={() => { if (isNews) { pushHistory(); if (item.type === 'html') { openAppIframe(item.fileUrl, title); } else { setCurrentDetail(item); setActiveView('detailNews'); } } else { playVideo(item.url, title); } }} className="flex gap-4 bg-white/80 p-3 rounded-2xl shadow-sm cursor-pointer hover:shadow-md transition-all hover:scale-[0.98] border border-white/50 backdrop-blur-sm">
+                  <div className="relative w-24 h-24 flex-shrink-0"><Image src={thumb} fill sizes="96px" className="object-cover rounded-xl bg-gray-200" alt="Thumbnail" /></div>
+                  <div className="flex flex-col justify-center"><h4 className="font-bold text-gray-800 line-clamp-2 text-sm md:text-base">{title}</h4><span className="text-xs text-amber-600 font-bold mt-2 block">{date}</span></div>
                 </div>
               );
             })
@@ -378,28 +292,20 @@ export default function Page() {
   };
 
   const renderToolsModal = () => (
-    <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-transform duration-500 ease-out flex flex-col ${activeView === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}>
-      <div className="sticky top-0 bg-white/80 backdrop-blur-xl p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
-        <button onClick={() => setActiveView('home')} className="w-12 h-12 bg-white hover:bg-gray-50 rounded-full shadow-sm border border-gray-100 flex justify-center items-center transition-all duration-300">
-          <ArrowLeft size={22} className="text-gray-700" />
-        </button>
-        <h3 className="font-bold text-xl text-gray-800 tracking-tight">Tools & Aplikasi</h3>
+    <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 flex flex-col ${activeView === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div className="sticky top-0 bg-white/80 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
+        <button onClick={() => setActiveView('home')} className="p-2 bg-gray-100/50 hover:bg-gray-200/50 rounded-full backdrop-blur-sm"><ArrowLeft size={24} className="text-gray-700" /></button>
+        <h3 className="font-bold text-lg text-gray-800">Tools & Aplikasi</h3>
       </div>
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto">
+      <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto">
         {toolsData.length === 0 ? (
-           <p className="col-span-2 md:col-span-4 text-center text-gray-500 mt-10 font-bold">Belum ada tools tersedia.</p>
+          <p className="col-span-2 md:col-span-4 text-center text-gray-500 mt-10 bg-white/50 p-6 rounded-2xl backdrop-blur-md">Belum ada tools.</p>
         ) : (
           toolsData.map((t, idx) => {
             const link = (t.type === 'html_code') ? `/api/render?id=${t._id}` : t.url;
             return (
-              <div 
-                key={idx} 
-                onClick={() => openAppIframe(link, t.name)} 
-                className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="w-16 h-16 bg-gradient-to-tr from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600 shadow-inner">
-                  <Rocket size={28} />
-                </div>
+              <div key={idx} onClick={() => { pushHistory(); openAppIframe(link, t.name); }} className="bg-white/80 p-6 rounded-2xl shadow-sm border border-white/50 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all active:scale-95 backdrop-blur-sm">
+                <div className="w-14 h-14 bg-blue-50/80 rounded-full flex items-center justify-center mb-3 text-blue-600 border border-blue-100"><Rocket size={24} /></div>
                 <span className="font-bold text-center text-sm text-gray-800 line-clamp-2">{t.name}</span>
               </div>
             );
@@ -409,21 +315,14 @@ export default function Page() {
     </div>
   );
 
-  // FIX: Iframe Full Screen untuk Web/App HTML agar bebas tanpa Frame pembatas
   const renderIframeModal = () => (
-    <div className={`fixed inset-0 z-[11000] bg-black transform transition-transform duration-500 ease-out flex flex-col ${activeView === 'iframe' ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={`fixed inset-0 z-[11000] bg-black transform transition-transform duration-300 flex flex-col ${activeView === 'iframe' ? 'translate-y-0' : 'translate-y-full'}`}>
       <button onClick={() => setActiveView('home')} className="absolute top-4 left-4 w-12 h-12 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full flex justify-center items-center z-[11001] shadow-lg border border-white/20 transition-all">
         <ArrowLeft size={22} className="text-white" />
       </button>
       <div className="flex-1 w-full relative">
-        {isLoadingIframe && (
-          <div className="absolute inset-0 flex justify-center items-center z-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white"></div>
-          </div>
-        )}
-        {activeView === 'iframe' && (
-          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-white" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>
-        )}
+        {isLoadingIframe && <div className="absolute inset-0 flex justify-center items-center z-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>}
+        {activeView === 'iframe' && <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-black" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>}
       </div>
     </div>
   );
@@ -431,58 +330,41 @@ export default function Page() {
   const renderNewsFullPage = () => {
     if (!currentDetail) return null;
     return (
-      <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="sticky top-0 bg-white/80 backdrop-blur-xl shadow-sm z-[201] px-4 py-4 flex items-center gap-4 border-b border-gray-200/50">
-          <button onClick={() => setActiveView('listNews')} className="w-12 h-12 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-700 transition-colors shadow-sm">
-            <ArrowLeft size={22} />
-          </button>
-          <h3 className="font-bold text-xl text-gray-800 truncate tracking-tight">Detail Kegiatan</h3>
+      <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-[201] px-4 py-3 flex items-center gap-4 border-b border-gray-200/50">
+          <button onClick={() => setActiveView('listNews')} className="w-10 h-10 rounded-full bg-gray-100/50 hover:bg-gray-200/50 flex items-center justify-center text-gray-700 transition-colors backdrop-blur-sm"><ArrowLeft size={20} /></button>
+          <h3 className="font-bold text-lg text-gray-800 truncate">Detail Kegiatan</h3>
         </div>
         
-        <div className="max-w-4xl mx-auto bg-white min-h-screen pb-24 shadow-2xl">
-          <div className="relative w-full h-[50vh] md:h-[65vh] bg-gray-900 overflow-hidden cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
+        <div className="max-w-5xl mx-auto bg-white/80 min-h-screen pb-24 border-x border-white/50 backdrop-blur-md">
+          <div className="relative w-full h-[50vh] md:h-[70vh] bg-black overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
             {currentDetail.images?.map((src, i) => (
-              <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                <Image src={src} fill sizes="100vw" className="object-cover blur-2xl opacity-60 scale-125 z-0" alt="blur-bg" />
-                <Image src={src} fill sizes="100vw" className="object-contain z-10 drop-shadow-2xl" alt="slide" />
+              <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 bg-black ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                <Image src={src} fill sizes="100vw" className="object-cover blur-md opacity-60 scale-110 z-0" alt="blur-bg" />
+                <Image src={src} fill sizes="100vw" className="object-contain z-10" alt="slide" />
               </div>
             ))}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none z-20" />
-            <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-30 pointer-events-none">
-              <span className="bg-orange-500/90 backdrop-blur-md text-white px-4 py-1.5 rounded-xl text-xs font-bold mb-4 inline-block tracking-widest uppercase shadow-lg">
-                {currentDetail.date}
-              </span>
-              <h2 className="font-bold text-3xl md:text-5xl leading-tight drop-shadow-lg mb-2 tracking-tight">{currentDetail.title}</h2>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-20" />
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white z-30 pointer-events-none">
+              <span className="bg-orange-500/90 backdrop-blur text-white px-4 py-1.5 rounded-full text-xs font-bold mb-4 inline-block tracking-widest uppercase shadow-lg border border-white/20">{currentDetail.date}</span>
+              <h2 className="font-bold text-3xl md:text-5xl leading-tight drop-shadow-lg mb-2">{currentDetail.title}</h2>
             </div>
           </div>
           
-          <div className="px-6 md:px-12 relative z-10 pt-10">
-            <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8">
-              <div style={logoTightGlowStyle} className="bg-gray-50 p-2 rounded-2xl border border-gray-200">
-                 <Image src="/logotk.webp" width={48} height={48} className="w-12 h-12 object-contain" alt="Admin" />
-              </div>
-              <div><p className="font-bold text-gray-900 text-lg">Admin TK</p><p className="text-sm text-gray-500 font-medium">Informasi & Kegiatan Sekolah</p></div>
+          <div className="px-6 md:px-10 max-w-3xl mx-auto relative z-10 pt-8">
+            <div className="flex items-center gap-4 border-b border-gray-200/50 pb-6 mb-6">
+              <div style={logoTightGlowStyle}><Image src="/logotk.webp" width={56} height={56} className="w-14 h-14 object-contain" alt="Admin" /></div>
+              <div><p className="font-bold text-gray-800 text-lg">Admin TK</p><p className="text-sm text-gray-500">Kegiatan Sekolah</p></div>
             </div>
-            
             {currentDetail.gallery && currentDetail.gallery.length > 0 && (
-               <div className="mb-8 flex gap-3 overflow-x-auto hide-scroll">
-                  <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
-                    <ImageIcon size={18}/> Buka Semua Galeri Media ({currentDetail.gallery.length} Aset)
-                  </button>
+               <div className="mb-6 flex gap-2 overflow-x-auto hide-scroll">
+                  <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-amber-50/80 hover:bg-amber-100/80 backdrop-blur-sm text-orange-600 font-bold px-4 py-2 rounded-xl border border-amber-200/50 flex gap-2 items-center text-sm whitespace-nowrap transition-colors"><ImageIcon size={16}/> Lihat Semua Galeri Media</button>
                </div>
             )}
-
-            {/* PERINGATAN: Pastikan DB tersanitasi untuk mencegah XSS. Karena menggunakan dangerouslySetInnerHTML */}
-            <div className="py-2 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
-            
-            <div className="mt-16 bg-gray-50 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 border border-gray-100">
-              <div className="flex-1 text-center md:text-left">
-                <h4 className="font-bold text-2xl text-gray-900 mb-2">Ingin Mendaftar?</h4>
-                <p className="text-gray-600 font-medium">Hubungi kami via WhatsApp untuk informasi lebih lanjut.</p>
-              </div>
-              <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white py-4 px-10 rounded-2xl font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:-translate-y-1 flex gap-3 transition-all duration-300">
-                <MessageCircle size={24} /> Chat Admin
-              </button>
+            <div className="py-2 prose prose-lg prose-amber max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
+            <div className="mt-12 bg-white/60 backdrop-blur-xl rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 border border-white/60 shadow-xl">
+              <div className="flex-1 text-center md:text-left"><h4 className="font-bold text-2xl text-gray-800 mb-2">Info Pendaftaran?</h4><p className="text-gray-600">Hubungi kami via WhatsApp.</p></div>
+              <button onClick={() => openWhatsApp()} className="bg-emerald-500 text-white py-4 px-10 rounded-full font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 flex gap-3 transition-all border border-white/20"><MessageCircle size={24} /> Chat Admin</button>
             </div>
           </div>
         </div>
@@ -493,44 +375,28 @@ export default function Page() {
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
     
-    // Extract unique groups for the folder tabs
-    const groups = ['all', ...Array.from(new Set(mediaViewerData.gallery?.map(item => item.group).filter(Boolean)))];
-
-    const filteredGallery = mediaViewerData.gallery?.filter(item => {
-      if (mediaViewerData.activeFilter === 'all' || !mediaViewerData.activeFilter) return true;
-      return item.group === mediaViewerData.activeFilter;
-    });
+    // Semua galeri tanpa filter agar tidak sumpek
+    const gallery = mediaViewerData.gallery || [];
 
     return (
-      <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
-        <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-[301] px-4 py-4 flex flex-col md:flex-row md:items-center justify-between border-b border-white/10 gap-4">
-          <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white font-medium hover:text-gray-300 transition-colors bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md w-max">
-            <ArrowLeft size={20} /> Kembali
+      <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-xl transform transition-transform duration-300 overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        
+        {/* HEADER SUPER BERSIH: HANYA ICON KEMBALI */}
+        <div className="sticky top-0 left-0 right-0 z-[301] p-4 flex items-start bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+          <button onClick={() => setActiveView('detailNews')} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 transition-colors shadow-lg pointer-events-auto">
+            <ArrowLeft size={24} />
           </button>
-          
-          {/* TABS FOLDER KATEGORI */}
-          <div className="flex gap-2 overflow-x-auto hide-scroll pb-1 md:pb-0">
-            {groups.length > 1 && groups.map((g, idx) => (
-              <button 
-                key={idx} 
-                onClick={() => setMediaViewerData({...mediaViewerData, activeFilter: g})}
-                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${mediaViewerData.activeFilter === g || (!mediaViewerData.activeFilter && g === 'all') ? 'bg-orange-500 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
-              >
-                {g === 'all' ? 'Semua Kategori' : g}
-              </button>
-            ))}
-          </div>
         </div>
         
-        <div className="flex-1 w-full max-w-5xl mx-auto p-4 flex flex-col gap-10 pb-20 items-center mt-6">
-          {!filteredGallery || filteredGallery.length === 0 ? (
-            <p className="text-white">Tidak ada media tersedia untuk kategori ini.</p>
+        <div className="flex-1 w-full max-w-4xl mx-auto p-4 flex flex-col gap-10 pb-20 items-center justify-center -mt-8">
+          {gallery.length === 0 ? (
+            <p className="text-white/50 font-medium">Tidak ada media.</p>
           ) : (
-            filteredGallery.map((item, i) => {
+            gallery.map((item, i) => {
               if (item.type === 'image') {
                 return (
                   <div key={i} className="w-full flex flex-col items-center relative group">
-                    <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl mb-3 cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]" onClick={() => { pushHistory(); setZoomImage(item.src); }} alt="Galeri" />
+                    <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl mb-2 cursor-zoom-in" onClick={() => { pushHistory(); setZoomImage(item.src); }} alt="Galeri" />
                     {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                   </div>
                 );
@@ -539,23 +405,24 @@ export default function Page() {
                 if (vid) {
                   return (
                     <div key={i} className="w-full flex flex-col items-center">
-                      <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-3 bg-black border border-white/10">
+                      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl mb-2 bg-black border border-white/10">
                         <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} frameBorder="0" allowFullScreen></iframe>
                       </div>
-                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
-                      <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer" className="text-xs bg-white/10 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/20 transition-colors flex items-center gap-2 backdrop-blur-md">
-                        <Youtube size={16} className="text-red-500" /> Buka di App YouTube
-                      </a>
+                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-2 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                     </div>
                   );
                 } else {
-                  // FIX BUG: NATIVE MP4 SUPPORT JIKA BUKAN YOUTUBE
                   return (
                     <div key={i} className="w-full flex flex-col items-center">
-                      <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-3 bg-black border border-white/10">
-                        <video controls className="w-full h-full" src={item.src}></video>
+                      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl mb-2 bg-black border border-white/10 flex justify-center items-center relative">
+                        <video controls preload="metadata" className="w-full h-full object-contain" src={item.src}>
+                          <source src={item.src} />
+                        </video>
                       </div>
-                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
+                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-2 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
+                      <a href={item.src} target="_blank" rel="noreferrer" className="text-xs bg-white/10 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/20 transition-colors flex items-center gap-2 backdrop-blur-md">
+                        Buka Tautan Eksternal
+                      </a>
                     </div>
                   );
                 }
@@ -571,7 +438,10 @@ export default function Page() {
   // === RENDER UTAMA ===
 
   return (
-    <div className="font-sans text-gray-800 min-h-screen relative overflow-x-hidden bg-[#f4f4f6]">
+    <div 
+      className="font-sans text-gray-800 min-h-screen relative overflow-x-hidden bg-[#fafafb] bg-fixed"
+      style={{ backgroundImage: `radial-gradient(at 0% 0%, hsla(28, 100%, 74%, 0.5) 0px, transparent 65%), radial-gradient(at 100% 0%, hsla(38, 100%, 74%, 0.5) 0px, transparent 65%), radial-gradient(at 100% 100%, hsla(28, 100%, 74%, 0.5) 0px, transparent 65%), radial-gradient(at 0% 100%, hsla(200, 100%, 94%, 0.6) 0px, transparent 65%)` }}
+    >
       <style dangerouslySetInnerHTML={{__html: `
         html { scroll-behavior: smooth; }
         .hide-scroll::-webkit-scrollbar { display: none; }
@@ -580,6 +450,8 @@ export default function Page() {
         .animate-float { animation: float 3s ease-in-out infinite; }
         @keyframes kenburns { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.15) translate(-2%, -2%); } }
         .animate-kenburns { animation: kenburns 20s ease-out infinite alternate; }
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .8; transform: scale(1.05); } }
+        .animate-pulse-slow { animation: pulse-slow 3s infinite; }
       `}} />
 
       {renderLoader()}
@@ -594,18 +466,14 @@ export default function Page() {
       {/* Info Modal */}
       {infoModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-md transition-opacity" onClick={() => setInfoModalOpen(false)}></div>
-          <div className="relative bg-white/95 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 transform transition-all border border-white overflow-hidden animate-in fade-in zoom-in duration-300 ease-out">
-            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-blue-500 to-blue-600 rounded-b-[60%] -translate-y-16"></div>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setInfoModalOpen(false)}></div>
+          <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 transform transition-all border border-white/50 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-amber-400 to-orange-500 rounded-b-[50%] -translate-y-12"></div>
             <div className="relative z-10 text-center pt-6">
-              <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 text-blue-500 border border-gray-100 rotate-12">
-                <Info size={36} className="-rotate-12" />
-              </div>
-              <h3 className="font-bold text-2xl text-gray-900 mb-3 tracking-tight">Info Terbaru</h3>
-              <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 mb-8 text-left text-sm text-gray-600 font-medium">
-                Selamat datang di sistem baru TK Baiturrohman. Informasi PPDB dan formulir pendaftaran kini bisa diakses dari menu!
-              </div>
-              <button onClick={() => setInfoModalOpen(false)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg shadow-blue-600/30 transition-all w-full">Tutup</button>
+              <div className="w-20 h-20 bg-white rounded-full mx-auto shadow-xl flex items-center justify-center mb-4 text-amber-500 border-4 border-amber-100"><Info size={36} className="animate-pulse" /></div>
+              <h3 className="font-bold text-2xl text-gray-800 mb-2">Info Terbaru</h3>
+              <div className="bg-white/50 p-4 rounded-xl border border-white/60 mb-6 text-left text-sm text-gray-600 shadow-inner">Selamat datang di sistem baru TK Baiturrohman. Informasi PPDB dan formulir pendaftaran kini bisa diakses dari menu!</div>
+              <button onClick={() => setInfoModalOpen(false)} className="bg-amber-500 hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-colors border border-white/20 w-full">Tutup</button>
             </div>
           </div>
         </div>
@@ -613,130 +481,99 @@ export default function Page() {
 
       {/* Zoom Modal */}
       {zoomImage && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[12000] flex flex-col justify-center items-center animate-in fade-in duration-300">
-          <div className="fixed top-0 left-0 w-full p-6 flex justify-between z-[12001] bg-gradient-to-b from-black/80 to-transparent">
-             <span className="text-white/80 text-sm font-semibold px-4 py-2 rounded-full bg-white/10 backdrop-blur-md">Ketuk gambar untuk menutup</span>
-             <button onClick={() => setZoomImage(null)} className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors">
-                 <X size={24} />
-             </button>
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[12000] flex flex-col justify-center items-center animate-in fade-in duration-200">
+          <div className="fixed top-0 left-0 w-full p-4 flex justify-between z-[12001] bg-gradient-to-b from-black/80 to-transparent">
+             <span className="text-white/80 text-sm font-bold drop-shadow-md bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">Ketuk gambar untuk menutup</span>
+             <button onClick={() => setZoomImage(null)} className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 border border-white/20 transition-colors"><X size={24} /></button>
           </div>
-          <Image src={zoomImage} width={1920} height={1080} className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out drop-shadow-2xl" onClick={() => setZoomImage(null)} alt="Zoom" />
+          <Image src={zoomImage} width={1920} height={1080} className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out" onClick={() => setZoomImage(null)} alt="Zoom" />
         </div>
       )}
 
       {/* MAIN HOMEPAGE */}
       <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
         
-        {/* HERO SECTION */}
+        {/* HERO SECTION - ROUNDED CARD STYLE (CLEAN NO SVG) */}
         <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900 rounded-b-[3rem] shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/20 z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/10 z-10 pointer-events-none"></div>
           {heroImages.map((src, i) => (
-            <div key={i} className={`absolute inset-0 transition-opacity duration-[2000ms] ease-in-out ${i === heroIndex ? 'opacity-100 z-0' : 'opacity-0 -z-10'}`}>
+            <div key={i} className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${i === heroIndex ? 'opacity-100 z-0' : 'opacity-0 -z-10'}`}>
                <Image src={src} fill priority={i === 0} sizes="100vw" className="object-cover animate-kenburns" alt="Hero Background" />
             </div>
           ))}
           
           <div className="relative z-20 max-w-4xl px-6 flex flex-col items-center justify-center h-full pt-32 md:pt-44 pb-32">
-             <div className="animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out delay-200">
-                 <span className="inline-block py-2.5 px-6 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white font-bold text-xs md:text-sm mb-8 shadow-xl">
-                    ✨ Pendaftaran Siswa Baru Telah Dibuka
-                 </span>
-                 <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 drop-shadow-2xl leading-tight tracking-tight">
-                    Bermain, Belajar & <br/><span className="text-orange-400">Bertumbuh</span>
-                 </h1>
-                 <p className="text-base md:text-2xl text-white/90 mb-10 font-medium max-w-2xl mx-auto drop-shadow-md">
-                    TK Baiturrohman membentuk karakter anak yang cerdas, kreatif, berakhlak mulia, Bertaqwa, Dan Berguna.
-                 </p>
-                 <div className="flex justify-center w-full">
-                    <a href="#daftar" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-12 rounded-full text-lg shadow-lg shadow-orange-500/40 transition-all duration-300 hover:-translate-y-1 border border-white/10">
-                      Daftar Sekarang
-                    </a>
+             <div className="animate-in slide-in-from-bottom-10 fade-in duration-1000 delay-200">
+                 <span className="inline-block py-2 px-5 rounded-full bg-black/30 backdrop-blur-md border border-white/30 text-white font-bold text-xs md:text-sm mb-6 animate-pulse-slow shadow-lg">✨ Pendaftaran Siswa Baru Telah Dibuka</span>
+                 <h1 className="font-display text-4xl md:text-7xl font-bold text-white mb-6 drop-shadow-2xl leading-tight">Bermain, Belajar & <br/><span className="text-orange-400 drop-shadow-lg">Bertumbuh Bersama</span></h1>
+                 <p className="text-base md:text-2xl text-white/95 mb-10 font-medium max-w-2xl mx-auto drop-shadow-md">TK Baiturrohman membentuk karakter anak yang cerdas, kreatif, berakhlak mulia, Bertaqwa, Dan Berguna.</p>
+                 <div className="flex flex-col md:flex-row gap-4 justify-center w-full md:w-auto">
+                    <a href="#daftar" className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-10 rounded-full text-lg shadow-[0_10px_20px_rgba(249,115,22,0.4)] transition-transform hover:-translate-y-1 w-full md:w-auto border border-white/20">Daftar Sekarang</a>
                  </div>
              </div>
           </div>
         </header>
 
-        {/* FEATURES (Glassmorphism iOS) */}
-        <section className="relative -mt-12 z-30 px-4 md:px-6 overflow-hidden">
-          <div className="max-w-6xl mx-auto bg-white/60 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.05)] p-8 md:p-12 grid grid-cols-1 md:grid-cols-3 gap-8 border border-white">
-             <div className="text-center group p-6 rounded-3xl hover:bg-white/50 transition-all duration-300 cursor-default">
-               <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-blue-600 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm"><BookOpen size={32}/></div>
-               <h3 className="font-bold text-2xl mb-3 text-gray-900 tracking-tight">Kurikulum Merdeka</h3>
-               <p className="text-gray-600 font-medium">Pembelajaran berpusat pada minat anak.</p>
-             </div>
-             <div className="text-center group p-6 rounded-3xl hover:bg-white/50 transition-all duration-300 cursor-default">
-               <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-orange-500 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500 shadow-sm"><Heart size={32}/></div>
-               <h3 className="font-bold text-2xl mb-3 text-gray-900 tracking-tight">Pendidikan Islam</h3>
-               <p className="text-gray-600 font-medium">Penanaman nilai agama sejak dini.</p>
-             </div>
-             <div className="text-center group p-6 rounded-3xl hover:bg-white/50 transition-all duration-300 cursor-default">
-               <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-blue-600 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm"><Shapes size={32}/></div>
-               <h3 className="font-bold text-2xl mb-3 text-gray-900 tracking-tight">Fasilitas Lengkap</h3>
-               <p className="text-gray-600 font-medium">Area bermain aman & edukatif.</p>
-             </div>
+        {/* FEATURES */}
+        <section className="relative -mt-10 z-30 px-6 overflow-hidden">
+          <div className="max-w-6xl mx-auto bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-8 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-8 border border-white/50">
+             <div className="text-center group"><div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-white/60"><BookOpen size={32}/></div><h3 className="font-bold text-2xl mb-2 text-gray-800">Kurikulum Merdeka</h3><p className="text-gray-700 font-medium">Pembelajaran berpusat pada minat anak.</p></div>
+             <div className="text-center group"><div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-orange-500 transition-colors duration-300 text-orange-500 group-hover:text-white shadow-md border border-white/60"><Heart size={32}/></div><h3 className="font-bold text-2xl mb-2 text-gray-800">Pendidikan Islam</h3><p className="text-gray-700 font-medium">Penanaman nilai agama sejak dini.</p></div>
+             <div className="text-center group"><div className="w-20 h-20 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-white/60"><Shapes size={32}/></div><h3 className="font-bold text-2xl mb-2 text-gray-800">Fasilitas Lengkap</h3><p className="text-gray-700 font-medium">Area bermain aman & edukatif.</p></div>
           </div>
         </section>
 
         {/* PROFILE */}
         <section id="profil" className="py-24 px-6 relative">
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-             <div className="lg:w-1/2 relative h-[400px] md:h-[550px] w-full">
-               <div className="absolute -top-6 -left-6 w-40 h-40 bg-blue-200/50 backdrop-blur-3xl rounded-full animate-float blur-xl"></div>
-               <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-orange-200/50 backdrop-blur-3xl rounded-full animate-float blur-xl" style={{animationDelay: '1s'}}></div>
-               
-               {/* FIX: Rotasi Foto Profil sesuai urutan DOM original agar layout tetap sama persis */}
-               <div className="w-full h-full relative group perspective bg-gray-100 rounded-[3rem] overflow-hidden">
+             <div className="lg:w-1/2 relative h-96 md:h-[500px] w-full">
+               <div className="absolute -top-4 -left-4 w-32 h-32 bg-white/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/40"></div>
+               <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-orange-500/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/40" style={{animationDelay: '1s'}}></div>
+               <div className="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center bg-gray-100 rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-[10px] border-white/80">
                  {profileImages.map((src, i) => (
                     <div key={i} className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${i === profileIndex ? 'opacity-100 z-20' : 'opacity-0 z-10'}`}>
-                       <Image src={src} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" alt={`Profile ${i+1}`}/>
+                       <Image src={src} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition-transform duration-700 ease-out hover:scale-[1.02]" alt={`Profile ${i+1}`}/>
                     </div>
                  ))}
-                 <div className="absolute inset-0 rounded-[3rem] border border-white/50 z-30 pointer-events-none"></div>
                </div>
              </div>
-
-             <div className="lg:w-1/2">
-               <h4 className="text-orange-500 font-bold tracking-widest uppercase mb-4">Tentang Kami</h4>
-               <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-6 leading-tight tracking-tight">Mewujudkan Lingkungan Belajar yang Ceria & Islami</h2>
-               <p className="text-gray-600 mb-10 leading-relaxed font-medium text-lg">TK Baiturrohman berkomitmen untuk menyediakan pendidikan anak usia dini yang berkualitas. Kami percaya setiap anak adalah bintang yang memiliki potensi unik.</p>
-               <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <li className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><CheckCircle size={20}/></div><span className="font-bold text-gray-800 text-sm">Pendidik Profesional</span></li>
-                 <li className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><CheckCircle size={20}/></div><span className="font-bold text-gray-800 text-sm">Lingkungan Aman</span></li>
-                 <li className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><CheckCircle size={20}/></div><span className="font-bold text-gray-800 text-sm">Seni Lukis</span></li>
-                 <li className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1"><div className="bg-blue-50 p-2 rounded-xl text-blue-600"><CheckCircle size={20}/></div><span className="font-bold text-gray-800 text-sm">Baca Tulis Al-Qur'an</span></li>
+             <div className="lg:w-1/2 bg-white/60 backdrop-blur-xl p-8 md:p-10 rounded-[3rem] shadow-xl border border-white/50">
+               <h4 className="text-orange-600 font-bold tracking-widest uppercase mb-3 drop-shadow-sm">Tentang Kami</h4>
+               <h2 className="font-bold text-4xl text-gray-900 mb-6 leading-tight drop-shadow-sm">Mewujudkan Lingkungan Belajar yang <span className="text-orange-600 underline decoration-wavy">Ceria & Islami</span></h2>
+               <p className="text-gray-800 mb-8 leading-relaxed font-medium text-lg">TK Baiturrohman berkomitmen untuk menyediakan pendidikan anak usia dini yang berkualitas. Kami percaya setiap anak adalah bintang yang memiliki potensi unik.</p>
+               <ul className="space-y-4 mb-2">
+                 <li className="flex items-center gap-4 bg-white/50 p-3 rounded-xl border border-white/40 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Tenaga pendidik profesional</span></li>
+                 <li className="flex items-center gap-4 bg-white/50 p-3 rounded-xl border border-white/40 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Lingkungan asri & aman</span></li>
+                 <li className="flex items-center gap-4 bg-white/50 p-3 rounded-xl border border-white/40 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Ekstrakurikuler seni lukis</span></li>
+                 <li className="flex items-center gap-4 bg-white/50 p-3 rounded-xl border border-white/40 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Baca tulis al-qur'an</span></li>
                </ul>
              </div>
           </div>
         </section>
 
-        {/* GALLERY / NEWS (Presisi Kotak) */}
-        <section id="galeri" className="py-24 px-4 md:px-6 relative bg-white border-y border-gray-100 shadow-[inset_0_10px_30px_rgba(0,0,0,0.02)]">
-          <div className="max-w-7xl mx-auto mb-12 text-center">
-             <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Galeri & Berita</h2>
-             <p className="text-gray-500 font-medium">Geser dan klik foto untuk melihat aktivitas anak-anak.</p>
+        {/* GALLERY / NEWS */}
+        <section id="galeri" className="py-24 px-6 relative bg-white/30 backdrop-blur-lg border-y border-white/20 shadow-inner">
+          <div className="max-w-7xl mx-auto mb-10 text-center">
+             <h2 className="font-bold text-4xl md:text-5xl text-gray-900 mb-4 drop-shadow-sm">Galeri & Berita</h2>
+             <p className="text-gray-800 font-medium max-w-xl mx-auto bg-white/50 px-6 py-2 rounded-full inline-block backdrop-blur-sm border border-white/40 shadow-sm">Geser dan klik foto untuk melihat detail.</p>
           </div>
-          <div className="max-w-[90rem] mx-auto relative group">
-             <button onClick={() => handleScroll(galleryRef, -1)} className="hidden md:flex absolute -left-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white text-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-gray-100 items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:text-blue-600"><ChevronLeft size={28}/></button>
-             <button onClick={() => handleScroll(galleryRef, 1)} className="hidden md:flex absolute -right-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white text-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-gray-100 items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:text-blue-600"><ChevronRight size={28}/></button>
+          <div className="max-w-6xl mx-auto relative group rounded-[2.5rem] p-2 bg-white/40 backdrop-blur-xl shadow-2xl border border-white/50">
+             <button onClick={() => handleScroll(galleryRef, -1)} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/80 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-xl border border-white/50"><ChevronLeft size={28}/></button>
+             <button onClick={() => handleScroll(galleryRef, 1)} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/80 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-xl border border-white/50"><ChevronRight size={28}/></button>
              
-             <div ref={galleryRef} className="flex overflow-x-auto gap-6 hide-scroll snap-x snap-mandatory scroll-smooth pb-10 px-4 md:px-8">
+             <div ref={galleryRef} className="flex overflow-x-auto gap-4 hide-scroll snap-x snap-mandatory scroll-smooth h-[450px] rounded-[2rem] p-2">
                 {newsData.map((n, i) => {
                   let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
-                  if (typeof img === 'string' && img.includes('cloudinary')) {
-                      img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
-                  }
+                  if (img.includes('cloudinary')) img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
                   const isHtml = n.type === 'html';
                   return (
-                    <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { pushHistory(); setCurrentDetail(n); setActiveView('detailNews'); } }} className="w-[85vw] md:w-[400px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 cursor-pointer group/item transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                      {/* Rasio Kotak Gambar Kunci (Aspect Square) */}
-                      <div className="w-full aspect-square relative overflow-hidden bg-gray-100">
-                         <Image src={img} fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover transition-transform duration-700 ease-out group-hover/item:scale-105" alt="News"/>
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
-                      </div>
-                      <div className="p-8">
-                         <span className={`${isHtml ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'} text-[11px] px-3 py-1.5 rounded-lg font-bold tracking-wider uppercase mb-3 inline-block`}>{isHtml ? 'Aplikasi' : 'Berita'}</span>
-                         <h3 className="font-bold text-2xl text-gray-900 line-clamp-2 leading-tight tracking-tight mb-4 group-hover/item:text-blue-600 transition-colors">{n.title}</h3>
-                         <p className="text-gray-500 font-medium text-sm flex items-center gap-2"><Hand size={16} className="text-gray-400"/> Baca selengkapnya</p>
+                    <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { pushHistory(); setCurrentDetail(n); setActiveView('detailNews'); } }} className="min-w-[85%] md:min-w-[45%] lg:min-w-[35%] h-full relative snap-center rounded-[2rem] flex items-center justify-center cursor-pointer group/item flex-shrink-0 overflow-hidden shadow-lg border border-white/20 bg-black">
+                      <div className="absolute inset-0 bg-cover bg-center blur-xl opacity-80 scale-110" style={{ backgroundImage: `url('${img}')` }}></div>
+                      <Image src={img} fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover transition-transform duration-500 group-hover/item:scale-105 z-10" alt="News"/>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-8 z-20">
+                         <span className={`${isHtml ? 'bg-purple-600' : 'bg-orange-500'} text-white text-xs px-3 py-1.5 rounded-full mb-3 inline-block font-bold shadow-md border border-white/20`}>{isHtml ? 'Aplikasi' : 'Berita'}</span>
+                         <h3 className="text-white font-bold text-2xl group-hover/item:text-orange-400 transition-colors drop-shadow-md">{n.title}</h3>
+                         <p className="text-white/90 font-medium text-sm mt-2 flex items-center gap-2 bg-black/30 w-max px-3 py-1.5 rounded-full backdrop-blur-sm"><Hand size={14}/> Klik untuk buka</p>
                       </div>
                     </div>
                   );
@@ -745,36 +582,32 @@ export default function Page() {
           </div>
         </section>
 
-        {/* VIDEO (Presisi Kotak) */}
-        <section id="video" className="py-24 px-4 md:px-6 relative">
-          <div className="max-w-7xl mx-auto mb-12 text-center">
-             <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Video Kegiatan</h2>
+        {/* VIDEO */}
+        <section id="video" className="py-24 px-6 relative">
+          <div className="max-w-5xl mx-auto text-center mb-10">
+             <h2 className="font-bold text-4xl md:text-5xl text-gray-900 drop-shadow-sm bg-white/50 px-8 py-3 rounded-full inline-block backdrop-blur-sm border border-white/40 shadow-sm">Video Kegiatan</h2>
           </div>
-          
-          <div className="max-w-[90rem] mx-auto relative group">
-             <button onClick={() => handleScroll(videoRef, -1)} className="hidden md:flex absolute -left-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white text-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-gray-100 items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:text-blue-600"><ChevronLeft size={28}/></button>
-             <button onClick={() => handleScroll(videoRef, 1)} className="hidden md:flex absolute -right-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white text-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-gray-100 items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:text-blue-600"><ChevronRight size={28}/></button>
+          <div className="relative w-full max-w-4xl mx-auto group bg-white/40 backdrop-blur-xl p-4 rounded-[3rem] shadow-2xl border border-white/50">
+             <button onClick={() => handleScroll(videoRef, -1)} className="absolute -left-6 md:-left-8 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 text-blue-600 flex items-center justify-center shadow-xl border border-white/50 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronLeft size={28}/></button>
+             <button onClick={() => handleScroll(videoRef, 1)} className="absolute -right-6 md:-right-8 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 text-blue-600 flex items-center justify-center shadow-xl border border-white/50 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronRight size={28}/></button>
              
-             <div ref={videoRef} className="flex overflow-x-auto gap-6 hide-scroll snap-x snap-mandatory scroll-smooth pb-10 px-4 md:px-8">
+             <div ref={videoRef} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scroll gap-6 pb-2">
                 {videoData.map((v, i) => {
                   const id = getYouTubeId(v.url);
                   if(!id) return null;
                   const thumb = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
                   return (
-                    <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                      {/* Rasio Kotak Video Kunci (Aspect Video 16:9) */}
-                      <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
-                         <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 450px" className="object-cover opacity-80 group-hover/vid:opacity-100 transition-all duration-700 ease-out group-hover/vid:scale-105" alt="Thumb"/>
+                    <div key={i} className="min-w-[90%] md:min-w-[80%] flex-shrink-0 relative snap-center rounded-[2.5rem] overflow-hidden shadow-lg border border-white/60 bg-white/80 backdrop-blur-md group/vid hover:shadow-2xl transition-all">
+                      <div className="relative w-full pb-[56.25%] bg-black cursor-pointer overflow-hidden border-b border-white/20" onClick={() => playVideo(v.url, v.judul)}>
+                         <Image src={thumb} fill sizes="(max-width: 768px) 90vw, 80vw" className="object-cover opacity-80 group-hover/vid:opacity-100 group-hover/vid:scale-105 transition-all duration-500 z-0" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
-                            <div className="w-[64px] h-[48px] bg-white/90 backdrop-blur-md rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform duration-300 shadow-xl">
-                              <PlayCircle className="text-orange-500" size={32} fill="currentColor"/>
-                            </div>
+                            <div className="w-[72px] h-[52px] bg-orange-500/90 backdrop-blur-sm rounded-[16px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform shadow-[0_10px_20px_rgba(249,115,22,0.5)] border border-orange-400/50"><PlayCircle className="text-white" size={36}/></div>
                          </div>
                       </div>
-                      <div className="p-8">
-                         <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-1 tracking-tight">{v.judul}</h3>
-                         <p className="text-gray-500 font-medium line-clamp-2 text-sm leading-relaxed mb-6">{v.deskripsi}</p>
-                         <button onClick={() => playVideo(v.url, v.judul)} className="w-full text-sm bg-gray-50 text-gray-700 font-bold hover:bg-gray-100 hover:text-blue-600 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-200"><Youtube size={18} className="text-red-500"/> Putar di Web</button>
+                      <div className="p-8 text-left bg-white/90">
+                         <h3 className="font-bold text-2xl text-gray-900 mb-2 line-clamp-1">{v.judul}</h3>
+                         <p className="text-gray-700 font-medium line-clamp-2 text-lg">{v.deskripsi}</p>
+                         <div className="mt-4 md:hidden"><button onClick={() => playVideo(v.url, v.judul)} className="text-sm bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 px-4 py-2 rounded-full flex items-center w-max gap-2 transition-colors border border-blue-100"><Youtube size={16}/> Tonton Langsung</button></div>
                       </div>
                     </div>
                   );
@@ -784,106 +617,77 @@ export default function Page() {
         </section>
 
         {/* REGISTRATION */}
-        <section id="daftar" className="py-24 px-4 md:px-6 relative bg-white border-y border-gray-100">
-          <div className="max-w-6xl mx-auto bg-gray-50 rounded-[3rem] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col md:flex-row">
-             
-             <div className="md:w-5/12 bg-blue-600 p-10 md:p-16 text-white flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <section id="daftar" className="py-24 px-6 relative bg-white/30 backdrop-blur-lg border-y border-white/20 shadow-inner">
+          <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/60">
+             <div className="md:w-5/12 bg-gradient-to-br from-blue-500 to-blue-700 p-10 md:p-14 text-white flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
                 <div className="relative z-10">
-                   <h3 className="font-display font-bold text-4xl md:text-5xl mb-6 tracking-tight">Daftar<br/>Sekarang</h3>
-                   <p className="text-blue-100 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan dirangkai rapi menjadi pesan WhatsApp.</p>
-                   <div className="space-y-6 text-sm md:text-base">
-                      <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
-                         <Phone size={24} className="text-blue-200 shrink-0" />
-                         <span className="font-bold tracking-wider">0895-3910-01402</span>
-                      </div>
-                      <div className="flex items-start gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
-                         <MapPin size={24} className="mt-1 text-blue-200 shrink-0" />
-                         <span className="font-medium leading-relaxed">Jl. Andong kencono No. III, Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span>
-                      </div>
+                   <h3 className="font-bold text-4xl mb-6 drop-shadow-md">Pendaftaran Online</h3>
+                   <p className="text-white/90 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis dirangkai menjadi format pesan WhatsApp untuk Admin.</p>
+                   <div className="space-y-6">
+                      <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/20 shadow-sm"><Phone size={24} className="text-orange-400 drop-shadow-sm" /><span className="font-bold text-xl drop-shadow-sm">0895-3910-01402</span></div>
+                      <div className="flex items-start gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/20 shadow-sm"><MapPin size={24} className="mt-1 flex-shrink-0 text-orange-400 drop-shadow-sm" /><span className="font-medium leading-relaxed drop-shadow-sm">Jl. Andong kencono No. III, Pulodarat RT 19 RW 02, Pecangaan, Jepara, Jawa Tengah.</span></div>
                    </div>
                 </div>
+                <div className="mt-12 relative z-10 w-full flex justify-center"><div style={logoTightGlowStyle}><Image src="/logotk.webp" width={128} height={128} className="w-32 object-contain hover:scale-105 transition-transform" alt="Logo"/></div></div>
              </div>
              
-             <div className="md:w-7/12 p-8 md:p-16 bg-white">
+             <div className="md:w-7/12 p-8 md:p-12 bg-white">
+                <h3 className="font-bold text-3xl text-gray-900 mb-8">Formulir Calon Siswa</h3>
                 <form id="waForm" className="space-y-6" onSubmit={openWhatsApp}>
-                   <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-2">Nama Lengkap Anak</label>
-                     <input type="text" name="namaAnak" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Ahmad Zaky"/>
-                   </div>
+                   <div><label className="block text-sm font-bold text-gray-800 mb-2">Nama Lengkap Anak</label><input type="text" name="namaAnak" required className="w-full px-5 py-4 rounded-xl bg-white/50 border border-gray-300 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors shadow-sm text-gray-800" placeholder="Contoh: Ahmad Zaky"/></div>
                    <div className="grid grid-cols-2 gap-6">
+                      <div><label className="block text-sm font-bold text-gray-800 mb-2">Umur (Tahun)</label><input type="number" name="umur" required className="w-full px-5 py-4 rounded-xl bg-white/50 border border-gray-300 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors shadow-sm text-gray-800" placeholder="Ex: 5"/></div>
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Umur (Tahun)</label>
-                        <input type="number" name="umur" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Ex: 5"/>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Jenis Kelamin</label>
-                        <select name="jk" className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium cursor-pointer">
-                           <option>Laki-laki</option>
-                           <option>Perempuan</option>
-                        </select>
+                        <label className="block text-sm font-bold text-gray-800 mb-2">Jenis Kelamin</label>
+                        <select name="jk" className="w-full px-5 py-4 rounded-xl bg-white/50 border border-gray-300 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors appearance-none shadow-sm cursor-pointer text-gray-800"><option>Laki-laki</option><option>Perempuan</option></select>
                       </div>
                    </div>
-                   <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-2">Nama Orang Tua</label>
-                     <input type="text" name="namaOrtu" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium" placeholder="Contoh: Bpk. Budi"/>
-                   </div>
-                   <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-2">Alamat Domisili</label>
-                     <textarea name="alamat" rows="3" required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800 font-medium resize-none" placeholder="Alamat lengkap..."></textarea>
-                   </div>
-                   <button type="submit" className="w-full bg-gray-900 hover:bg-black text-white font-bold text-lg py-5 rounded-2xl shadow-xl shadow-gray-900/20 transition-all duration-300 hover:-translate-y-1 flex justify-center items-center gap-3">
-                      Kirim Pendaftaran
-                   </button>
+                   <div><label className="block text-sm font-bold text-gray-800 mb-2">Nama Orang Tua / Wali</label><input type="text" name="namaOrtu" required className="w-full px-5 py-4 rounded-xl bg-white/50 border border-gray-300 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors shadow-sm text-gray-800" placeholder="Contoh: Bpk. Budi"/></div>
+                   <div><label className="block text-sm font-bold text-gray-800 mb-2">Alamat Domisili</label><textarea name="alamat" rows="3" required className="w-full px-5 py-4 rounded-xl bg-white/50 border border-gray-300 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors resize-none shadow-sm text-gray-800" placeholder="Alamat lengkap..."></textarea></div>
+                   <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg py-5 rounded-xl shadow-[0_10px_20px_rgba(249,115,22,0.3)] hover:shadow-[0_15px_30px_rgba(249,115,22,0.4)] transition-all transform hover:-translate-y-1 flex justify-center items-center gap-3 border border-orange-400"><MessageCircle size={24}/> Kirim Pendaftaran via WA</button>
                 </form>
              </div>
           </div>
         </section>
 
         {/* MAPS */}
-        <section id="lokasi" className="py-16 px-4 md:px-6 relative">
-          <div className="max-w-6xl mx-auto">
-             <div className="w-full h-[450px] rounded-[3rem] overflow-hidden shadow-sm border border-gray-100 bg-white">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" className="w-full h-full border-0" allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map"></iframe>
+        <section id="lokasi" className="py-16 px-6 relative">
+          <div className="max-w-5xl mx-auto text-center">
+             <h2 className="font-bold text-4xl text-gray-900 mb-8 drop-shadow-sm bg-white/60 px-8 py-3 rounded-full inline-block backdrop-blur-md border border-white/50 shadow-sm">Lokasi Sekolah</h2>
+             <div className="w-full h-[450px] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white/90 relative group bg-white/50 backdrop-blur-xl p-2">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3962.5804911944147!2d110.71185243070909!3d-6.6987642984019065!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e70dffdf8c9501b%3A0xa0ec339baa98c01e!2sTK%20BAITURROHMAN%20Pulodarat!5e0!3m2!1sid!2sid!4v1769270324442!5m2!1sid!2sid" className="w-full h-full border-0 rounded-[2.5rem]" allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map"></iframe>
              </div>
           </div>
         </section>
 
         {/* FOOTER */}
-        <footer className="bg-white border-t border-gray-100 pt-20 pb-10 px-6">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <footer className="bg-slate-900/95 backdrop-blur-xl text-white pt-20 pb-10 px-6 mb-0 overflow-hidden border-t border-white/10">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
              <div className="col-span-1 md:col-span-2">
-                <div className="flex items-center gap-4 mb-6">
-                   <div style={logoTightGlowStyle}>
-                      <Image src="/logotk.webp" width={64} height={64} className="h-16 w-auto object-contain" alt="Logo"/>
-                   </div>
-                   <span className="font-bold text-2xl text-gray-900 tracking-tight">TK BAITURROHMAN</span>
-                </div>
-                <p className="text-gray-500 mb-6 max-w-sm text-base font-medium leading-relaxed">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti.</p>
+                <div className="flex items-center gap-5 mb-6"><div style={logoTightGlowStyle}><Image src="/logotk.webp" width={80} height={80} className="h-20 w-auto object-contain" alt="Logo"/></div><span className="font-bold text-3xl text-white drop-shadow-md tracking-wide">TK BAITURROHMAN</span></div>
+                <p className="text-gray-300 mb-6 max-w-sm text-lg font-medium leading-relaxed">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti.</p>
              </div>
              <div>
-                <h4 className="font-bold text-lg mb-6 text-gray-900 tracking-tight">Tautan Cepat</h4>
-                <ul className="space-y-4 text-gray-500 font-medium text-sm">
-                   <li><a href="#beranda" className="hover:text-blue-600 transition-colors">Beranda</a></li>
-                   <li><a href="#profil" className="hover:text-blue-600 transition-colors">Tentang Kami</a></li>
-                   <li><button onClick={() => { pushHistory(); setActiveView('listNews'); }} className="hover:text-blue-600 transition-colors">Galeri Foto</button></li>
-                   <li><a href="#daftar" className="hover:text-blue-600 transition-colors">Info PPDB</a></li>
+                <h4 className="font-bold text-xl mb-6 text-orange-500">Tautan Cepat</h4>
+                <ul className="space-y-4 text-gray-300 font-medium">
+                   <li><a href="#beranda" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Beranda</a></li>
+                   <li><a href="#profil" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Tentang Kami</a></li>
+                   <li><button onClick={() => { pushHistory(); setActiveView('listNews'); }} className="hover:text-white hover:translate-x-1 inline-block transition-transform">Galeri Foto</button></li>
+                   <li><a href="#daftar" className="hover:text-white hover:translate-x-1 inline-block transition-transform">Info PPDB</a></li>
                 </ul>
              </div>
              <div>
-                <h4 className="font-bold text-lg mb-6 text-gray-900 tracking-tight">Hubungi Kami</h4>
-                <ul className="space-y-4 text-gray-500 font-medium text-sm">
-                   <li className="flex items-center gap-3"><Phone size={18} className="text-gray-400"/><span className="text-gray-700">0895-3910-01402</span></li>
-                   <li className="flex items-center gap-3"><Mail size={18} className="text-gray-400 shrink-0"/><span className="text-gray-700 break-all">dapodiktkbaiturrohman@gmail.com</span></li>
-                   <li className="flex items-start gap-3"><MapPin size={18} className="mt-0.5 text-gray-400 shrink-0"/><span className="text-gray-700 leading-relaxed">Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span></li>
+                <h4 className="font-bold text-xl mb-6 text-orange-500">Hubungi Kami</h4>
+                <ul className="space-y-4 text-gray-300 font-medium">
+                   <li className="flex items-center gap-4 transition-colors"><Phone size={20} className="text-blue-500"/><span className="font-bold text-white">0895-3910-01402</span></li>
+                   <li className="flex items-center gap-4 transition-colors"><Mail size={20} className="text-blue-500"/><span className="truncate">dapodiktkbaiturrohman@gmail.com</span></li>
+                   <li className="flex items-start gap-4 transition-colors"><MapPin size={20} className="mt-1 flex-shrink-0 text-blue-500"/><span className="leading-relaxed">Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span></li>
                 </ul>
              </div>
           </div>
-          <div className="border-t border-gray-100 pt-8 text-center text-gray-400 text-sm font-medium">
-             <p>© 2026 TK Baiturrohman Pulodarat. All Rights Reserved.</p>
-          </div>
+          <div className="border-t border-white/10 pt-8 text-center text-gray-400 text-sm font-medium flex flex-col md:flex-row justify-center items-center gap-2"><p>© 2026 TK Baiturrohman Pulodarat. All Rights Reserved.</p></div>
         </footer>
-
       </div>
     </div>
   );
