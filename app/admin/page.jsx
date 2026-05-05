@@ -72,7 +72,7 @@ export default function AdminPanel() {
       const resContent = await fetch('/api/content?t=' + new Date().getTime());
       if (resContent.ok) {
         const data = await resContent.json();
-        // PENGAMAN: Pastikan selalu berupa Array agar tidak crash saat di-map
+        // PENGAMAN LAPIS BAJA: Pastikan selalu berupa Array agar tidak crash saat di-map
         setNews(Array.isArray(data.news) ? data.news : []);
         setVideos(Array.isArray(data.videos) ? data.videos : []);
         setTools(Array.isArray(data.tools) ? data.tools : []);
@@ -91,7 +91,7 @@ export default function AdminPanel() {
       } else {
         sessionStorage.removeItem('tk_admin_pass');
         setIsLoggedIn(false);
-        showNotif('Sesi kedaluwarsa.', 'error');
+        showNotif('Sesi kedaluwarsa atau password salah.', 'error');
         setIsLoading(false);
         return;
       }
@@ -237,7 +237,7 @@ export default function AdminPanel() {
   // --- ASSET LIBRARY / HISTORY MANAGER ---
   const getAllHistoryAssets = () => {
     const allUrls = new Set();
-    // PENGAMAN: Cek Array.isArray untuk mencegah Crash forEach is not a function
+    // PENGAMAN: Mencegah Crash forEach is not a function jika data bukan array
     if (Array.isArray(configForm.heroImages)) configForm.heroImages.forEach(u => { if (u) allUrls.add(u); });
     if (Array.isArray(configForm.profileImages)) configForm.profileImages.forEach(u => { if (u) allUrls.add(u); });
     if (Array.isArray(news)) {
@@ -342,6 +342,10 @@ export default function AdminPanel() {
     showNotif('Gambar berhasil dimasukkan ke Folder Galeri!');
   };
 
+  const removeGalleryItem = (index) => {
+    setNewsForm(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== index) }));
+  };
+
   const handleSaveNews = async (e) => {
     e.preventDefault();
     if (!newsForm.title || !newsForm.content) return showNotif('Judul dan isi wajib!', 'error');
@@ -420,7 +424,6 @@ export default function AdminPanel() {
     }
   };
 
-
   // ================= UI COMPONENTS ================= //
 
   if (!isLoggedIn) {
@@ -456,7 +459,7 @@ export default function AdminPanel() {
           <div className="p-4 overflow-y-auto flex-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {assets.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">Belum ada riwayat gambar di database.</p>}
             {assets.map((url, i) => {
-               // PENGAMAN STRING
+               // PENGAMAN: Hindari fungsi replace/includes pada null/undefined
                const strUrl = String(url || '');
                const thumb = strUrl.includes('cloudinary') ? strUrl.replace('/upload/', '/upload/w_200,q_auto,f_auto/') : strUrl;
                return (
@@ -581,8 +584,47 @@ export default function AdminPanel() {
       </div>
 
       <button onClick={saveVisualConfig} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2 hover:-translate-y-1 transition-all">
-        <Save size={20} /> Simpan Tampilan
+        <Save size={20} /> Simpan Tampilan (Muncul di Web)
       </button>
+    </div>
+  );
+
+  const renderCloudSettings = () => (
+    <div className="animate-in fade-in max-w-4xl">
+      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
+      <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa tambah banyak akun.</p>
+
+      {/* Form Tambah */}
+      <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
+        <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Cloud Name</label><input type="text" value={newCloud.name} onChange={e => setNewCloud({...newCloud, name: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: dpqzxxx" /></div>
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Upload Preset (Unsigned)</label><input type="text" value={newCloud.preset} onChange={e => setNewCloud({...newCloud, preset: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: tk_upload" /></div>
+        </div>
+        <button type="submit" className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition-colors flex justify-center items-center gap-2">
+          <Plus size={20} /> Tambahkan & Simpan Akun
+        </button>
+      </form>
+
+      {/* List Akun */}
+      <h3 className="font-bold text-xl mb-4 text-gray-900">Daftar Akun Tersimpan</h3>
+      <div className="space-y-4">
+        {cloudAccounts.length === 0 && <p className="text-gray-500 bg-white p-6 rounded-2xl border text-center font-medium">Belum ada akun tersimpan.</p>}
+        {cloudAccounts.map(c => (
+          <div key={c._id} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.active ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
+            <div>
+              <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-1">
+                {c.name} {c.active && <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wider">AKTIF DIGUNAKAN</span>}
+              </h4>
+              <p className="text-sm text-gray-500 font-medium">Preset: {c.preset}</p>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              {!c.active && <button onClick={() => activateCloud(c._id)} className="flex-1 md:flex-none bg-white text-gray-800 border border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold px-5 py-2.5 rounded-xl text-sm shadow-sm transition-all">Gunakan Ini</button>}
+              <button onClick={() => deleteCloud(c._id)} className="w-12 h-11 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -690,7 +732,7 @@ export default function AdminPanel() {
       <div className="animate-in fade-in">
         <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
           <h1 className="font-bold text-3xl md:text-4xl text-gray-900">Kelola Berita</h1>
-          <button onClick={() => { pushHistory(); setCurrentNews(null); setNewsForm({ title: '', content: '', images: [], gallery: [], date: '' }); setIsEditingNews(true); }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 shadow-md"><Plus size={20} /> Tulis Berita Baru</button>
+          <button onClick={() => { pushHistory(); setCurrentNews(null); setNewsForm({ title: '', content: '', images: [], gallery: [], date: '' }); setIsEditingNews(true); }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 shadow-md hover:-translate-y-1 transition-transform"><Plus size={20} /> Tulis Berita Baru</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {news.length === 0 && <p className="text-gray-500">Belum ada berita.</p>}
@@ -740,8 +782,8 @@ export default function AdminPanel() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {videos.length === 0 && <p className="text-gray-500 font-medium col-span-2">Belum ada video.</p>}
           {videos.map((vid) => {
-            // PENGAMAN STRING PADA URL
-            const urlStr = String(vid.url || '');
+            // PENGAMAN LAPIS BAJA MENCEGAH MATCH ERROR PADA STRING KOSONG
+            const urlStr = String(vid?.url || '');
             const m = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
             const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
             
@@ -805,7 +847,7 @@ export default function AdminPanel() {
             <div key={t._id} className="bg-white p-5 rounded-2xl border text-center flex flex-col items-center">
               <div className="w-14 h-14 bg-purple-50 text-purple-600 flex justify-center items-center rounded-xl mb-3"><FileCode size={24}/></div>
               <h4 className="font-bold text-gray-900 line-clamp-1 text-sm mb-1">{t.name}</h4>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold mb-4">{(!t.type || t.type === 'link') ? 'URL LINK' : 'APP HTML'}</span>
+              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold mb-4">{t.type === 'link' ? 'URL LINK' : 'HTML APP'}</span>
               <div className="flex gap-2 w-full mt-auto">
                  <button onClick={() => { pushHistory(); setCurrentTool(t); setToolForm({ name: t.name, url: t.url||'', type: t.type||'link', content: t.content||'' }); setIsEditingTool(true); }} className="flex-1 bg-gray-50 border text-blue-600 py-2 rounded-lg text-xs font-bold"><Edit size={14} className="mx-auto"/></button>
                  <button onClick={() => deleteTool(t._id)} className="w-10 bg-red-50 text-red-500 rounded-lg flex justify-center items-center"><Trash2 size={14}/></button>
@@ -816,43 +858,6 @@ export default function AdminPanel() {
       </div>
     );
   };
-
-  const renderSettings = () => (
-    <div className="animate-in fade-in max-w-4xl">
-      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
-      <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa ditumpuk banyak akun.</p>
-
-      <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
-        <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Cloud Name</label><input type="text" value={newCloud.name} onChange={e => setNewCloud({...newCloud, name: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: dpqzxxx" /></div>
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Upload Preset (Unsigned)</label><input type="text" value={newCloud.preset} onChange={e => setNewCloud({...newCloud, preset: e.target.value})} className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" required placeholder="Contoh: tk_upload" /></div>
-        </div>
-        <button type="submit" className="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition-colors flex justify-center items-center gap-2">
-          <Plus size={20} /> Tambahkan Akun
-        </button>
-      </form>
-
-      <h3 className="font-bold text-xl mb-4 text-gray-900">Daftar Akun Tersimpan</h3>
-      <div className="space-y-4">
-        {cloudAccounts.length === 0 && <p className="text-gray-500 bg-white p-6 rounded-2xl border text-center font-medium">Belum ada akun tersimpan.</p>}
-        {cloudAccounts.map(c => (
-          <div key={c._id} className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.active ? 'bg-green-50 border-green-200 shadow-sm' : 'bg-white border-gray-200 hover:border-blue-300'}`}>
-            <div>
-              <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2 mb-1">
-                {c.name} {c.active && <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wider">AKTIF DIGUNAKAN</span>}
-              </h4>
-              <p className="text-sm text-gray-500 font-medium">Preset: {c.preset}</p>
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              {!c.active && <button onClick={() => activateCloud(c._id)} className="flex-1 md:flex-none bg-white text-gray-800 border border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 font-bold px-5 py-2.5 rounded-xl text-sm shadow-sm transition-all">Gunakan Ini</button>}
-              <button onClick={() => deleteCloud(c._id)} className="w-12 h-11 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl flex items-center justify-center transition-colors"><Trash2 size={18} /></button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] font-sans text-gray-800 flex flex-col md:flex-row">
@@ -867,7 +872,7 @@ export default function AdminPanel() {
           {activeTab === 'news' && renderNewsManager()}
           {activeTab === 'videos' && renderVideosManager()}
           {activeTab === 'tools' && renderToolsManager()}
-          {activeTab === 'settings' && renderSettings()}
+          {activeTab === 'settings' && renderCloudSettings()}
         </div>
       </main>
     </div>
