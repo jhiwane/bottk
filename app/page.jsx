@@ -27,9 +27,11 @@ const defaultVideos = [{
 }];
 
 const defaultHeroImages = [
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", 
+  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
 ];
 
-// Fallback default profil agar ada 2 gambar untuk bisa bergantian
+// Fallback jika DB kosong
 const defaultProfileImages = [
   "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop"
@@ -50,7 +52,7 @@ export default function Page() {
   const [videoData, setVideoData] = useState(defaultVideos);
   const [toolsData, setToolsData] = useState([]);
   
-  // STATE TAMPILAN (HERO & PROFIL)
+  // STATE GAMBAR DARI DATABASE
   const [heroImages, setHeroImages] = useState(defaultHeroImages);
   const [profileImages, setProfileImages] = useState(defaultProfileImages);
   
@@ -63,12 +65,12 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [heroIndex, setHeroIndex] = useState(0);
-  const [profileIndex, setProfileIndex] = useState(0); // Tambahan index untuk profil
+  const [profileIndex, setProfileIndex] = useState(0); // Rotasi Foto Profil
   const [newsSlideIndex, setNewsSlideIndex] = useState(0);
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
 
-  // FUNGSI NAVIGASI SWIPE BACK
+  // LOGIKA SWIPE BACK HISTORY
   const pushHistory = () => {
     window.history.pushState({ open: true }, '');
   };
@@ -82,7 +84,6 @@ export default function Page() {
     setIsSidebarOpen(false);
   };
 
-  // SMART VIDEO EMBED
   const playVideo = (url, title) => {
     const ytId = getYouTubeId(url);
     if (ytId) {
@@ -104,7 +105,7 @@ export default function Page() {
         if (data.videos && data.videos.length > 0) setVideoData(data.videos);
         if (data.tools) setToolsData(data.tools.filter(t => t.name !== "HIDDEN_NEWS_HTML"));
         
-        // Memuat gambar dari konfigurasi Admin
+        // MENGAMBIL GAMBAR HERO DAN PROFIL DARI DB
         if (data.config) {
           if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
           if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
@@ -123,7 +124,7 @@ export default function Page() {
     return () => { isMounted = false; };
   }, []);
 
-  // ANIMASI ROTASI HERO
+  // ROTASI HERO HEADER
   useEffect(() => {
     const heroInterval = setInterval(() => {
       setHeroIndex(prev => heroImages.length > 0 ? (prev + 1) % heroImages.length : 0);
@@ -131,11 +132,11 @@ export default function Page() {
     return () => clearInterval(heroInterval);
   }, [heroImages]);
 
-  // ANIMASI ROTASI FOTO PROFIL
+  // ROTASI PROFIL TENTANG KAMI
   useEffect(() => {
     const profileInterval = setInterval(() => {
       setProfileIndex(prev => profileImages.length > 0 ? (prev + 1) % profileImages.length : 0);
-    }, 5000); // Ganti setiap 5 detik
+    }, 4000);
     return () => clearInterval(profileInterval);
   }, [profileImages]);
 
@@ -159,21 +160,15 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
-  // EVENT LISTENER UNTUK SWIPE BACK HP
+  // EVENT LISTENER POPSTATE (SWIPE BACK HP)
   useEffect(() => {
     const handlePopState = () => {
-      if (zoomImage) {
-        setZoomImage(null);
-      } else if (infoModalOpen) {
-        setInfoModalOpen(false);
-      } else if (isSidebarOpen) {
-        setIsSidebarOpen(false);
-      } else if (activeView !== 'home') {
-        if (activeView === 'mediaViewer') {
-           setActiveView('detailNews');
-        } else {
-           setActiveView('home');
-        }
+      if (zoomImage) setZoomImage(null);
+      else if (infoModalOpen) setInfoModalOpen(false);
+      else if (isSidebarOpen) setIsSidebarOpen(false);
+      else if (activeView !== 'home') {
+        if (activeView === 'mediaViewer') setActiveView('detailNews');
+        else setActiveView('home');
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -301,7 +296,7 @@ export default function Page() {
           <div className="h-px bg-gray-100 my-2"></div>
 
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-gray-50 border border-gray-200 text-gray-700 text-center py-4 rounded-2xl font-bold hover:bg-gray-100 transition-all flex items-center justify-center gap-2 mt-2">
-            <FileText size={20} className="text-blue-600" /> Form Pendaftaran
+            <FileText size={20} className="text-blue-600" /> Form PPDB (Google)
           </a>
 
           <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-2xl font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all mt-2">
@@ -361,11 +356,8 @@ export default function Page() {
                   key={idx} 
                   onClick={() => {
                     if (isNews) {
-                      pushHistory();
-                      if (item.type === 'html') { openAppIframe(item.fileUrl, title); } else { setCurrentDetail(item); setActiveView('detailNews'); }
-                    } else { 
-                      playVideo(item.url, title); 
-                    }
+                      if (item.type === 'html') { openAppIframe(item.fileUrl, title); } else { pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); }
+                    } else { playVideo(item.url, title); }
                   }}
                   className="flex gap-5 bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
                 >
@@ -402,7 +394,7 @@ export default function Page() {
             return (
               <div 
                 key={idx} 
-                onClick={() => { pushHistory(); openAppIframe(link, t.name); }} 
+                onClick={() => openAppIframe(link, t.name)} 
                 className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="w-16 h-16 bg-gradient-to-tr from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600 shadow-inner">
@@ -477,7 +469,7 @@ export default function Page() {
             {currentDetail.gallery && currentDetail.gallery.length > 0 && (
                <div className="mb-8 flex gap-3 overflow-x-auto hide-scroll">
                   <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
-                    <ImageIcon size={18}/> Buka Semua Galeri Media
+                    <ImageIcon size={18}/> Buka Semua Galeri Media ({currentDetail.gallery.length} Aset)
                   </button>
                </div>
             )}
@@ -502,6 +494,10 @@ export default function Page() {
 
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
+    
+    // Extract unique groups for the folder tabs
+    const groups = ['all', ...Array.from(new Set(mediaViewerData.gallery?.map(item => item.group).filter(Boolean)))];
+
     const filteredGallery = mediaViewerData.gallery?.filter(item => {
       if (mediaViewerData.activeFilter === 'all' || !mediaViewerData.activeFilter) return true;
       return item.group === mediaViewerData.activeFilter;
@@ -509,11 +505,25 @@ export default function Page() {
 
     return (
       <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
-        <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-[301] px-4 py-4 flex items-center border-b border-white/10">
-          <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white font-medium hover:text-gray-300 transition-colors bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md">
+        <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-[301] px-4 py-4 flex flex-col md:flex-row md:items-center justify-between border-b border-white/10 gap-4">
+          <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white font-medium hover:text-gray-300 transition-colors bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md w-max">
             <ArrowLeft size={20} /> Kembali
           </button>
+          
+          {/* TABS FOLDER KATEGORI */}
+          <div className="flex gap-2 overflow-x-auto hide-scroll pb-1 md:pb-0">
+            {groups.length > 1 && groups.map((g, idx) => (
+              <button 
+                key={idx} 
+                onClick={() => setMediaViewerData({...mediaViewerData, activeFilter: g})}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${mediaViewerData.activeFilter === g || (!mediaViewerData.activeFilter && g === 'all') ? 'bg-orange-500 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+              >
+                {g === 'all' ? 'Semua Kategori' : g}
+              </button>
+            ))}
+          </div>
         </div>
+        
         <div className="flex-1 w-full max-w-5xl mx-auto p-4 flex flex-col gap-10 pb-20 items-center mt-6">
           {!filteredGallery || filteredGallery.length === 0 ? (
             <p className="text-white">Tidak ada media tersedia untuk kategori ini.</p>
@@ -523,7 +533,7 @@ export default function Page() {
                 return (
                   <div key={i} className="w-full flex flex-col items-center relative group">
                     <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl mb-3 cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]" onClick={() => { pushHistory(); setZoomImage(item.src); }} alt="Galeri" />
-                    <p className="text-gray-300 text-sm font-medium italic text-center mt-2">{item.caption}</p>
+                    {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                   </div>
                 );
               } else if (item.type === 'video') {
@@ -534,7 +544,7 @@ export default function Page() {
                       <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-3 bg-black border border-white/10">
                         <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} frameBorder="0" allowFullScreen></iframe>
                       </div>
-                      <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2">{item.caption}</p>
+                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                       <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer" className="text-xs bg-white/10 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/20 transition-colors flex items-center gap-2 backdrop-blur-md">
                         <Youtube size={16} className="text-red-500" /> Buka di App YouTube
                       </a>
@@ -778,8 +788,8 @@ export default function Page() {
              <div className="md:w-5/12 bg-blue-600 p-10 md:p-16 text-white flex flex-col justify-between relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                 <div className="relative z-10">
-                   <h3 className="font-display font-bold text-4xl md:text-5xl mb-6 tracking-tight">Daftar Sekarang</h3>
-                   <p className="text-blue-100 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan masuk ke nomor kepala sekolah.</p>
+                   <h3 className="font-display font-bold text-4xl md:text-5xl mb-6 tracking-tight">Daftar<br/>Sekarang</h3>
+                   <p className="text-blue-100 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan dirangkai rapi menjadi pesan WhatsApp.</p>
                    <div className="space-y-6 text-sm md:text-base">
                       <div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
                          <Phone size={24} className="text-blue-200 shrink-0" />
@@ -862,6 +872,7 @@ export default function Page() {
                 <h4 className="font-bold text-lg mb-6 text-gray-900 tracking-tight">Hubungi Kami</h4>
                 <ul className="space-y-4 text-gray-500 font-medium text-sm">
                    <li className="flex items-center gap-3"><Phone size={18} className="text-gray-400"/><span className="text-gray-700">0895-3910-01402</span></li>
+                   {/* SOLUSI EMAIL PANJANG: Menggunakan break-all agar rapi dan tidak meluber */}
                    <li className="flex items-center gap-3"><Mail size={18} className="text-gray-400 shrink-0"/><span className="text-gray-700 break-all">dapodiktkbaiturrohman@gmail.com</span></li>
                    <li className="flex items-start gap-3"><MapPin size={18} className="mt-0.5 text-gray-400 shrink-0"/><span className="text-gray-700 leading-relaxed">Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span></li>
                 </ul>
