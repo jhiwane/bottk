@@ -8,14 +8,14 @@ import {
   ChevronRight, Phone, MapPin, Mail, PlayCircle, Hand, Home, Image as ImageIcon, Building, FileText
 } from 'lucide-react';
 
-// === DATA BAWAAN / DEFAULT ===
+// === DATA BAWAAN / DEFAULT (SUDAH DIGANTI FOTO ANAK TK & SEKOLAH) ===
 const defaultNews = [{
   title: "Profil sekolah",
   date: "20 januari 2026",
   content: `Tetap stay di web kami bunda. segala informasi nanti kami update bisa lihat foto. Untuk melihat aktivitas bisa ke channel video youtube kami bunda. <br><br><span class="text-xs text-gray-500 italic">jika video tidak bisa dibuka di web ada tulisan kecil dibawah buka app youtube.</span>`,
-  images: ["https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg"],
+  images: ["https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"],
   gallery: [
-    { group: 'foto_1', type: 'image', src: "https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg", caption: "Dokumentasi" },
+    { group: 'foto_1', type: 'image', src: "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop", caption: "Dokumentasi Kelas" },
     { group: 'video_1', type: 'video', src: "https://youtu.be/s3m7RsCY_TM", caption: "Video Profil" }
   ]
 }];
@@ -27,8 +27,8 @@ const defaultVideos = [{
 }];
 
 const defaultHeroImages = [
-  "https://images.unsplash.com/photo-1587691592099-24045742c181?q=80&w=2073&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", // Foto anak TK belajar
+  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"  // Foto anak TK ceria
 ];
 
 // === FUNGSI HELPER ===
@@ -66,7 +66,7 @@ export default function Page() {
 
   // === EFFECTS ===
   
-  // 1. Initial Load & Fake API Fetch
+  // 1. Initial Load & Fetch API
   useEffect(() => {
     const loadContent = async () => {
       try {
@@ -115,6 +115,34 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
+  // ====================================================================================
+  // BUG FIX PALING PENTING: MENYELAMATKAN LINK "ONCLICK" DI DALAM DATABASE MONGO DB
+  // ====================================================================================
+  useEffect(() => {
+    // Kita menempelkan fungsi React ke Global Window agar tag <a> mentah di HTML bisa bekerja
+    window.openMediaViewer = (index, filter) => {
+      // Ambil data berita yang sedang aktif (atau dari index jika global)
+      const targetData = newsData[index] || currentDetail;
+      if (!targetData) return;
+      
+      // Filter galeri sesuai permintaan (contoh: foto_1 atau video_1)
+      setMediaViewerData({ ...targetData, activeFilter: filter });
+      setActiveView('mediaViewer');
+    };
+
+    window.openIframe = (url, title) => {
+      setIsLoadingIframe(true);
+      setIframeData({ url, title });
+      setActiveView('iframe');
+      setIsSidebarOpen(false);
+    };
+
+    return () => {
+      delete window.openMediaViewer;
+      delete window.openIframe;
+    };
+  }, [newsData, currentDetail]);
+
   // === HANDLERS ===
   const handleScroll = (ref, direction) => {
     if (ref.current) {
@@ -146,11 +174,16 @@ export default function Page() {
     setIsSidebarOpen(false);
   };
 
+  // Gaya CSS Khusus untuk Logo agar mengikuti bentuk (tanpa kotak/bulat) tapi mengisi transparansi
+  const logoTightGlowStyle = {
+    filter: 'drop-shadow(0px 0px 2px white) drop-shadow(0px 0px 5px white) drop-shadow(0px 0px 10px rgba(255,255,255,0.9))'
+  };
+
   // === RENDERERS (KOMPONEN UI) ===
 
   const renderLoader = () => (
     <div className={`fixed inset-0 bg-white/95 backdrop-blur-xl z-[50000] flex justify-center items-center transition-opacity duration-500 ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain" />
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width="{192}" height="{192}" unoptimized className="object-contain"/>
     </div>
   );
 
@@ -158,8 +191,9 @@ export default function Page() {
     <nav className="fixed w-full z-50 top-0 py-4 px-4 md:px-8 transition-all duration-300">
       <div className="max-w-7xl mx-auto flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl md:rounded-full shadow-lg px-4 py-3 md:px-6 border border-white/50">
         <a href="#beranda" className="flex items-center gap-3">
-          {/* Logo dengan bg-white untuk mencegah efek X-Ray */}
-          <Image src="/logotk.webp" alt="Logo" width={56} height={56} className="h-10 md:h-14 w-auto object-contain drop-shadow-md bg-white p-1 rounded-full" />
+          <div style={logoTightGlowStyle} className="flex items-center justify-center">
+             <Image src="/logotk.webp" alt="Logo" width="{56}" height="{56}" className="h-10 md:h-14 w-auto object-contain"/>
+          </div>
           <div className="flex flex-col leading-none">
             <span className="font-bold text-base md:text-xl text-blue-600 tracking-wide drop-shadow-sm">TK BAITURROHMAN</span>
             <span className="text-[10px] md:text-xs font-bold text-gray-500 tracking-wide mt-1">Membangun Generasi Baiti</span>
@@ -173,7 +207,7 @@ export default function Page() {
             onClick={() => setIsSidebarOpen(true)} 
             className="w-10 h-10 md:w-12 md:h-12 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
           >
-            <Menu size={24} />
+            <Menu size="{24}"/>
           </button>
         </div>
       </div>
@@ -190,52 +224,52 @@ export default function Page() {
         <div className="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white flex justify-between items-center rounded-bl-3xl shrink-0 shadow-md">
           <h3 className="font-bold text-xl">Menu Utama</h3>
           <button onClick={() => setIsSidebarOpen(false)} className="hover:rotate-90 transition-transform">
-            <X size={24} />
+            <X size="{24}"/>
           </button>
         </div>
         
         <div className="flex flex-col p-6 gap-5 overflow-y-auto">
           <a href="#beranda" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Home size={20} /></div> Beranda
+            <div className="w-8 flex justify-center text-blue-600"><Home size="{20}"/></div> Beranda
           </a>
           <a href="#profil" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Building size={20} /></div> Profil
+            <div className="w-8 flex justify-center text-blue-600"><Building size="{20}"/></div> Profil
           </a>
           <a href="#galeri" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><ImageIcon size={20} /></div> Galeri
+            <div className="w-8 flex justify-center text-blue-600"><ImageIcon size="{20}"/></div> Galeri
           </a>
           <a href="#video" onClick={() => setIsSidebarOpen(false)} className="font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Youtube size={20} /></div> Video
+            <div className="w-8 flex justify-center text-blue-600"><Youtube size="{20}"/></div> Video
           </a>
           
           <hr className="border-gray-200" />
           
           <button onClick={() => { setActiveView('listNews'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Newspaper size={20} /></div> Daftar Berita
+            <div className="w-8 flex justify-center text-blue-600"><Newspaper size="{20}"/></div> Daftar Berita
           </button>
           <button onClick={() => { setActiveView('listVideo'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Youtube size={20} /></div> Daftar Video
+            <div className="w-8 flex justify-center text-blue-600"><Youtube size="{20}"/></div> Daftar Video
           </button>
           <button onClick={() => { setActiveView('tools'); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors">
-            <div className="w-8 flex justify-center text-blue-600"><Rocket size={20} /></div> Tools & Aplikasi
+            <div className="w-8 flex justify-center text-blue-600"><Rocket size="{20}"/></div> Tools & Aplikasi
           </button>
           <button onClick={() => { setInfoModalOpen(true); setIsSidebarOpen(false); }} className="text-left font-bold text-gray-700 hover:text-blue-600 flex items-center gap-4 w-full transition-colors">
             <div className="w-8 flex justify-center text-blue-600">
-              <Info size={20} />
+              <Info size="{20}"/>
             </div> Info Terbaru
           </button>
 
           <hr className="border-gray-200" />
 
           <a href="https://docs.google.com/forms/d/e/1FAIpQLSfdM7hAS0t6Pbt1Sb4B43flvSZ2pg8JWpdaVlP0y3lv1mV_xg/viewform?usp=publish-editor" target="_blank" rel="noreferrer" className="bg-white border-2 border-blue-600 text-blue-600 text-center py-3 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-sm">
-            <FileText size={20} /> Form Pendaftaran
+            <FileText size="{20}"/> Form Google (PPDB)
           </a>
 
           <a href="#daftar" onClick={() => setIsSidebarOpen(false)} className="bg-orange-500 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-orange-600 hover:-translate-y-1 transition-all">
-            Daftar Sekarang
+            Daftar Sekarang (Web)
           </a>
           <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white text-center py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
-            <MessageCircle size={20} /> Hubungi WhatsApp
+            <MessageCircle size="{20}"/> Hubungi WhatsApp
           </button>
         </div>
       </div>
@@ -253,7 +287,7 @@ export default function Page() {
       <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 flex flex-col ${activeView.startsWith('list') ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="sticky top-0 bg-white/90 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-100">
           <button onClick={() => { setActiveView('home'); setSearchQuery(''); }} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
-            <ArrowLeft size={24} className="text-gray-700" />
+            <ArrowLeft size="{24}" className="text-gray-700"/>
           </button>
           <input 
             type="text" 
@@ -298,7 +332,7 @@ export default function Page() {
                   className="flex gap-4 bg-white p-3 rounded-2xl shadow-sm cursor-pointer hover:shadow-md transition-all hover:scale-[0.98] active:scale-95 border border-gray-100"
                 >
                   <div className="relative w-24 h-24 flex-shrink-0">
-                    <Image src={thumb} fill sizes="96px" className="object-cover rounded-xl bg-gray-100 border border-gray-50" alt="Thumbnail" />
+                    <Image src="{thumb}" fill sizes="96px" className="object-cover rounded-xl bg-gray-100 border border-gray-50" alt="Thumbnail"/>
                   </div>
                   <div className="flex flex-col justify-center">
                     <h4 className="font-bold text-gray-800 line-clamp-2 text-sm md:text-base">{title}</h4>
@@ -317,7 +351,7 @@ export default function Page() {
     <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 flex flex-col ${activeView === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}>
       <div className="sticky top-0 bg-white/90 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-100">
         <button onClick={() => setActiveView('home')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
-          <ArrowLeft size={24} className="text-gray-700" />
+          <ArrowLeft size="{24}" className="text-gray-700"/>
         </button>
         <h3 className="font-bold text-lg text-gray-800">Tools & Aplikasi</h3>
       </div>
@@ -334,7 +368,7 @@ export default function Page() {
                 className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all active:scale-95"
               >
                 <div className="w-16 h-16 bg-blue-50/80 rounded-full flex items-center justify-center mb-3 text-blue-600 border border-blue-100 shadow-inner">
-                  <Rocket size={28} />
+                  <Rocket size="{28}"/>
                 </div>
                 <span className="font-bold text-center text-sm text-gray-800 line-clamp-2">{t.name}</span>
               </div>
@@ -349,7 +383,7 @@ export default function Page() {
     <div className={`fixed inset-0 z-[11000] bg-white transform transition-transform duration-300 flex flex-col ${activeView === 'iframe' ? 'translate-y-0' : 'translate-y-full'}`}>
       <div className="sticky top-0 bg-white/95 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b">
         <button onClick={() => setActiveView('home')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
-          <ArrowLeft size={24} className="text-gray-700" />
+          <ArrowLeft size="{24}" className="text-gray-700"/>
         </button>
         <h3 className="font-bold text-lg text-gray-800 truncate">{iframeData.title || 'Aplikasi'}</h3>
       </div>
@@ -377,7 +411,7 @@ export default function Page() {
       <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-xl transform transition-transform duration-300 overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="sticky top-0 bg-white/90 backdrop-blur-md shadow-sm z-[201] px-4 py-3 flex items-center gap-4 border-b border-gray-100">
           <button onClick={() => setActiveView('listNews')} className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors">
-            <ArrowLeft size={20} />
+            <ArrowLeft size="{20}"/>
           </button>
           <h3 className="font-bold text-lg text-gray-800 truncate">Detail Kegiatan</h3>
         </div>
@@ -386,8 +420,8 @@ export default function Page() {
           <div className="relative w-full h-[50vh] md:h-[70vh] bg-black overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) setZoomImage(currentDetail.images[newsSlideIndex]); }}>
             {currentDetail.images?.map((src, i) => (
               <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 bg-black ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                <Image src={src} fill sizes="100vw" className="object-cover blur-md opacity-60 scale-110 z-0" alt="blur-bg" />
-                <Image src={src} fill sizes="100vw" className="object-contain z-10" alt="slide" />
+                <Image src="{src}" fill sizes="100vw" className="object-cover blur-md opacity-60 scale-110 z-0" alt="blur-bg"/>
+                <Image src="{src}" fill sizes="100vw" className="object-contain z-10" alt="slide"/>
               </div>
             ))}
             
@@ -402,17 +436,11 @@ export default function Page() {
           
           <div className="px-6 md:px-10 max-w-3xl mx-auto relative z-10 pt-8">
             <div className="flex items-center gap-4 border-b border-gray-100 pb-6 mb-6">
-              <Image src="/logotk.png" width={56} height={56} className="w-14 h-14 object-contain drop-shadow-md bg-white p-1 rounded-full" alt="Admin" />
+              <div style={logoTightGlowStyle}>
+                 <Image src="/logotk.webp" width="{56}" height="{56}" className="w-14 h-14 object-contain drop-shadow-md" alt="Admin"/>
+              </div>
               <div><p className="font-bold text-gray-800 text-lg">Admin TK</p><p className="text-sm text-gray-500">Kegiatan Sekolah</p></div>
             </div>
-            
-            {currentDetail.gallery && currentDetail.gallery.length > 0 && (
-               <div className="mb-6 flex gap-2 overflow-x-auto hide-scroll">
-                  <button onClick={() => { setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-4 py-2 rounded-xl border border-blue-200 flex gap-2 items-center text-sm whitespace-nowrap transition-colors">
-                    <ImageIcon size={16}/> Lihat Semua Galeri Media
-                  </button>
-               </div>
-            )}
 
             <div className="py-2 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
             
@@ -422,7 +450,7 @@ export default function Page() {
                 <p className="text-gray-600">Hubungi kami via WhatsApp.</p>
               </div>
               <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white py-4 px-10 rounded-full font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 flex gap-3 transition-all border border-blue-500">
-                <MessageCircle size={24} /> Chat Admin
+                <MessageCircle size="{24}"/> Chat Admin
               </button>
             </div>
           </div>
@@ -433,49 +461,60 @@ export default function Page() {
 
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
+    
+    // Fitur filter foto/video dari database (menyaring "foto_1", "video_1", dll)
+    const filteredGallery = mediaViewerData.gallery?.filter(item => {
+      if (mediaViewerData.activeFilter === 'all' || !mediaViewerData.activeFilter) return true;
+      return item.group === mediaViewerData.activeFilter;
+    });
+
     return (
       <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-xl transform transition-transform duration-300 overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
         <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-md z-[301] px-4 py-4 flex items-center border-b border-white/10">
           <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white hover:text-gray-300 transition-colors bg-white/10 hover:bg-white/20 px-5 py-2.5 rounded-full backdrop-blur-sm">
-            <ArrowLeft size={20} /> Kembali
+            <ArrowLeft size="{20}"/> Kembali
           </button>
         </div>
         <div className="flex-1 w-full max-w-4xl mx-auto p-4 flex flex-col gap-8 pb-20 items-center justify-center mt-4">
-          {mediaViewerData.gallery?.map((item, i) => {
-            if (item.type === 'image') {
-              return (
-                <div key={i} className="w-full flex flex-col items-center relative">
-                  <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl mb-2 cursor-zoom-in" onClick={() => setZoomImage(item.src)} alt="Galeri" />
-                  <p className="text-gray-400 text-sm italic text-center mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
-                </div>
-              );
-            } else if (item.type === 'video') {
-              const vid = getYouTubeId(item.src);
-              if (vid) {
+          {!filteredGallery || filteredGallery.length === 0 ? (
+            <p className="text-white">Tidak ada media tersedia untuk kategori ini.</p>
+          ) : (
+            filteredGallery.map((item, i) => {
+              if (item.type === 'image') {
                 return (
-                  <div key={i} className="w-full flex flex-col items-center">
-                    <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl mb-2 bg-black border border-white/10">
-                      <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} frameBorder="0" allowFullScreen></iframe>
+                  <div key={i} className="w-full flex flex-col items-center relative">
+                    <Image src="{item.src}" width="{1200}" height="{800}" className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl mb-2 cursor-zoom-in" onClick="{()"> setZoomImage(item.src)} alt="Galeri" />
+                    <p className="text-gray-400 text-sm italic text-center mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
+                  </div>
+                );
+              } else if (item.type === 'video') {
+                const vid = getYouTubeId(item.src);
+                if (vid) {
+                  return (
+                    <div key={i} className="w-full flex flex-col items-center">
+                      <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl mb-2 bg-black border border-white/10">
+                        <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} frameBorder="0" allowFullScreen></iframe>
+                      </div>
+                      <p className="text-gray-400 text-sm italic text-center mb-1 mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
+                      <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer" className="text-xs bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full font-bold hover:bg-blue-600/40 transition-colors mb-4 flex items-center gap-2 mt-2">
+                        <Youtube size="{16}"/> Buka di App YouTube
+                      </a>
                     </div>
-                    <p className="text-gray-400 text-sm italic text-center mb-1 mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
-                    <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer" className="text-xs bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full font-bold hover:bg-blue-600/40 transition-colors mb-4 flex items-center gap-2 mt-2">
-                      <Youtube size={16} /> Buka di App YouTube
-                    </a>
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={i} className="w-full flex flex-col items-center">
-                    <video controls className="w-full max-h-[85vh] rounded-2xl shadow-2xl mb-2 bg-black border border-white/10">
-                      <source src={item.src} type="video/mp4" />
-                    </video>
-                    <p className="text-gray-400 text-sm italic text-center mb-4 mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
-                  </div>
-                );
+                  );
+                } else {
+                  return (
+                    <div key={i} className="w-full flex flex-col items-center">
+                      <video controls className="w-full max-h-[85vh] rounded-2xl shadow-2xl mb-2 bg-black border border-white/10">
+                        <source src={item.src} type="video/mp4" />
+                      </video>
+                      <p className="text-gray-400 text-sm italic text-center mb-4 mt-2 bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-sm">{item.caption}</p>
+                    </div>
+                  );
+                }
               }
-            }
-            return null;
-          })}
+              return null;
+            })
+          )}
         </div>
       </div>
     );
@@ -517,7 +556,7 @@ export default function Page() {
       {renderNewsFullPage()}
       {renderMediaViewer()}
 
-      {/* Info Modal */}
+      
       {infoModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setInfoModalOpen(false)}></div>
@@ -525,7 +564,7 @@ export default function Page() {
             <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-500 to-blue-600 rounded-b-[50%] -translate-y-12"></div>
             <div className="relative z-10 text-center pt-6">
               <div className="w-24 h-24 bg-white rounded-full mx-auto shadow-xl flex items-center justify-center mb-5 text-blue-600 border-4 border-blue-100">
-                <Info size={40} className="animate-pulse" />
+                <Info size="{40}" className="animate-pulse"/>
               </div>
               <h3 className="font-bold text-2xl text-gray-800 mb-2">Info Terbaru</h3>
               <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100 mb-6 text-left text-sm text-gray-600 shadow-inner">
@@ -537,28 +576,28 @@ export default function Page() {
         </div>
       )}
 
-      {/* Zoom Modal */}
+      
       {zoomImage && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[12000] flex flex-col justify-center items-center animate-in fade-in duration-200">
           <div className="fixed top-0 left-0 w-full p-4 flex justify-between z-[12001] bg-gradient-to-b from-black/80 to-transparent">
              <span className="text-white/80 text-sm font-bold drop-shadow-md bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-white/10">Ketuk gambar untuk menutup</span>
              <button onClick={() => setZoomImage(null)} className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/30 border border-white/20 transition-colors">
-                 <X size={28} />
+                 <X size="{28}"/>
              </button>
           </div>
-          <Image src={zoomImage} width={1920} height={1080} className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out" onClick={() => setZoomImage(null)} alt="Zoom" />
+          <Image src="{zoomImage}" width="{1920}" height="{1080}" className="max-w-[100vw] max-h-[100vh] object-contain cursor-zoom-out" onClick="{()"> setZoomImage(null)} alt="Zoom" />
         </div>
       )}
 
-      {/* MAIN HOMEPAGE */}
+      
       <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
         
-        {/* HERO SECTION */}
+        
         <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900">
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/10 z-10 pointer-events-none"></div>
           {defaultHeroImages.map((src, i) => (
             <div key={i} className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${i === heroIndex ? 'opacity-100 z-0' : 'opacity-0 -z-10'}`}>
-               <Image src={src} fill priority={i === 0} sizes="100vw" className="object-cover animate-kenburns" alt="Hero Background" />
+               <Image src="{src}" fill priority="{i" 0} sizes="100vw" className="object-cover animate-kenburns" alt="Hero Background"/>
             </div>
           ))}
           
@@ -588,35 +627,36 @@ export default function Page() {
           </div>
         </header>
 
-        {/* FEATURES */}
+        
         <section className="relative -mt-10 z-30 px-6 overflow-hidden">
           <div className="max-w-6xl mx-auto bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-8 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-8 border border-white/60">
              <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-gray-100"><BookOpen size={32}/></div>
+               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-gray-100"><BookOpen size="{32}"/></div>
                <h3 className="font-bold text-2xl mb-2 text-gray-800">Kurikulum Merdeka</h3>
                <p className="text-gray-600 font-medium">Pembelajaran berpusat pada minat anak.</p>
              </div>
              <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-orange-500 transition-colors duration-300 text-orange-500 group-hover:text-white shadow-md border border-gray-100"><Heart size={32}/></div>
+               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-orange-500 transition-colors duration-300 text-orange-500 group-hover:text-white shadow-md border border-gray-100"><Heart size="{32}"/></div>
                <h3 className="font-bold text-2xl mb-2 text-gray-800">Pendidikan Islam</h3>
                <p className="text-gray-600 font-medium">Penanaman nilai agama sejak dini.</p>
              </div>
              <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-gray-100"><Shapes size={32}/></div>
+               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 group-hover:bg-blue-600 transition-colors duration-300 text-blue-600 group-hover:text-white shadow-md border border-gray-100"><Shapes size="{32}"/></div>
                <h3 className="font-bold text-2xl mb-2 text-gray-800">Fasilitas Lengkap</h3>
                <p className="text-gray-600 font-medium">Area bermain aman & edukatif.</p>
              </div>
           </div>
         </section>
 
-        {/* PROFILE */}
+        
         <section id="profil" className="py-24 px-6 relative">
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
              <div className="lg:w-1/2 relative h-96 md:h-[500px] w-full">
                <div className="absolute -top-4 -left-4 w-32 h-32 bg-orange-400/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/60"></div>
                <div className="absolute -bottom-4 -right-4 w-40 h-40 bg-blue-400/30 backdrop-blur-md rounded-full animate-float shadow-xl border border-white/60" style={{animationDelay: '1s'}}></div>
                <div className="w-full h-full relative rotate-2 hover:rotate-0 transition-transform duration-500 flex items-center justify-center">
-                 <Image src="https://res.cloudinary.com/duiir5ek2/image/upload/v1769449099/yebafqfauc1comzntgcn.jpg" fill sizes="(max-width: 768px) 100vw, 50vw" className="absolute inset-0 w-full h-full object-cover drop-shadow-2xl border-[10px] border-white/90 rounded-[3rem] z-20 shadow-[0_20px_50px_rgba(0,0,0,0.15)]" alt="Profile"/>
+                 
+                 <Image src="https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop" fill sizes="(max-width: 768px) 100vw, 50vw" className="absolute inset-0 w-full h-full object-cover drop-shadow-2xl border-[10px] border-white/90 rounded-[3rem] z-20 shadow-[0_20px_50px_rgba(0,0,0,0.15)]" alt="Profile"/>
                </div>
              </div>
              <div className="lg:w-1/2 bg-white/70 backdrop-blur-xl p-8 md:p-10 rounded-[3rem] shadow-xl border border-white/60">
@@ -624,24 +664,24 @@ export default function Page() {
                <h2 className="font-bold text-4xl text-gray-900 mb-6 leading-tight drop-shadow-sm">Mewujudkan Lingkungan Belajar yang <span className="text-orange-500 underline decoration-wavy">Ceria & Islami</span></h2>
                <p className="text-gray-700 mb-8 leading-relaxed font-medium text-lg">TK Baiturrohman berkomitmen untuk menyediakan pendidikan anak usia dini yang berkualitas. Kami percaya setiap anak adalah bintang yang memiliki potensi unik.</p>
                <ul className="space-y-4 mb-2">
-                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Tenaga pendidik profesional</span></li>
-                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Lingkungan asri & aman</span></li>
-                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Ekstrakurikuler seni lukis</span></li>
-                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size={24}/><span className="font-bold text-gray-800">Baca tulis al-qur'an</span></li>
+                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size="{24}"/><span className="font-bold text-gray-800">Tenaga pendidik profesional</span></li>
+                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size="{24}"/><span className="font-bold text-gray-800">Lingkungan asri & aman</span></li>
+                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size="{24}"/><span className="font-bold text-gray-800">Ekstrakurikuler seni lukis</span></li>
+                 <li className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm"><CheckCircle className="text-blue-600" size="{24}"/><span className="font-bold text-gray-800">Baca tulis al-qur'an</span></li>
                </ul>
              </div>
           </div>
         </section>
 
-        {/* GALLERY / NEWS */}
+        
         <section id="galeri" className="py-24 px-6 relative bg-white/40 backdrop-blur-xl border-y border-white/40 shadow-sm">
           <div className="max-w-7xl mx-auto mb-10 text-center">
              <h2 className="font-bold text-4xl md:text-5xl text-gray-900 mb-4 drop-shadow-sm">Galeri & Berita</h2>
              <p className="text-gray-700 font-medium max-w-xl mx-auto bg-white/60 px-6 py-2.5 rounded-full inline-block backdrop-blur-md border border-white/50 shadow-sm">Geser dan klik foto untuk melihat detail kegiatan.</p>
           </div>
           <div className="max-w-6xl mx-auto relative group rounded-[3rem] p-3 bg-white/50 backdrop-blur-2xl shadow-xl border border-white/60">
-             <button onClick={() => handleScroll(galleryRef, -1)} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-lg border border-white/50"><ChevronLeft size={28}/></button>
-             <button onClick={() => handleScroll(galleryRef, 1)} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-lg border border-white/50"><ChevronRight size={28}/></button>
+             <button onClick={() => handleScroll(galleryRef, -1)} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-lg border border-white/50"><ChevronLeft size="{28}"/></button>
+             <button onClick={() => handleScroll(galleryRef, 1)} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-white/90 hover:bg-white text-blue-600 backdrop-blur-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-lg border border-white/50"><ChevronRight size="{28}"/></button>
              
              <div ref={galleryRef} className="flex overflow-x-auto gap-5 hide-scroll snap-x snap-mandatory scroll-smooth h-[450px] rounded-[2.5rem] p-1">
                 {newsData.map((n, i) => {
@@ -650,12 +690,12 @@ export default function Page() {
                   const isHtml = n.type === 'html';
                   return (
                     <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { setCurrentDetail(n); setActiveView('detailNews'); } }} className="min-w-[85vw] md:min-w-[45%] lg:min-w-[35%] h-full relative snap-center rounded-[2.5rem] flex items-center justify-center cursor-pointer group/item flex-shrink-0 overflow-hidden shadow-lg border border-white/60 bg-black">
-                      <Image src={img} fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover blur-xl opacity-70 scale-110 z-0" alt="News Blur" />
-                      <Image src={img} fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover transition-transform duration-700 group-hover/item:scale-110 z-10" alt="News"/>
+                      <Image src="{img}" fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover blur-xl opacity-70 scale-110 z-0" alt="News Blur"/>
+                      <Image src="{img}" fill sizes="(max-width: 768px) 85vw, 35vw" className="object-cover transition-transform duration-700 group-hover/item:scale-110 z-10" alt="News"/>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-8 z-20">
                          <span className={`${isHtml ? 'bg-purple-600' : 'bg-blue-600'} text-white text-xs px-3.5 py-1.5 rounded-full mb-3 inline-block font-bold shadow-md border border-white/20 tracking-wide`}>{isHtml ? 'Aplikasi' : 'Berita'}</span>
                          <h3 className="text-white font-bold text-2xl group-hover/item:text-orange-400 transition-colors drop-shadow-md">{n.title}</h3>
-                         <p className="text-white/90 font-medium text-sm mt-2 flex items-center gap-2 bg-black/30 w-max px-3 py-1 rounded-full backdrop-blur-sm"><Hand size={14}/> Klik untuk buka</p>
+                         <p className="text-white/90 font-medium text-sm mt-2 flex items-center gap-2 bg-black/30 w-max px-3 py-1 rounded-full backdrop-blur-sm"><Hand size="{14}"/> Klik untuk buka</p>
                       </div>
                     </div>
                   );
@@ -664,15 +704,16 @@ export default function Page() {
           </div>
         </section>
 
-        {/* VIDEO */}
+        
         <section id="video" className="py-24 px-6 relative">
           <div className="max-w-5xl mx-auto text-center mb-12">
              <h2 className="font-bold text-4xl md:text-5xl text-gray-900 drop-shadow-sm bg-white/60 px-8 py-3 rounded-full inline-block backdrop-blur-md border border-white/50 shadow-sm">Video Kegiatan</h2>
           </div>
           
           <div className="relative w-full max-w-5xl mx-auto group bg-white/50 backdrop-blur-xl p-6 md:p-8 rounded-[3.5rem] shadow-xl border border-white/60">
-             <button onClick={() => handleScroll(videoRef, -1)} className="absolute -left-6 md:-left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronLeft size={32}/></button>
-             <button onClick={() => handleScroll(videoRef, 1)} className="absolute -right-6 md:-right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronRight size={32}/></button>
+             <button onClick={() => handleScroll(videoRef, -1)} className="absolute -left-6 md:-left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronLeft size="{32}"/></button>
+             <button onClick={() => handleScroll(videoRef, 1)} className="absolute -right-6 md:-right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full bg-white/95 text-blue-600 flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)] border border-white/80 hover:scale-110 opacity-0 md:group-hover:opacity-100 transition-all"><ChevronRight size="{32}"/></button>
+             
              
              <div ref={videoRef} className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scroll gap-6 pb-4 pt-2 px-2">
                 {videoData.map((v, i) => {
@@ -682,10 +723,11 @@ export default function Page() {
                   return (
                     <div key={i} className="w-[85vw] sm:w-[360px] md:w-[400px] flex-shrink-0 relative snap-center rounded-[2rem] overflow-hidden shadow-lg border border-white/80 bg-white/90 backdrop-blur-md group/vid hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                       <div className="relative w-full aspect-video bg-black cursor-pointer overflow-hidden border-b border-gray-100" onClick={() => window.open(v.url, '_blank')}>
-                         <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover opacity-90 group-hover/vid:opacity-100 group-hover/vid:scale-105 transition-all duration-500 z-0" alt="Thumb"/>
+                         <Image src="{thumb}" fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover opacity-90 group-hover/vid:opacity-100 group-hover/vid:scale-105 transition-all duration-500 z-0" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
+                            
                             <div className="w-[64px] h-[46px] bg-orange-500/95 backdrop-blur-sm rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform shadow-[0_8px_15px_rgba(249,115,22,0.4)] border border-orange-400/50">
-                              <PlayCircle className="text-white" size={28}/>
+                              <PlayCircle className="text-white" size="{28}"/>
                             </div>
                          </div>
                       </div>
@@ -693,7 +735,7 @@ export default function Page() {
                          <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{v.judul}</h3>
                          <p className="text-gray-600 font-medium line-clamp-2 text-sm leading-relaxed">{v.deskripsi}</p>
                          <div className="mt-5">
-                            <a href={v.url} target="_blank" rel="noreferrer" className="text-sm bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 px-4 py-2.5 rounded-xl flex items-center justify-center w-full gap-2 transition-colors border border-blue-100"><Youtube size={18}/> Buka YouTube</a>
+                            <a href={v.url} target="_blank" rel="noreferrer" className="text-sm bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 px-4 py-2.5 rounded-xl flex items-center justify-center w-full gap-2 transition-colors border border-blue-100"><Youtube size="{18}"/> Buka YouTube</a>
                          </div>
                       </div>
                     </div>
@@ -703,7 +745,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* REGISTRATION */}
+        
         <section id="daftar" className="py-24 px-6 relative bg-white/40 backdrop-blur-xl border-y border-white/50 shadow-inner">
           <div className="max-w-5xl mx-auto bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/80">
              
@@ -711,21 +753,24 @@ export default function Page() {
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
                 <div className="relative z-10">
                    <h3 className="font-bold text-4xl mb-6 drop-shadow-md">Pendaftaran Online</h3>
-                   <p className="text-blue-50 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis terkirim ke nomor kepala sekolah.</p>
+                   <p className="text-blue-50 mb-10 text-lg font-medium leading-relaxed">Silahkan isi formulir di sini. Data akan otomatis dirangkai menjadi format pesan WhatsApp untuk Admin.</p>
+                   
                    <div className="space-y-6">
                       <div className="flex items-center gap-4">
-                         <Phone size={24} className="text-orange-400 drop-shadow-sm" />
+                         <Phone size="{24}" className="text-orange-400 drop-shadow-sm"/>
                          <span className="font-bold text-xl drop-shadow-sm">0895-3910-01402</span>
                       </div>
                       <div className="flex items-start gap-4">
-                         <MapPin size={24} className="mt-1 flex-shrink-0 text-orange-400 drop-shadow-sm" />
+                         <MapPin size="{24}" className="mt-1 flex-shrink-0 text-orange-400 drop-shadow-sm"/>
                          <span className="font-medium leading-relaxed drop-shadow-sm">Jl. Andong kencono No. III, Pulodarat RT 19 RW 02, Pecangaan, Jepara, Jawa Tengah.</span>
                       </div>
                    </div>
                 </div>
                 <div className="mt-12 relative z-10 w-full flex justify-center">
-                   {/* Bantalan putih tipis untuk logo di pendaftaran */}
-                   <Image src="/logotk.webp" width={128} height={128} className="w-32 drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)] object-contain hover:scale-105 transition-transform bg-white p-2 rounded-full" alt="Logo"/>
+                   
+                   <div style={logoTightGlowStyle}>
+                     <Image src="/logotk.webp" width="{128}" height="{128}" className="w-32 object-contain hover:scale-105 transition-transform" alt="Logo"/>
+                   </div>
                 </div>
              </div>
              
@@ -758,14 +803,14 @@ export default function Page() {
                      <textarea name="alamat" rows="3" required className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors resize-none shadow-sm text-gray-800" placeholder="Alamat lengkap..."></textarea>
                    </div>
                    <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg py-5 rounded-xl shadow-[0_10px_20px_rgba(249,115,22,0.3)] hover:shadow-[0_15px_30px_rgba(249,115,22,0.4)] transition-all transform hover:-translate-y-1 flex justify-center items-center gap-3 border border-orange-400">
-                      <MessageCircle size={24}/> Kirim Pendaftaran via WA
+                      <MessageCircle size="{24}"/> Kirim Pendaftaran via WA
                    </button>
                 </form>
              </div>
           </div>
         </section>
 
-        {/* MAPS */}
+        
         <section id="lokasi" className="py-16 px-6 relative">
           <div className="max-w-5xl mx-auto text-center">
              <h2 className="font-bold text-4xl text-gray-900 mb-8 drop-shadow-sm bg-white/60 px-8 py-3 rounded-full inline-block backdrop-blur-md border border-white/50 shadow-sm">Lokasi Sekolah</h2>
@@ -775,13 +820,15 @@ export default function Page() {
           </div>
         </section>
 
-        {/* FOOTER */}
+        
         <footer className="bg-slate-900/95 backdrop-blur-2xl text-white pt-20 pb-10 px-6 mb-0 overflow-hidden border-t border-white/10">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
              <div className="col-span-1 md:col-span-2">
                 <div className="flex items-center gap-5 mb-6">
-                   {/* Bantalan putih tipis untuk logo di footer */}
-                   <Image src="/logotk.webp" width={80} height={80} className="h-20 w-auto object-contain drop-shadow-[0_5px_15px_rgba(255,255,255,0.2)] bg-white p-1.5 rounded-full" alt="Logo"/>
+                   
+                   <div style={logoTightGlowStyle}>
+                      <Image src="/logotk.webp" width="{80}" height="{80}" className="h-20 w-auto object-contain" alt="Logo"/>
+                   </div>
                    <span className="font-bold text-3xl text-white drop-shadow-md tracking-wide">TK BAITURROHMAN</span>
                 </div>
                 <p className="text-gray-300 mb-6 max-w-sm text-lg font-medium leading-relaxed">Membentuk generasi masa depan yang cerdas, kreatif, dan religius berakhlak mulia dan Baiti (Baiturrohman islami).</p>
@@ -798,9 +845,9 @@ export default function Page() {
              <div>
                 <h4 className="font-bold text-xl mb-6 text-orange-500">Hubungi Kami</h4>
                 <ul className="space-y-4 text-gray-300 font-medium">
-                   <li className="flex items-center gap-4 transition-colors"><Phone size={20} className="text-blue-500"/><span className="font-bold text-white">0895-3910-01402</span></li>
-                   <li className="flex items-center gap-4 transition-colors"><Mail size={20} className="text-blue-500"/><span className="truncate">dapodiktkbaiturrohman@gmail.com</span></li>
-                   <li className="flex items-start gap-4 transition-colors"><MapPin size={20} className="mt-1 flex-shrink-0 text-blue-500"/><span className="leading-relaxed">Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span></li>
+                   <li className="flex items-center gap-4 transition-colors"><Phone size="{20}" className="text-blue-500"/><span className="font-bold text-white">0895-3910-01402</span></li>
+                   <li className="flex items-center gap-4 transition-colors"><Mail size="{20}" className="text-blue-500"/><span className="truncate">dapodiktkbaiturrohman@gmail.com</span></li>
+                   <li className="flex items-start gap-4 transition-colors"><MapPin size="{20}" className="mt-1 flex-shrink-0 text-blue-500"/><span className="leading-relaxed">Pulodarat RT 19 RW 02, Pecangaan, Jepara.</span></li>
                 </ul>
              </div>
           </div>
