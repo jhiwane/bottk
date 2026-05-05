@@ -13,22 +13,19 @@ async function connectToDatabase() {
     return client;
 }
 
-// FIX BUG: Helper untuk menangani bentrok format ID antara Web Admin dan Telegram Bot
+// FIX BUG: Helper untuk menangani bentrok format ID MongoDB
 function getSafeId(id) {
-    // 1. Jika id adalah format ObjectId MongoDB yang valid (24 hex char)
     if (ObjectId.isValid(id) && String(new ObjectId(id)) === String(id)) {
         return new ObjectId(id);
     }
-    // 2. Jika id dari Telegram bot berbentuk angka timestamp (misal: 1710000000)
     if (!isNaN(id) && id !== null && id !== '') {
         return Number(id);
     }
-    // 3. Fallback jika string biasa
     return id;
 }
 
 export default async function handler(req, res) {
-    // 1. CEK KEAMANAN (Cegah orang asing masuk dan menghapus DB)
+    // CEK KEAMANAN
     const authHeader = req.headers['x-admin-pass'];
     if (authHeader !== adminPassword) {
         return res.status(401).json({ error: 'Unauthorized: Password Admin Salah!' });
@@ -36,19 +33,27 @@ export default async function handler(req, res) {
 
     try {
         const client = await connectToDatabase();
-        const db = client.db('school_db'); // Menggunakan nama DB dari repo kamu
+        const db = client.db('school_db'); 
 
-        // MENGAMBIL DATA (Khusus yang tidak ada di /api/content)
+        // MENGAMBIL DATA (GET)
         if (req.method === 'GET') {
             const { action } = req.query;
             if (action === 'cloud_config') {
                 const activeCloud = await db.collection('cloudinary_accounts').findOne({ active: true });
                 return res.status(200).json(activeCloud || { name: '', preset: '' });
             }
+            if (action === 'hero') {
+                const heroData = await db.collection('settings').findOne({ type: 'hero_images' });
+                return res.status(200).json(heroData || { images: [] });
+            }
+            if (action === 'tools') {
+                const toolsData = await db.collection('tools').find({}).sort({_id: -1}).toArray();
+                return res.status(200).json(toolsData);
+            }
             return res.status(400).json({ error: 'Action tidak valid' });
         }
 
-        // MENAMBAH DATA BARU (CREATE)
+        // MENAMBAH DATA BARU (POST)
         if (req.method === 'POST') {
             const { type, data } = req.body;
             if (type === 'news') {
@@ -59,29 +64,34 @@ export default async function handler(req, res) {
                 const result = await db.collection('videos').insertOne(data);
                 return res.status(200).json(result);
             }
+            if (type === 'tools') {
+                const result = await db.collection('tools').insertOne(data);
+                return res.status(200).json(result);
+            }
+            if (type === 'hero') {
+                // Simpan array gambar hero ke dalam setting khusus
+                await db.collection('settings').updateOne(
+                    { type: 'hero_images' }, 
+                    { $set: { images: data.images } }, 
+                    { upsert: true }
+                );
+                return res.status(200).json({ success: true });
+            }
             if (type === 'cloud_config') {
-                // Nonaktifkan semua akun cloudinary sebelumnya, lalu buat yang baru
                 await db.collection('cloudinary_accounts').updateMany({}, { $set: { active: false } });
                 const result = await db.collection('cloudinary_accounts').insertOne({ 
-                    name: data.name, 
-                    preset: data.preset, 
-                    active: true, 
-                    date: new Date() 
+                    name: data.name, preset: data.preset, active: true, date: new Date() 
                 });
                 return res.status(200).json(result);
             }
         }
 
-        // MENGEDIT DATA (UPDATE)
+        // MENGEDIT DATA (PUT)
         if (req.method === 'PUT') {
             const { type, id, data } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required' });
             
-            // Hapus _id dari payload agar MongoDB tidak error immutable field saat replace
-            if (data._id) {
-                delete data._id;
-            }
-
+            if (data._id) delete data._id;
             const safeQueryId = getSafeId(id);
 
             if (type === 'news') {
@@ -92,9 +102,13 @@ export default async function handler(req, res) {
                 const result = await db.collection('videos').updateOne({ _id: safeQueryId }, { $set: data });
                 return res.status(200).json(result);
             }
+            if (type === 'tools') {
+                const result = await db.collection('tools').updateOne({ _id: safeQueryId }, { $set: data });
+                return res.status(200).json(result);
+            }
         }
 
-        // MENGHAPUS DATA (DELETE)
+        // MENGHAPUS DATA (DELETE PERMANENT)
         if (req.method === 'DELETE') {
             const { type, id } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required' });
@@ -107,6 +121,10 @@ export default async function handler(req, res) {
             }
             if (type === 'videos') {
                 const result = await db.collection('videos').deleteOne({ _id: safeQueryId });
+                return res.status(200).json(result);
+            }
+            if (type === 'tools') {
+                const result = await db.collection('tools').deleteOne({ _id: safeQueryId });
                 return res.status(200).json(result);
             }
         }
