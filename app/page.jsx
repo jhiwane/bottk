@@ -27,8 +27,6 @@ const defaultVideos = [{
 }];
 
 const defaultHeroImages = [
-  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", 
-  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
 ];
 
 // === FUNGSI HELPER ===
@@ -856,4 +854,3 @@ export default function Page() {
     </div>
   );
 }
-```</Image></Image>
