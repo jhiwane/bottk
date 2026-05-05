@@ -26,11 +26,14 @@ const defaultVideos = [{
   deskripsi: "Profil TK Baiturrohman."
 }];
 
-const defaultHeroImages = 
-  [];
+const defaultHeroImages = [
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop", 
+  "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
+];
 
 const defaultProfileImages = [
-  "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop"
 ];
 
 const getYouTubeId = (url) => {
@@ -62,12 +65,39 @@ export default function Page() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [profileIndex, setProfileIndex] = useState(0);
   const [newsSlideIndex, setNewsSlideIndex] = useState(0);
-  
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
 
+  // LOGIKA SWIPE BACK HISTORY HP
+  const pushHistory = () => {
+    window.history.pushState({ open: true }, '');
+  };
+
+  const openAppIframe = (url, title) => {
+    pushHistory();
+    setIsLoadingIframe(true);
+    setIframeData({ url, title });
+    setActiveView('iframe');
+    setIsSidebarOpen(false);
+  };
+
+  // SMART VIDEO EMBED (Otomatis deteksi YouTube atau URL lain)
+  const playVideo = (url, title) => {
+    const ytId = getYouTubeId(url);
+    if (ytId) {
+      openAppIframe(`https://www.youtube.com/embed/${ytId}?autoplay=1`, title);
+    } else {
+      // Fallback jika berupa MP4 atau link lain, langsung putar di Iframe
+      if (url.match(/\.(mp4|webm|ogg)$/i)) {
+        openAppIframe(url, title);
+      } else {
+        window.open(url, '_blank');
+      }
+    }
+  };
+
   useEffect(() => {
-    let isMounted = true;
+    let isMounted = true; 
     const loadContent = async () => {
       try {
         const res = await fetch('/api/content?t=' + new Date().getTime());
@@ -77,9 +107,10 @@ export default function Page() {
         if (data.news && data.news.length > 0) setNewsData(data.news);
         if (data.videos && data.videos.length > 0) setVideoData(data.videos);
         if (data.tools) setToolsData(data.tools.filter(t => t.name !== "HIDDEN_NEWS_HTML"));
+        
         if (data.config) {
-            if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
-            if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
+          if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
+          if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
         }
       } catch (e) {
         if (!isMounted) return;
@@ -97,14 +128,14 @@ export default function Page() {
 
   useEffect(() => {
     const heroInterval = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % heroImages.length);
+      setHeroIndex(prev => heroImages.length > 0 ? (prev + 1) % heroImages.length : 0);
     }, 6000);
     return () => clearInterval(heroInterval);
   }, [heroImages]);
 
   useEffect(() => {
     const profileInterval = setInterval(() => {
-      setProfileIndex(prev => (prev + 1) % profileImages.length);
+      setProfileIndex(prev => profileImages.length > 0 ? (prev + 1) % profileImages.length : 0);
     }, 4000);
     return () => clearInterval(profileInterval);
   }, [profileImages]);
@@ -129,16 +160,13 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
-  // Logika Swipe Back HP
+  // EVENT LISTENER POPSTATE (SWIPE BACK HP)
   useEffect(() => {
     const handlePopState = () => {
-      if (zoomImage) {
-        setZoomImage(null);
-      } else if (infoModalOpen) {
-        setInfoModalOpen(false);
-      } else if (isSidebarOpen) {
-        setIsSidebarOpen(false);
-      } else if (activeView !== 'home') {
+      if (zoomImage) setZoomImage(null);
+      else if (infoModalOpen) setInfoModalOpen(false);
+      else if (isSidebarOpen) setIsSidebarOpen(false);
+      else if (activeView !== 'home') {
         if (activeView === 'mediaViewer') setActiveView('detailNews');
         else setActiveView('home');
       }
@@ -146,16 +174,6 @@ export default function Page() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [zoomImage, infoModalOpen, activeView, isSidebarOpen]);
-
-  const pushHistory = () => window.history.pushState({ open: true }, '');
-
-  const openAppIframe = (url, title) => {
-    pushHistory();
-    setIsLoadingIframe(true);
-    setIframeData({ url, title });
-    setActiveView('iframe');
-    setIsSidebarOpen(false);
-  };
 
   useEffect(() => {
     window.openMediaViewer = (index, filter) => {
@@ -166,6 +184,7 @@ export default function Page() {
       setActiveView('mediaViewer');
     };
     window.openIframe = openAppIframe;
+    
     return () => {
       delete window.openMediaViewer;
       delete window.openIframe;
@@ -337,7 +356,7 @@ export default function Page() {
                       if (item.type === 'html') { openAppIframe(item.fileUrl, title); } 
                       else { pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); }
                     } else { 
-                      window.open(item.url, '_blank'); 
+                      playVideo(item.url, title); 
                     }
                   }}
                   className="flex gap-5 bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100"
@@ -396,14 +415,14 @@ export default function Page() {
       <button onClick={() => setActiveView('home')} className="absolute top-4 left-4 w-12 h-12 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full flex justify-center items-center z-[11001] shadow-lg border border-white/20 transition-all">
         <ArrowLeft size={22} className="text-white" />
       </button>
-      <div className="flex-1 w-full relative bg-gray-50">
+      <div className="flex-1 w-full relative">
         {isLoadingIframe && (
-          <div className="absolute inset-0 flex justify-center items-center backdrop-blur-sm bg-white/50 z-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-b-blue-600"></div>
+          <div className="absolute inset-0 flex justify-center items-center z-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white"></div>
           </div>
         )}
         {activeView === 'iframe' && (
-          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-white" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title}/>
+          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-white" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>
         )}
       </div>
     </div>
@@ -448,11 +467,12 @@ export default function Page() {
             {currentDetail.gallery && currentDetail.gallery.length > 0 && (
                <div className="mb-8 flex gap-3 overflow-x-auto hide-scroll">
                   <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
-                    <ImageIcon size={18}/> Buka Semua Galeri Media
+                    <ImageIcon size={18}/> Buka Semua Galeri Media ({currentDetail.gallery.length} Aset)
                   </button>
                </div>
             )}
 
+            {/* PERINGATAN: Pastikan DB tersanitasi untuk mencegah XSS. Karena menggunakan dangerouslySetInnerHTML */}
             <div className="py-2 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
             
             <div className="mt-16 bg-gray-50 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 border border-gray-100">
@@ -472,6 +492,10 @@ export default function Page() {
 
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
+    
+    // Extract unique groups for the folder tabs
+    const groups = ['all', ...Array.from(new Set(mediaViewerData.gallery?.map(item => item.group).filter(Boolean)))];
+
     const filteredGallery = mediaViewerData.gallery?.filter(item => {
       if (mediaViewerData.activeFilter === 'all' || !mediaViewerData.activeFilter) return true;
       return item.group === mediaViewerData.activeFilter;
@@ -479,11 +503,25 @@ export default function Page() {
 
     return (
       <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
-        <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-[301] px-4 py-4 flex items-center border-b border-white/10">
-          <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white font-medium hover:text-gray-300 transition-colors bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md">
+        <div className="sticky top-0 left-0 right-0 bg-black/50 backdrop-blur-xl z-[301] px-4 py-4 flex flex-col md:flex-row md:items-center justify-between border-b border-white/10 gap-4">
+          <button onClick={() => setActiveView('detailNews')} className="flex items-center gap-3 text-white font-medium hover:text-gray-300 transition-colors bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md w-max">
             <ArrowLeft size={20} /> Kembali
           </button>
+          
+          {/* TABS FOLDER KATEGORI */}
+          <div className="flex gap-2 overflow-x-auto hide-scroll pb-1 md:pb-0">
+            {groups.length > 1 && groups.map((g, idx) => (
+              <button 
+                key={idx} 
+                onClick={() => setMediaViewerData({...mediaViewerData, activeFilter: g})}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${mediaViewerData.activeFilter === g || (!mediaViewerData.activeFilter && g === 'all') ? 'bg-orange-500 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+              >
+                {g === 'all' ? 'Semua Kategori' : g}
+              </button>
+            ))}
+          </div>
         </div>
+        
         <div className="flex-1 w-full max-w-5xl mx-auto p-4 flex flex-col gap-10 pb-20 items-center mt-6">
           {!filteredGallery || filteredGallery.length === 0 ? (
             <p className="text-white">Tidak ada media tersedia untuk kategori ini.</p>
@@ -493,7 +531,7 @@ export default function Page() {
                 return (
                   <div key={i} className="w-full flex flex-col items-center relative group">
                     <Image src={item.src} width={1200} height={800} className="w-full h-auto max-h-[80vh] object-contain rounded-3xl shadow-2xl mb-3 cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]" onClick={() => { pushHistory(); setZoomImage(item.src); }} alt="Galeri" />
-                    <p className="text-gray-300 text-sm font-medium italic text-center mt-2">{item.caption}</p>
+                    {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                   </div>
                 );
               } else if (item.type === 'video') {
@@ -504,10 +542,20 @@ export default function Page() {
                       <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-3 bg-black border border-white/10">
                         <iframe className="w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} frameBorder="0" allowFullScreen></iframe>
                       </div>
-                      <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2">{item.caption}</p>
+                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                       <a href={`https://www.youtube.com/watch?v=${vid}`} target="_blank" rel="noreferrer" className="text-xs bg-white/10 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/20 transition-colors flex items-center gap-2 backdrop-blur-md">
                         <Youtube size={16} className="text-red-500" /> Buka di App YouTube
                       </a>
+                    </div>
+                  );
+                } else {
+                  // FIX BUG: NATIVE MP4 SUPPORT JIKA BUKAN YOUTUBE
+                  return (
+                    <div key={i} className="w-full flex flex-col items-center">
+                      <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl mb-3 bg-black border border-white/10">
+                        <video controls className="w-full h-full" src={item.src}></video>
+                      </div>
+                      {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-3 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
                     </div>
                   );
                 }
@@ -580,7 +628,6 @@ export default function Page() {
       <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
         
         {/* HERO SECTION */}
-        {/* FIX CLEAN DESIGN: Hapus SVG bawah, ganti hero pakai rounded-b-[3rem] layaknya card biar nyambung */}
         <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900 rounded-b-[3rem] shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/20 z-10 pointer-events-none"></div>
           {heroImages.map((src, i) => (
@@ -716,7 +763,7 @@ export default function Page() {
                   return (
                     <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
                       {/* Rasio Kotak Video Kunci (Aspect Video 16:9) */}
-                      <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => window.open(v.url, '_blank')}>
+                      <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
                          <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 450px" className="object-cover opacity-80 group-hover/vid:opacity-100 transition-all duration-700 ease-out group-hover/vid:scale-105" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
                             <div className="w-[64px] h-[48px] bg-white/90 backdrop-blur-md rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform duration-300 shadow-xl">
@@ -727,7 +774,7 @@ export default function Page() {
                       <div className="p-8">
                          <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-1 tracking-tight">{v.judul}</h3>
                          <p className="text-gray-500 font-medium line-clamp-2 text-sm leading-relaxed mb-6">{v.deskripsi}</p>
-                         <a href={v.url} target="_blank" rel="noreferrer" className="w-full text-sm bg-gray-50 text-gray-700 font-bold hover:bg-gray-100 hover:text-blue-600 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-200"><Youtube size={18} className="text-red-500"/> Putar di YouTube</a>
+                         <button onClick={() => playVideo(v.url, v.judul)} className="w-full text-sm bg-gray-50 text-gray-700 font-bold hover:bg-gray-100 hover:text-blue-600 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-200"><Youtube size={18} className="text-red-500"/> Putar di Web</button>
                       </div>
                     </div>
                   );
