@@ -1,7 +1,7 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
-// Password diambil dari Vercel Env, jika belum diset pakai fallback 'admin123'
+// Password dari Vercel Env, fallback ke 'admin123'
 const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'; 
 let cachedClient = null;
 
@@ -13,7 +13,7 @@ async function connectToDatabase() {
     return client;
 }
 
-// FIX BUG: Helper untuk menangani bentrok format ID MongoDB
+// Helper ID agar sinkron dengan Telegram bot dan MongoDB
 function getSafeId(id) {
     if (ObjectId.isValid(id) && String(new ObjectId(id)) === String(id)) {
         return new ObjectId(id);
@@ -25,7 +25,6 @@ function getSafeId(id) {
 }
 
 export default async function handler(req, res) {
-    // CEK KEAMANAN
     const authHeader = req.headers['x-admin-pass'];
     if (authHeader !== adminPassword) {
         return res.status(401).json({ error: 'Unauthorized: Password Admin Salah!' });
@@ -35,25 +34,26 @@ export default async function handler(req, res) {
         const client = await connectToDatabase();
         const db = client.db('school_db'); 
 
-        // MENGAMBIL DATA (GET)
+        // --- METHOD GET (BACA DATA) ---
         if (req.method === 'GET') {
             const { action } = req.query;
             if (action === 'cloud_config') {
-                const activeCloud = await db.collection('cloudinary_accounts').findOne({ active: true });
-                return res.status(200).json(activeCloud || { name: '', preset: '' });
+                const accounts = await db.collection('cloudinary_accounts').find({}).sort({_id: -1}).toArray();
+                return res.status(200).json(accounts || []);
             }
-            if (action === 'hero') {
-                const heroData = await db.collection('settings').findOne({ type: 'hero_images' });
-                return res.status(200).json(heroData || { images: [] });
+            if (action === 'config') {
+                // BUG FIX: Menggunakan collection 'config' agar sinkron dengan Web UI (api/content.js)
+                const configData = await db.collection('config').findOne({ _id: 'main' });
+                return res.status(200).json(configData || { heroImages: [], profileImages: [] });
             }
             if (action === 'tools') {
                 const toolsData = await db.collection('tools').find({}).sort({_id: -1}).toArray();
-                return res.status(200).json(toolsData);
+                return res.status(200).json(toolsData || []);
             }
             return res.status(400).json({ error: 'Action tidak valid' });
         }
 
-        // MENAMBAH DATA BARU (POST)
+        // --- METHOD POST (TAMBAH DATA BARU) ---
         if (req.method === 'POST') {
             const { type, data } = req.body;
             if (type === 'news') {
@@ -68,30 +68,36 @@ export default async function handler(req, res) {
                 const result = await db.collection('tools').insertOne(data);
                 return res.status(200).json(result);
             }
-            if (type === 'hero') {
-                // Simpan array gambar hero ke dalam setting khusus
-                await db.collection('settings').updateOne(
-                    { type: 'hero_images' }, 
-                    { $set: { images: data.images } }, 
+            if (type === 'config') {
+                // Menyimpan Hero & Profile ke _id: 'main'
+                await db.collection('config').updateOne(
+                    { _id: 'main' }, 
+                    { $set: data }, 
                     { upsert: true }
                 );
                 return res.status(200).json({ success: true });
             }
             if (type === 'cloud_config') {
-                await db.collection('cloudinary_accounts').updateMany({}, { $set: { active: false } });
+                // Jika ini akun pertama, otomatis jadi aktif
+                const count = await db.collection('cloudinary_accounts').countDocuments();
+                const isActive = count === 0;
+                
                 const result = await db.collection('cloudinary_accounts').insertOne({ 
-                    name: data.name, preset: data.preset, active: true, date: new Date() 
+                    name: data.name, 
+                    preset: data.preset, 
+                    active: isActive, 
+                    date: new Date() 
                 });
                 return res.status(200).json(result);
             }
         }
 
-        // MENGEDIT DATA (PUT)
+        // --- METHOD PUT (EDIT DATA) ---
         if (req.method === 'PUT') {
             const { type, id, data } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required' });
             
-            if (data._id) delete data._id;
+            if (data && data._id) delete data._id; // Hapus _id agar tidak error immutable field
             const safeQueryId = getSafeId(id);
 
             if (type === 'news') {
@@ -106,9 +112,15 @@ export default async function handler(req, res) {
                 const result = await db.collection('tools').updateOne({ _id: safeQueryId }, { $set: data });
                 return res.status(200).json(result);
             }
+            if (type === 'cloud_activate') {
+                // Matikan semua akun, lalu aktifkan yang dipilih
+                await db.collection('cloudinary_accounts').updateMany({}, { $set: { active: false } });
+                await db.collection('cloudinary_accounts').updateOne({ _id: safeQueryId }, { $set: { active: true } });
+                return res.status(200).json({ success: true });
+            }
         }
 
-        // MENGHAPUS DATA (DELETE PERMANENT)
+        // --- METHOD DELETE (HAPUS PERMANEN) ---
         if (req.method === 'DELETE') {
             const { type, id } = req.body;
             if (!id) return res.status(400).json({ error: 'ID is required' });
@@ -116,16 +128,16 @@ export default async function handler(req, res) {
             const safeQueryId = getSafeId(id);
 
             if (type === 'news') {
-                const result = await db.collection('news').deleteOne({ _id: safeQueryId });
-                return res.status(200).json(result);
+                return res.status(200).json(await db.collection('news').deleteOne({ _id: safeQueryId }));
             }
             if (type === 'videos') {
-                const result = await db.collection('videos').deleteOne({ _id: safeQueryId });
-                return res.status(200).json(result);
+                return res.status(200).json(await db.collection('videos').deleteOne({ _id: safeQueryId }));
             }
             if (type === 'tools') {
-                const result = await db.collection('tools').deleteOne({ _id: safeQueryId });
-                return res.status(200).json(result);
+                return res.status(200).json(await db.collection('tools').deleteOne({ _id: safeQueryId }));
+            }
+            if (type === 'cloud_config') {
+                return res.status(200).json(await db.collection('cloudinary_accounts').deleteOne({ _id: safeQueryId }));
             }
         }
 
