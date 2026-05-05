@@ -53,27 +53,42 @@ export default function AdminPanel() {
     }
   }, []);
 
+  // === HARDWARE BACK BUTTON (HP SWIPE BACK) ===
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isEditingNews) {
+        setIsEditingNews(false);
+      } else if (isEditingVideo) {
+        setIsEditingVideo(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isEditingNews, isEditingVideo]);
+
+  const pushHistory = () => {
+    window.history.pushState({ open: true }, '');
+  };
+
   // === FUNGSI FETCH API (BACA DATA) ===
   const fetchData = async (password) => {
     setIsLoading(true);
     try {
-      // 1. Ambil list berita dan video dari endpoint publik (yang sama dipakai homepage)
-      const resContent = await fetch(window.location.origin + '/api/content?t=' + new Date().getTime());
+      // FIX BUG: Gunakan path relatif, hindari window.location.origin agar tidak error parse URL
+      const resContent = await fetch('/api/content?t=' + new Date().getTime());
       if (resContent.ok) {
         const data = await resContent.json();
         if (data.news) setNews(data.news);
         if (data.videos) setVideos(data.videos);
       }
 
-      // 2. Ambil config cloudinary dari endpoint admin yang diproteksi password
-      const resCloud = await fetch(window.location.origin + '/api/admin?action=cloud_config', {
+      const resCloud = await fetch('/api/admin?action=cloud_config', {
         headers: { 'x-admin-pass': password }
       });
       if (resCloud.ok) {
         const cloudData = await resCloud.json();
         setCloudConfig({ name: cloudData.name || '', preset: cloudData.preset || '' });
       } else {
-        // Jika password salah tapi masih tersimpan di session
         sessionStorage.removeItem('tk_admin_pass');
         setIsLoggedIn(false);
         showNotif('Sesi kedaluwarsa atau password salah.', 'error');
@@ -89,7 +104,7 @@ export default function AdminPanel() {
   // === FUNGSI API MUTASI (CREATE, UPDATE, DELETE) ===
   const apiCall = async (method, payload) => {
     try {
-      const res = await fetch(window.location.origin + '/api/admin', {
+      const res = await fetch('/api/admin', {
         method: method,
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +121,6 @@ export default function AdminPanel() {
     }
   };
 
-  // === FUNGSI BANTUAN NOTIFIKASI ===
   const showNotif = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
@@ -117,8 +131,7 @@ export default function AdminPanel() {
     setIsLoggingIn(true);
     
     try {
-      // Test kredensial dengan memanggil data sensitif
-      const res = await fetch(window.location.origin + '/api/admin?action=cloud_config', {
+      const res = await fetch('/api/admin?action=cloud_config', {
         headers: { 'x-admin-pass': adminPass }
       });
 
@@ -144,7 +157,6 @@ export default function AdminPanel() {
     setAdminPass('');
   };
 
-  // === FUNGSI CLOUDINARY UPLOAD (Auto Compress & WebP) ===
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -171,7 +183,6 @@ export default function AdminPanel() {
         const data = await res.json();
         
         if (data.secure_url) {
-          // AUTO COMPRESS: Sisipkan parameter f_auto, q_auto
           const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
           uploadedUrls.push(optimizedUrl);
         } else {
@@ -198,7 +209,6 @@ export default function AdminPanel() {
     }));
   };
 
-  // === FUNGSI EDITOR RICH TEXT ===
   const insertAtCursor = (textToInsert) => {
     const textarea = contentRef.current;
     if (!textarea) return;
@@ -247,7 +257,6 @@ export default function AdminPanel() {
     }
   };
 
-  // === FUNGSI CRUD BERITA ===
   const handleSaveNews = async (e) => {
     e.preventDefault();
     if (!newsForm.title || !newsForm.content) {
@@ -255,14 +264,12 @@ export default function AdminPanel() {
       return;
     }
 
-    // Pastikan format data sama dengan struktur Telegram Bot agar sinkron
     const finalDate = newsForm.date || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const payload = { ...newsForm, date: finalDate };
     
     setIsLoading(true);
     let res;
     if (currentNews) {
-      // _id dari DB digunakan untuk acuan update
       res = await apiCall('PUT', { type: 'news', id: currentNews._id, data: payload });
     } else {
       res = await apiCall('POST', { type: 'news', data: payload });
@@ -272,7 +279,7 @@ export default function AdminPanel() {
       showNotif(currentNews ? 'Berita diperbarui!' : 'Berita ditambahkan!');
       setIsEditingNews(false);
       setCurrentNews(null);
-      fetchData(adminPass); // Refresh table
+      fetchData(adminPass);
     }
     setIsLoading(false);
   };
@@ -289,7 +296,6 @@ export default function AdminPanel() {
     }
   };
 
-  // === FUNGSI CRUD VIDEO ===
   const handleSaveVideo = async (e) => {
     e.preventDefault();
     if (!videoForm.judul || !videoForm.url) {
@@ -325,7 +331,6 @@ export default function AdminPanel() {
     }
   };
 
-  // === FUNGSI SAVE CLOUDINARY ===
   const handleSaveCloudConfig = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -339,7 +344,6 @@ export default function AdminPanel() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_center,_black_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
         
         <form onSubmit={handleLogin} className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-md relative z-10 text-center animate-in zoom-in-95 duration-500">
@@ -587,6 +591,7 @@ export default function AdminPanel() {
             <p className="text-gray-500 font-medium">Data diambil langsung dari MongoDB.</p>
           </div>
           <button onClick={() => { 
+            pushHistory();
             setCurrentNews(null); 
             setNewsForm({ title: '', content: '', images: [], date: '' }); 
             setIsEditingNews(true); 
@@ -618,6 +623,7 @@ export default function AdminPanel() {
                     
                     <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                       <button onClick={() => {
+                        pushHistory();
                         setCurrentNews(item);
                         setNewsForm({ title: item.title, content: item.content, images: item.images || [], date: item.date });
                         setIsEditingNews(true);
@@ -703,6 +709,7 @@ export default function AdminPanel() {
             <p className="text-gray-500 font-medium">Pengaturan video kegiatan yang tampil di beranda.</p>
           </div>
           <button onClick={() => {
+            pushHistory();
             setCurrentVideo(null);
             setVideoForm({ judul: '', deskripsi: '', url: '' });
             setIsEditingVideo(true);
@@ -731,6 +738,7 @@ export default function AdminPanel() {
                     <p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
                     <div className="flex gap-2">
                       <button onClick={() => {
+                        pushHistory();
                         setCurrentVideo(vid);
                         setVideoForm({ judul: vid.judul, deskripsi: vid.deskripsi, url: vid.url });
                         setIsEditingVideo(true);
