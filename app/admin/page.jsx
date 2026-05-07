@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Newspaper, Youtube, Settings, LogOut, 
   Plus, Edit, Trash2, Save, X, Image as ImageIcon, Link as LinkIcon,
-  Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, FileCode, BookOpen, Shapes, Building
+  Video, Bold, Italic, Palette, FileCode, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, History, FolderOpen, Quote, Heading2, Heading3
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -33,7 +33,8 @@ export default function AdminPanel() {
   const [currentNews, setCurrentNews] = useState(null);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', images: [], gallery: [], date: '' });
   
-  const [newGalleryItem, setNewGalleryItem] = useState({ group: '', type: 'image', src: '', caption: '' });
+  // FIX: Mendukung banyak foto sekaligus (array srcs)
+  const [newGalleryItem, setNewGalleryItem] = useState({ group: '', type: 'image', srcs: [], caption: '' });
 
   // === FORM VIDEO & TOOLS ===
   const [isEditingVideo, setIsEditingVideo] = useState(false);
@@ -154,7 +155,7 @@ export default function AdminPanel() {
     setIsEditingTool(false);
   };
 
-  // --- UPLOAD CLOUDINARY AUTO-WEBP ENGINE ---
+  // --- UPLOAD CLOUDINARY ENGINE ---
   const uploadToCloudinary = async (files) => {
     const activeCloud = cloudAccounts.find(c => c.active);
     if (!activeCloud) {
@@ -179,7 +180,7 @@ export default function AdminPanel() {
           const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
           uploadedUrls.push(optimizedUrl);
         } else showNotif(`Gagal: ${data.error?.message}`, 'error');
-      } catch (err) { showNotif('Error upload.', 'error'); }
+      } catch (err) { showNotif('Error upload jaringan.', 'error'); }
     }
     setIsUploading(false);
     return uploadedUrls;
@@ -247,7 +248,8 @@ export default function AdminPanel() {
     if (assetTarget === 'news_images') {
       setNewsForm(prev => ({ ...prev, images: [...(prev.images || []), url] }));
     } else if (assetTarget === 'news_gallery') {
-      setNewGalleryItem(prev => ({ ...prev, src: url }));
+      // Menambahkan ke array gambar (bisa pilih banyak berulang kali)
+      setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), url] }));
     } else if (assetTarget === 'editor') {
       insertAtCursor(`<img src="${url}" alt="Gambar Sisipan" loading="lazy" class="rounded-xl my-4 w-full h-auto shadow-sm" />`);
     } else if (assetTarget === 'heroImages') {
@@ -256,7 +258,7 @@ export default function AdminPanel() {
       setConfigForm(prev => ({ ...prev, profileImages: [...(prev.profileImages || []), url] }));
     }
     setIsAssetLibraryOpen(false);
-    showNotif('Aset ditambahkan!');
+    showNotif('Aset dipilih!');
   };
 
   // --- EDITOR RICH TEXT PROFESIONAL & TEMPLATE ---
@@ -273,7 +275,6 @@ export default function AdminPanel() {
     }, 10);
   };
 
-  // UPLOAD FOTO MULTIPLE LANGSUNG JADI LINK HTML DI EDITOR BERITA
   const handleEditorImageUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
     if (urls.length > 0) {
@@ -334,17 +335,37 @@ export default function AdminPanel() {
   
   const handleGalleryUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
-    if (urls.length > 0) setNewGalleryItem(prev => ({ ...prev, src: urls[0] })); 
+    if (urls.length > 0) setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), ...urls] })); 
     e.target.value = '';
   };
 
+  // IDE BRILIAN: Tombol Tambah Langsung Inject Link ke Text Editor
   const addGalleryItem = () => {
-    if (!newGalleryItem.src) return showNotif('Gambar wajib diisi/upload!', 'error');
+    if (!newGalleryItem.srcs || newGalleryItem.srcs.length === 0) return showNotif('Foto belum dipilih/diupload!', 'error');
     if (!newGalleryItem.group) return showNotif('Nama Kategori Folder wajib diisi!', 'error');
     
-    setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), { ...newGalleryItem }] }));
-    setNewGalleryItem({ group: '', type: 'image', src: '', caption: '' }); 
-    showNotif('Gambar berhasil dimasukkan ke Folder Galeri!');
+    // Tentukan ID grup 
+    const groupId = newGalleryItem.group; 
+    
+    const itemsToAdd = newGalleryItem.srcs.map(src => {
+       let type = 'image';
+       if (src.includes('youtu') || src.match(/\.(mp4|webm|ogg)$/i)) type = 'video';
+       return {
+         group: groupId,
+         type: type,
+         src: src,
+         caption: newGalleryItem.caption
+       };
+    });
+
+    setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...itemsToAdd] }));
+    
+    // INJECT LINK OTOMATIS KE TEXT EDITOR (Desain Tombol Elegan di dalam Artikel)
+    const catLink = `\n<br><p class="text-center my-4"><a onclick="openMediaViewer(null, '${groupId}')" class="inline-block bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-xl text-sm cursor-pointer border border-blue-200 shadow-sm transition-colors">👉 Lihat Galeri Kategori: ${groupId}</a></p><br>\n`;
+    insertAtCursor(catLink);
+
+    setNewGalleryItem({ group: '', type: 'image', srcs: [], caption: '' }); 
+    showNotif(`${itemsToAdd.length} media masuk Galeri & Link otomatis ditambahkan ke teks!`);
   };
 
   const removeGalleryItem = (index) => {
@@ -438,7 +459,7 @@ export default function AdminPanel() {
         <form onSubmit={handleLogin} className="bg-white/90 p-8 md:p-10 rounded-[3rem] shadow-xl w-full max-w-md relative z-10 text-center border border-gray-100">
           <div className="w-20 h-20 bg-blue-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Lock size={32} className="text-blue-600" /></div>
           <h1 className="font-bold text-3xl text-gray-900 mb-2">Panel Admin TK</h1>
-          <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} required autoFocus className="w-full mt-6 px-5 py-4 rounded-2xl bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center text-xl font-bold tracking-widest text-gray-800 mb-6" placeholder="••••••••" />
+          <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} required autoFocus className="w-full mt-6 px-5 py-4 rounded-2xl bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center text-xl font-bold tracking-widest text-gray-800 mb-6 border border-gray-200" placeholder="••••••••" />
           <button disabled={isLoggingIn} type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-all">Masuk Sistem</button>
         </form>
         {notification && <div className="fixed top-6 right-6 z-50 px-6 py-4 rounded-2xl shadow-xl font-bold border bg-red-50 text-red-600 border-red-200">{notification.message}</div>}
@@ -464,7 +485,6 @@ export default function AdminPanel() {
     );
   };
 
-  // FIX: Mengatasi gambar gepeng (semoit) di Asset Library. Pakai w-full pb-[100%] absolute inset
   const renderAssetLibraryModal = () => {
     if (!isAssetLibraryOpen) return null;
     const assets = getAllHistoryAssets();
@@ -559,6 +579,7 @@ export default function AdminPanel() {
       <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Tampilan Web</h1>
       <p className="text-gray-500 mb-8">Atur gambar Header Beranda dan Foto Profil Sekolah.</p>
 
+      {/* FOTO PROFIL SEKOLAH */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Foto Profil Sekolah (Bagian Tentang Kami)</h3>
         <div className="flex flex-wrap gap-2 mb-4">
@@ -579,6 +600,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
+      {/* FOTO HERO HEADER */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Slide Foto Header Beranda Depan</h3>
         <div className="flex flex-wrap gap-2 mb-4">
@@ -650,7 +672,8 @@ export default function AdminPanel() {
             <button onClick={() => setIsEditingNews(false)} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex justify-center items-center border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"><X size={20}/></button>
             <h1 className="font-bold text-2xl md:text-3xl text-gray-900">{currentNews ? 'Edit Berita' : 'Tulis Berita Profesional'}</h1>
           </div>
-          <form onSubmit={handleSaveNews} className="space-y-6 md:space-y-8 bg-white p-6 md:p-10 rounded-[2rem] border border-gray-100 shadow-sm">
+          <form onSubmit={handleSaveNews} className="space-y-6 md:space-y-8 bg-white p-4 md:p-10 rounded-[2rem] border border-gray-100 shadow-sm">
+            {/* Template & Judul */}
             <div>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                 <label className="text-sm font-bold text-gray-700">Judul Artikel / Berita</label>
@@ -663,12 +686,13 @@ export default function AdminPanel() {
               <input type="text" value={newsForm.title} onChange={e => setNewsForm({...newsForm, title: e.target.value})} required className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold text-gray-900" placeholder="Contoh: Lomba Mewarnai" />
             </div>
 
+            {/* Thumbnail / Foto Utama */}
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <label className="text-sm font-bold text-gray-700">Foto Thumbnail Utama</label>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1"><BookOpen size={14}/> Riwayat</button>
-                  <label className="cursor-pointer bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1"><UploadCloud size={14} /> Upload <input type="file" multiple accept="image/*" onChange={handleNewsFileUpload} className="hidden" disabled={isUploading}/></label>
+                  <button type="button" onClick={() => { setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><BookOpen size={14}/> Riwayat</button>
+                  <label className="cursor-pointer bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><UploadCloud size={14} /> Upload <input type="file" multiple accept="image/*" onChange={handleNewsFileUpload} className="hidden" disabled={isUploading}/></label>
                 </div>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -681,33 +705,45 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
+            {/* FOLDER GALERI MANAGER (FIX LAYOUT ANTI-BERANTAKAN) */}
+            <div className="p-4 md:p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
               <label className="block text-sm font-bold text-blue-900 mb-4 flex items-center gap-2"><Building size={18}/> Kelola Galeri Kategori Tambahan</label>
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex flex-col md:flex-row gap-3">
-                <div className="w-full md:w-32 h-32 bg-gray-100 rounded-xl relative overflow-hidden flex items-center justify-center shrink-0 border-2 border-dashed border-gray-300">
-                  {newGalleryItem.src ? <img src={newGalleryItem.src} className="w-full h-full object-cover"/> : <ImageIcon className="text-gray-400" size={32}/>}
+              
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-48 bg-gray-50 rounded-xl relative flex flex-wrap gap-2 p-3 shrink-0 border-2 border-dashed border-gray-300 min-h-[120px] items-center justify-center">
+                  {newGalleryItem.srcs && newGalleryItem.srcs.length > 0 ? (
+                    newGalleryItem.srcs.map((src, i) => (
+                      <div key={i} className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-gray-300 group/thumb shadow-sm">
+                        <img src={src} className="w-full h-full object-cover"/>
+                        <button type="button" onClick={() => setNewGalleryItem(p => ({...p, srcs: p.srcs.filter((_,idx)=>idx!==i)}))} className="absolute inset-0 m-auto w-6 h-6 bg-red-500 flex items-center justify-center text-white rounded-full opacity-0 group-hover/thumb:opacity-100 transition-all"><X size={12}/></button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-xs flex flex-col items-center"><ImageIcon size={24} className="mb-2 opacity-50"/> <p className="font-medium">Preview Foto</p></div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-3">
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => { setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 px-3 py-2 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-100"><BookOpen size={14}/> Dari Riwayat</button>
-                    <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 px-3 py-2 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-100"><UploadCloud size={14} /> Upload Baru <input type="file" accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button type="button" onClick={() => { setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><BookOpen size={14}/> Pilih dari Riwayat</button>
+                    <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-200 transition-colors"><UploadCloud size={14} /> Upload Foto Baru <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
                   </div>
-                  <input type="text" value={newGalleryItem.group} onChange={e => setNewGalleryItem({...newGalleryItem, group: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold" placeholder="Nama Folder (Misal: Lomba Tarik Tambang)" />
-                  <div className="flex gap-2">
-                    <input type="text" value={newGalleryItem.caption} onChange={e => setNewGalleryItem({...newGalleryItem, caption: e.target.value})} className="flex-1 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm" placeholder="Caption Foto..." />
-                    <button type="button" onClick={addGalleryItem} className="bg-green-500 text-white font-bold px-4 rounded-xl text-sm whitespace-nowrap shadow-md">Tambah</button>
+                  <input type="text" value={newGalleryItem.group} onChange={e => setNewGalleryItem({...newGalleryItem, group: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Kategori Folder (Misal: Lomba Tarik Tambang)" />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input type="text" value={newGalleryItem.caption} onChange={e => setNewGalleryItem({...newGalleryItem, caption: e.target.value})} className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Caption Foto (Opsional)..." />
+                    <button type="button" onClick={addGalleryItem} className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap shadow-md transition-all active:scale-95 w-full sm:w-auto">Tambah ke Galeri</button>
                   </div>
                 </div>
               </div>
+
               {Array.isArray(newsForm.gallery) && newsForm.gallery.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {newsForm.gallery.map((g, idx) => (
-                    <div key={idx} className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 relative group text-center">
-                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-2">
+                    <div key={idx} className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-200 relative group text-center flex flex-col items-center">
+                      <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
                         {g.type === 'video' ? <div className="w-full h-full bg-black flex items-center justify-center"><Youtube className="text-white"/></div> : <img src={g.src} className="w-full h-full object-cover"/>}
                       </div>
-                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded block truncate mb-1">{g.group || 'Umum'}</span>
-                      <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md"><X size={12}/></button>
+                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded block truncate w-full mb-1">{g.group || 'Umum'}</span>
+                      <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md transition-opacity"><X size={12}/></button>
                     </div>
                   ))}
                 </div>
@@ -724,7 +760,7 @@ export default function AdminPanel() {
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('h2')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H2</button>
                 <button type="button" onClick={() => handleToolbarClick('h3')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H3</button>
-                <button type="button" onClick={() => handleToolbarClick('color')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200"><Shapes size={16}/></button>
+                <button type="button" onClick={() => handleToolbarClick('color')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200"><Palette size={16}/></button>
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('link')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs">URL</button>
                 <button type="button" onClick={() => { setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
@@ -740,7 +776,7 @@ export default function AdminPanel() {
               <textarea ref={contentRef} value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})} required rows="10" className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-y text-gray-800 leading-relaxed"></textarea>
             </div>
             
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg"><Save size={20} className="inline mr-2"/> Simpan Berita</button>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg"><CheckCircle size={20} className="inline mr-2"/> Simpan Berita</button>
           </form>
         </div>
       );
@@ -843,7 +879,7 @@ export default function AdminPanel() {
                 <textarea value={toolForm.content} onChange={e => setToolForm({...toolForm, content: e.target.value})} required rows="5" placeholder="<html><body>...</body></html>" className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 text-xs font-mono"></textarea>
               </div>
             )}
-            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg"><Save size={20} className="inline mr-2"/> Simpan Menu Tool</button>
+            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg"><CheckCircle size={20} className="inline mr-2"/> Simpan Menu Tool</button>
           </form>
         </div>
       );
