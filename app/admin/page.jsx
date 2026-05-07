@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Newspaper, Youtube, Settings, LogOut, 
   Plus, Edit, Trash2, Save, X, Image as ImageIcon, Link as LinkIcon,
-  Video, Bold, Italic, Palette, FileCode, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, History, FolderOpen, Quote, Heading2, Heading3
+  Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, FileText, BookOpen, Shapes, Building, Info
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -275,6 +275,7 @@ export default function AdminPanel() {
     }, 10);
   };
 
+  // UPLOAD FOTO MULTIPLE LANGSUNG JADI LINK HTML DI EDITOR BERITA
   const handleEditorImageUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
     if (urls.length > 0) {
@@ -344,7 +345,6 @@ export default function AdminPanel() {
     if (!newGalleryItem.srcs || newGalleryItem.srcs.length === 0) return showNotif('Foto belum dipilih/diupload!', 'error');
     if (!newGalleryItem.group) return showNotif('Nama Kategori Folder wajib diisi!', 'error');
     
-    // Tentukan ID grup 
     const groupId = newGalleryItem.group; 
     
     const itemsToAdd = newGalleryItem.srcs.map(src => {
@@ -360,8 +360,8 @@ export default function AdminPanel() {
 
     setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...itemsToAdd] }));
     
-    // INJECT LINK OTOMATIS KE TEXT EDITOR (Desain Tombol Elegan di dalam Artikel)
-    const catLink = `\n<br><p class="text-center my-4"><a onclick="openMediaViewer(null, '${groupId}')" class="inline-block bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-xl text-sm cursor-pointer border border-blue-200 shadow-sm transition-colors">👉 Lihat Galeri Kategori: ${groupId}</a></p><br>\n`;
+    // INJECT LINK OTOMATIS KE TEXT EDITOR
+    const catLink = `\n<br><p class="text-center my-4"><a onclick="window.openMediaViewer(null, '${groupId}')" class="inline-block bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-xl text-sm cursor-pointer border border-blue-200 shadow-sm transition-colors">👉 Lihat Galeri Kategori: ${groupId}</a></p><br>\n`;
     insertAtCursor(catLink);
 
     setNewGalleryItem({ group: '', type: 'image', srcs: [], caption: '' }); 
@@ -485,6 +485,7 @@ export default function AdminPanel() {
     );
   };
 
+  // FIX: Mengatasi gambar gepeng (semoit) di Asset Library. Pakai w-full pb-[100%] absolute inset
   const renderAssetLibraryModal = () => {
     if (!isAssetLibraryOpen) return null;
     const assets = getAllHistoryAssets();
@@ -495,7 +496,7 @@ export default function AdminPanel() {
             <h3 className="font-bold text-lg flex items-center gap-2"><BookOpen size={20}/> Riwayat Media Web</h3>
             <button onClick={() => setIsAssetLibraryOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100"><X size={20}/></button>
           </div>
-          <div className="p-4 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 content-start">
+          <div className="p-4 overflow-y-auto flex-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 content-start">
             {assets.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">Belum ada riwayat gambar di database.</p>}
             {assets.map((url, i) => {
                const strUrl = String(url || '');
@@ -526,7 +527,7 @@ export default function AdminPanel() {
         <div className="p-6 pb-2 flex justify-between items-center mt-2"><div className="flex items-center gap-3"><div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><LayoutDashboard size={24} /></div><div><h2 className="font-bold text-xl text-gray-900">Admin TK</h2><p className="text-[10px] font-bold text-gray-500 tracking-wider">DATABASE</p></div></div><button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden p-2"><X size={20} /></button></div>
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
           <button onClick={() => selectTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><LayoutDashboard size={20} /> Dashboard</button>
-          <button onClick={() => selectTab('visuals')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'visuals' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><ImagePlus size={20} /> Tampilan Web</button>
+          <button onClick={() => selectTab('visuals')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'visuals' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><ImageIcon size={20} /> Tampilan Web</button>
           <button onClick={() => selectTab('news')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'news' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Newspaper size={20} /> Berita & Folder</button>
           <button onClick={() => selectTab('videos')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'videos' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Youtube size={20} /> Video Utama</button>
           <button onClick={() => selectTab('tools')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'tools' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Rocket size={20} /> Tools HTML</button>
@@ -622,7 +623,7 @@ export default function AdminPanel() {
       </div>
 
       <button onClick={saveVisualConfig} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2 hover:-translate-y-1 transition-all">
-        <Save size={20} /> Simpan Tampilan (Muncul di Web)
+        <CheckCircle size={20} /> Simpan Tampilan (Muncul di Web)
       </button>
     </div>
   );
@@ -632,6 +633,7 @@ export default function AdminPanel() {
       <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
       <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa tambah banyak akun.</p>
 
+      {/* Form Tambah */}
       <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -643,6 +645,7 @@ export default function AdminPanel() {
         </button>
       </form>
 
+      {/* List Akun */}
       <h3 className="font-bold text-xl mb-4 text-gray-900">Daftar Akun Tersimpan</h3>
       <div className="space-y-4">
         {cloudAccounts.length === 0 && <p className="text-gray-500 bg-white p-6 rounded-2xl border text-center font-medium">Belum ada akun tersimpan.</p>}
@@ -672,7 +675,7 @@ export default function AdminPanel() {
             <button onClick={() => setIsEditingNews(false)} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex justify-center items-center border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"><X size={20}/></button>
             <h1 className="font-bold text-2xl md:text-3xl text-gray-900">{currentNews ? 'Edit Berita' : 'Tulis Berita Profesional'}</h1>
           </div>
-          <form onSubmit={handleSaveNews} className="space-y-6 md:space-y-8 bg-white p-4 md:p-10 rounded-[2rem] border border-gray-100 shadow-sm">
+          <form onSubmit={handleSaveNews} className="space-y-6 md:space-y-8 bg-white p-6 md:p-10 rounded-[2rem] border border-gray-100 shadow-sm">
             {/* Template & Judul */}
             <div>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
@@ -711,7 +714,7 @@ export default function AdminPanel() {
               
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex flex-col md:flex-row gap-4">
                 <div className="w-full md:w-48 bg-gray-50 rounded-xl relative flex flex-wrap gap-2 p-3 shrink-0 border-2 border-dashed border-gray-300 min-h-[120px] items-center justify-center">
-                  {newGalleryItem.srcs && newGalleryItem.srcs.length > 0 ? (
+                  {Array.isArray(newGalleryItem.srcs) && newGalleryItem.srcs.length > 0 ? (
                     newGalleryItem.srcs.map((src, i) => (
                       <div key={i} className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-gray-300 group/thumb shadow-sm">
                         <img src={src} className="w-full h-full object-cover"/>
@@ -760,7 +763,7 @@ export default function AdminPanel() {
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('h2')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H2</button>
                 <button type="button" onClick={() => handleToolbarClick('h3')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H3</button>
-                <button type="button" onClick={() => handleToolbarClick('color')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200"><Palette size={16}/></button>
+                <button type="button" onClick={() => handleToolbarClick('color')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200"><Shapes size={16}/></button>
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('link')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs">URL</button>
                 <button type="button" onClick={() => { setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
@@ -784,23 +787,23 @@ export default function AdminPanel() {
 
     return (
       <div className="animate-in fade-in">
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-          <h1 className="font-bold text-3xl md:text-4xl text-gray-900">Kelola Berita</h1>
+        <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+          <div><h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Kelola Berita</h1><p className="text-gray-500 text-sm md:text-base">Artikel dan foto kegiatan TK.</p></div>
           <button onClick={() => { pushHistory(); setCurrentNews(null); setNewsForm({ title: '', content: '', images: [], gallery: [], date: '' }); setIsEditingNews(true); }} className="w-full md:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-xl md:rounded-full font-bold flex justify-center items-center gap-2 shadow-md hover:-translate-y-1 transition-transform"><Plus size={20} /> Tulis Berita Baru</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {news.length === 0 && <p className="text-gray-500">Belum ada berita.</p>}
+          {news.length === 0 && <p className="text-gray-500 font-medium bg-white p-6 rounded-2xl border text-center col-span-3">Belum ada berita.</p>}
           {news.map(item => (
-            <div key={item._id} className="bg-white rounded-2xl border flex flex-col overflow-hidden">
+            <div key={item._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden group hover:shadow-lg transition-shadow">
               <div className="aspect-video bg-gray-100 relative">
-                <img src={item.images?.[0] || 'https://files.catbox.moe/3tf995.png'} className="w-full h-full object-cover"/>
-                <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-bold">{item.gallery?.length || 0} Folder</div>
+                <img src={Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : 'https://files.catbox.moe/3tf995.png'} className="w-full h-full object-cover"/>
+                <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-bold">{Array.isArray(item.gallery) ? item.gallery.length : 0} Folder</div>
               </div>
               <div className="p-4 flex flex-col flex-1">
                 <h3 className="font-bold text-lg leading-tight mb-4 flex-1 line-clamp-2">{item.title}</h3>
                 <div className="flex gap-2">
-                  <button onClick={() => { pushHistory(); setCurrentNews(item); setNewsForm({ title: item.title, content: item.content, images: item.images || [], gallery: item.gallery || [], date: item.date }); setIsEditingNews(true); }} className="flex-1 bg-gray-50 text-blue-600 py-2.5 rounded-xl font-bold text-sm border"><Edit size={16} className="inline"/></button>
-                  <button onClick={() => deleteNews(item._id)} className="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center"><Trash2 size={16} /></button>
+                  <button onClick={() => { pushHistory(); setCurrentNews(item); setNewsForm({ title: item.title, content: item.content, images: Array.isArray(item.images) ? item.images : [], gallery: Array.isArray(item.gallery) ? item.gallery : [], date: item.date }); setIsEditingNews(true); }} className="flex-1 bg-gray-50 hover:bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-sm border border-gray-200 transition-colors"><Edit size={16} className="inline mr-1"/> Edit</button>
+                  <button onClick={() => deleteNews(item._id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-colors"><Trash2 size={16} /></button>
                 </div>
               </div>
             </div>
@@ -822,7 +825,7 @@ export default function AdminPanel() {
             <div><label className="block text-sm font-bold text-gray-700 mb-2">Judul Video</label><input type="text" value={videoForm.judul} onChange={e=>setVideoForm({...videoForm, judul: e.target.value})} required className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold text-gray-900" placeholder="Lomba Agustusan" /></div>
             <div><label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi Video</label><textarea value={videoForm.deskripsi} onChange={e=>setVideoForm({...videoForm, deskripsi: e.target.value})} required rows="3" className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-none text-gray-800" placeholder="Deskripsi..."></textarea></div>
             <div><label className="block text-sm font-bold text-gray-700 mb-2">Link URL YouTube</label><input type="url" value={videoForm.url} onChange={e=>setVideoForm({...videoForm, url: e.target.value})} required className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800" placeholder="https://youtube.com/watch?v=..." /></div>
-            <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-transform hover:-translate-y-1 flex justify-center items-center gap-2"><Save size={20}/> Simpan Video</button>
+            <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-transform hover:-translate-y-1 flex justify-center items-center gap-2"><CheckCircle size={20}/> Simpan Video</button>
           </form>
         </div>
       );
@@ -835,15 +838,16 @@ export default function AdminPanel() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
           {videos.length === 0 && <p className="text-gray-500 font-medium bg-white p-6 rounded-2xl border text-center col-span-2">Belum ada video.</p>}
-          {videos.map(v => {
-            const urlStr = String(v?.url || '');
+          {videos.map((vid) => {
+            const urlStr = String(vid?.url || '');
             const m = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
             const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
+            
             return (
-              <div key={v._id} className="bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-5 group hover:shadow-md transition-shadow">
+              <div key={vid._id} className="bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-5 group hover:shadow-md transition-shadow">
                 <div className="w-full sm:w-36 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0"><img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" /><Youtube className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md" size={32} /></div>
-                <div className="flex-1 w-full overflow-hidden text-center sm:text-left flex flex-col h-full"><h4 className="font-bold text-gray-900 line-clamp-2 mb-1">{v.judul}</h4><p className="text-xs text-gray-500 truncate mb-4">{v.url}</p>
-                  <div className="flex gap-2 justify-center sm:justify-start mt-auto"><button onClick={() => { pushHistory(); setCurrentVideo(v); setVideoForm({judul: v.judul, deskripsi: v.deskripsi, url: v.url}); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 hover:bg-blue-50 text-blue-600 border border-gray-200 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 transition-colors"><Edit size={14} /> Edit</button><button onClick={()=>deleteVideo(v._id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex justify-center items-center"><Trash2 size={14} /></button></div>
+                <div className="flex-1 w-full overflow-hidden text-center sm:text-left flex flex-col h-full"><h4 className="font-bold text-gray-900 truncate mb-1">{vid.judul}</h4><p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
+                  <div className="flex gap-2 justify-center sm:justify-start mt-auto"><button onClick={() => { pushHistory(); setCurrentVideo(vid); setVideoForm({judul: vid.judul, deskripsi: vid.deskripsi, url: v.url}); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 hover:bg-blue-50 text-blue-600 border border-gray-200 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 transition-colors"><Edit size={14} /> Edit</button><button onClick={() => deleteVideo(vid._id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex justify-center items-center transition-colors"><Trash2 size={14} /></button></div>
                 </div>
               </div>
             );
@@ -891,15 +895,15 @@ export default function AdminPanel() {
           <button onClick={() => { pushHistory(); setCurrentTool(null); setToolForm({ name: '', url: '', type: 'link', content: '' }); setIsEditingTool(true); }} className="w-full md:w-auto bg-purple-600 text-white px-6 py-3.5 rounded-xl md:rounded-full font-bold flex justify-center items-center gap-2 shadow-md"><Plus size={20} /> Tambah Tool</button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {tools.length === 0 && <p className="col-span-4 text-gray-500">Belum ada tools.</p>}
+          {tools.length === 0 && <p className="col-span-4 text-gray-500 font-medium bg-white p-6 rounded-2xl border text-center">Belum ada tools tersimpan.</p>}
           {tools.map(t => (
-            <div key={t._id} className="bg-white p-5 rounded-2xl border text-center flex flex-col items-center">
-              <div className="w-14 h-14 bg-purple-50 text-purple-600 flex justify-center items-center rounded-xl mb-3"><FileCode size={24}/></div>
+            <div key={t._id} className="bg-white p-5 rounded-2xl border text-center flex flex-col items-center group hover:shadow-md transition-shadow shadow-sm">
+              <div className="w-14 h-14 bg-purple-50 text-purple-600 flex justify-center items-center rounded-xl mb-3 group-hover:scale-110 transition-transform"><FileCode size={24}/></div>
               <h4 className="font-bold text-gray-900 line-clamp-1 text-sm mb-1">{t.name}</h4>
               <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold mb-4">{t.type === 'link' ? 'URL LINK' : 'HTML APP'}</span>
               <div className="flex gap-2 w-full mt-auto">
-                 <button onClick={() => { pushHistory(); setCurrentTool(t); setToolForm({ name: t.name, url: t.url||'', type: t.type||'link', content: t.content||'' }); setIsEditingTool(true); }} className="flex-1 bg-gray-50 border text-blue-600 py-2 rounded-lg text-xs font-bold"><Edit size={14} className="mx-auto"/></button>
-                 <button onClick={() => deleteTool(t._id)} className="w-10 bg-red-50 text-red-500 rounded-lg flex justify-center items-center"><Trash2 size={14}/></button>
+                 <button onClick={() => { pushHistory(); setCurrentTool(t); setToolForm({ name: t.name, url: t.url||'', type: t.type||'link', content: t.content||'' }); setIsEditingTool(true); }} className="flex-1 bg-gray-50 hover:bg-purple-50 text-purple-600 border border-gray-200 py-2 rounded-lg text-xs font-bold transition-colors"><Edit size={14} className="mx-auto"/></button>
+                 <button onClick={() => deleteTool(t._id)} className="w-10 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg flex justify-center items-center transition-colors"><Trash2 size={14}/></button>
               </div>
             </div>
           ))}
