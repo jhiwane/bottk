@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Newspaper, Youtube, Settings, LogOut, 
   Plus, Edit, Trash2, Save, X, Image as ImageIcon, Link as LinkIcon,
-  Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, FileText, BookOpen, Shapes, Building, Info, Download, Upload
+  Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, FileCode
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -163,7 +163,7 @@ export default function AdminPanel() {
     }
     
     setIsUploading(true);
-    showNotif('Sedang mengunggah foto... Mohon tunggu.', 'info'); // NOTIF UPLOAD START
+    showNotif('Sedang mengunggah foto... Mohon tunggu.', 'info'); 
     const uploadedUrls = [];
     
     for (const file of files) {
@@ -188,7 +188,7 @@ export default function AdminPanel() {
       }
     }
     setIsUploading(false);
-    showNotif('Upload selesai!', 'success'); // NOTIF UPLOAD END
+    showNotif('Upload selesai!', 'success'); 
     return uploadedUrls;
   };
 
@@ -223,7 +223,7 @@ export default function AdminPanel() {
         // Restore Config
         if (parsed.config) await apiCall('POST', { type: 'config', data: parsed.config });
 
-        // Restore News (Add loop)
+        // Restore News
         if (Array.isArray(parsed.news)) {
           for (const n of parsed.news) {
             delete n._id; // Hapus ID lama agar tidak bentrok
@@ -348,7 +348,6 @@ export default function AdminPanel() {
   const handleEditorImageUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
     if (urls.length > 0) {
-      // Menyisipkan gambar ke text area dengan aspect-video dan sudut melengkung layaknya portal news
       const htmlToInsert = urls.map(url => `\n<img src="${url}" alt="Dokumentasi" loading="lazy" class="rounded-2xl my-6 w-full aspect-video object-cover shadow-md" />\n`).join('');
       insertAtCursor(htmlToInsert);
       showNotif(`Berhasil menyisipkan ${urls.length} gambar langsung ke dalam teks.`);
@@ -410,6 +409,7 @@ export default function AdminPanel() {
     e.target.value = '';
   };
 
+  // Tombol Tambah Langsung Inject Link ke Text Editor
   const addGalleryItem = () => {
     if (!newGalleryItem.srcs || newGalleryItem.srcs.length === 0) return showNotif('Foto belum dipilih/diupload!', 'error');
     if (!newGalleryItem.group) return showNotif('Nama Kategori Folder wajib diisi!', 'error');
@@ -429,7 +429,7 @@ export default function AdminPanel() {
 
     setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...itemsToAdd] }));
     
-    // INJECT LINK OTOMATIS KE TEXT EDITOR (Teks inline agar rapi bersama paragraf)
+    // INJECT LINK OTOMATIS KE TEXT EDITOR
     const catLink = ` <a onclick="window.openMediaViewer(null, '${groupId}')" class="text-red-600 font-bold cursor-pointer hover:underline inline-flex items-center gap-1">[👉 Lihat Galeri Foto Kategori: ${groupId}]</a> `;
     insertAtCursor(catLink);
 
@@ -485,14 +485,12 @@ export default function AdminPanel() {
     }
   };
   
-  // FIX ERROR HTML FILE UPLOAD: Batasi ukuran dan deteksi string aman
   const handleHtmlFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (file.size > 1024 * 1024) { // Batas 1MB agar DB tidak error
+    if (file.size > 1024 * 1024) { 
         showNotif('Ukuran file HTML terlalu besar (Maks 1MB)', 'error');
-        e.target.value = '';
         return;
     }
 
@@ -502,7 +500,6 @@ export default function AdminPanel() {
       showNotif('File HTML berhasil dibaca. Klik Simpan Menu Tool.', 'success');
     };
     reader.readAsText(file);
-    e.target.value = '';
   };
 
   const handleSaveTool = async (e) => {
@@ -573,7 +570,7 @@ export default function AdminPanel() {
       <div className="fixed inset-0 z-[40000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <h3 className="font-bold text-lg flex items-center gap-2"><BookOpen size={20}/> Riwayat Media Web</h3>
+            <h3 className="font-bold text-lg flex items-center gap-2"><ImageIcon size={20}/> Riwayat Media Web</h3>
             <button onClick={() => setIsAssetLibraryOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100"><X size={20}/></button>
           </div>
           <div className="p-4 overflow-y-auto flex-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 content-start">
@@ -607,12 +604,12 @@ export default function AdminPanel() {
         <div className="p-6 pb-2 flex justify-between items-center mt-2"><div className="flex items-center gap-3"><div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><LayoutDashboard size={24} /></div><div><h2 className="font-bold text-xl text-gray-900">Admin TK</h2><p className="text-[10px] font-bold text-gray-500 tracking-wider">DATABASE</p></div></div><button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden p-2"><X size={20} /></button></div>
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
           <button onClick={() => selectTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><LayoutDashboard size={20} /> Dashboard</button>
-          <button onClick={() => selectTab('visuals')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'visuals' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><ImageIcon size={20} /> Tampilan Web</button>
+          <button onClick={() => selectTab('visuals')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'visuals' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><ImagePlus size={20} /> Tampilan Web</button>
           <button onClick={() => selectTab('news')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'news' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Newspaper size={20} /> Berita & Folder</button>
           <button onClick={() => selectTab('videos')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'videos' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Youtube size={20} /> Video Utama</button>
           <button onClick={() => selectTab('tools')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'tools' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Rocket size={20} /> Tools HTML</button>
           <div className="h-px bg-gray-100 my-4 mx-2"></div>
-          <button onClick={() => selectTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Settings size={20} /> Pengaturan Akun</button>
+          <button onClick={() => selectTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}><Settings size={20} /> Multi Cloudinary</button>
         </nav>
         <div className="p-4 mt-auto border-t border-gray-100">
           <button onClick={handleLogout} className="w-full mb-2 flex items-center justify-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl font-bold transition-colors hover:bg-red-100"><LogOut size={18} /> Logout Aman</button>
@@ -635,11 +632,11 @@ export default function AdminPanel() {
             {/* TOMBOL IMPORT & EXPORT SINKRONISASI DATA */}
             <div className="flex items-center gap-3">
                 <label className="cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors border border-blue-200 shadow-sm">
-                    <Upload size={18} /> Restore JSON 
+                    <UploadCloud size={18} /> Restore JSON 
                     <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                 </label>
                 <button onClick={handleExportData} className="bg-gray-900 text-white hover:bg-black px-4 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors shadow-lg">
-                    <Download size={18} /> Backup Data
+                    <Save size={18} /> Backup Data
                 </button>
             </div>
         </div>
@@ -679,7 +676,7 @@ export default function AdminPanel() {
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Foto Profil Sekolah (Bagian Tentang Kami)</h3>
         <div className="flex flex-wrap gap-2 mb-4">
-          <button onClick={() => { setAssetTarget('profileImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><BookOpen size={18} /> Riwayat</button>
+          <button onClick={() => { setAssetTarget('profileImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
           <label className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 cursor-pointer transition-colors"><UploadCloud size={18} /> Upload PC/HP <input type="file" multiple accept="image/*" onChange={(e) => handleVisualUpload(e, 'profileImages')} className="hidden" disabled={isUploading} /></label>
           <button onClick={() => addVisualUrl('profileImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
@@ -700,7 +697,7 @@ export default function AdminPanel() {
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Slide Foto Header Beranda Depan</h3>
         <div className="flex flex-wrap gap-2 mb-4">
-          <button onClick={() => { setAssetTarget('heroImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><BookOpen size={18} /> Riwayat</button>
+          <button onClick={() => { setAssetTarget('heroImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
           <label className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 cursor-pointer transition-colors"><UploadCloud size={18} /> Upload PC/HP <input type="file" multiple accept="image/*" onChange={(e) => handleVisualUpload(e, 'heroImages')} className="hidden" disabled={isUploading} /></label>
           <button onClick={() => addVisualUrl('heroImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
@@ -718,15 +715,15 @@ export default function AdminPanel() {
       </div>
 
       <button onClick={saveVisualConfig} className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2 hover:-translate-y-1 transition-all">
-        <CheckCircle size={20} /> Simpan Tampilan (Muncul di Web)
+        <Save size={20} /> Simpan Tampilan (Muncul di Web)
       </button>
     </div>
   );
 
   const renderCloudSettings = () => (
     <div className="animate-in fade-in max-w-4xl">
-      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Pengaturan Akun</h1>
-      <p className="text-gray-500 mb-8">Penyimpanan Cloudinary untuk optimasi foto berita otomatis.</p>
+      <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Akun Cloudinary</h1>
+      <p className="text-gray-500 mb-8">Penyimpanan awan untuk auto-kompres WebP. Bisa tambah banyak akun.</p>
 
       <form onSubmit={saveNewCloud} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Tambah Akun Baru</h3>
@@ -787,23 +784,23 @@ export default function AdminPanel() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <label className="text-sm font-bold text-gray-700">Foto Thumbnail Utama</label>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><BookOpen size={14}/> Riwayat</button>
+                  <button type="button" onClick={() => { setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><ImageIcon size={14}/> Riwayat</button>
                   <label className="cursor-pointer bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><UploadCloud size={14} /> Upload <input type="file" multiple accept="image/*" onChange={handleNewsFileUpload} className="hidden" disabled={isUploading}/></label>
                 </div>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                 {Array.isArray(newsForm.images) && newsForm.images.map((img, idx) => (
-                  <div key={idx} className="relative w-full pb-[100%] rounded-xl overflow-hidden bg-gray-100 group">
-                    <img src={img} className="absolute inset-0 w-full h-full object-cover"/>
+                  <div key={idx} className="aspect-square relative rounded-xl overflow-hidden bg-gray-100 group">
+                    <img src={img} className="w-full h-full object-cover"/>
                     <button type="button" onClick={() => setNewsForm(prev=>({...prev, images: prev.images.filter((_,i)=>i!==idx)}))} className="absolute inset-0 m-auto w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg"><Trash2 size={14}/></button>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* FOLDER GALERI MANAGER (FIX LAYOUT ANTI-BERANTAKAN) */}
+            {/* FOLDER GALERI MANAGER */}
             <div className="p-4 md:p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
-              <label className="block text-sm font-bold text-blue-900 mb-4 flex items-center gap-2"><Building size={18}/> Kelola Galeri Kategori Tambahan</label>
+              <label className="block text-sm font-bold text-blue-900 mb-4 flex items-center gap-2"><ImagePlus size={18}/> Kelola Galeri Kategori Tambahan</label>
               
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex flex-col md:flex-row gap-4">
                 <div className="w-full md:w-48 bg-gray-50 rounded-xl relative flex flex-wrap gap-2 p-3 shrink-0 border-2 border-dashed border-gray-300 min-h-[120px] items-center justify-center">
@@ -820,7 +817,7 @@ export default function AdminPanel() {
                 </div>
                 <div className="flex-1 flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <button type="button" onClick={() => { setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><BookOpen size={14}/> Pilih dari Riwayat</button>
+                    <button type="button" onClick={() => { setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><ImageIcon size={14}/> Pilih dari Riwayat</button>
                     <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-200 transition-colors"><UploadCloud size={14} /> Upload Foto Baru <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
                   </div>
                   <input type="text" value={newGalleryItem.group} onChange={e => setNewGalleryItem({...newGalleryItem, group: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Kategori Folder (Misal: Lomba Tarik Tambang)" />
@@ -856,7 +853,6 @@ export default function AdminPanel() {
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('h2')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H2</button>
                 <button type="button" onClick={() => handleToolbarClick('h3')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H3</button>
-                <button type="button" onClick={() => handleToolbarClick('color')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200"><Palette size={16}/></button>
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('link')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs">URL</button>
                 <button type="button" onClick={() => { setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
@@ -872,7 +868,7 @@ export default function AdminPanel() {
               <textarea ref={contentRef} value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})} required rows="10" className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-y text-gray-800 leading-relaxed"></textarea>
             </div>
             
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg"><CheckCircle size={20} className="inline mr-2"/> Simpan Berita</button>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg"><Save size={20} className="inline mr-2"/> Simpan Berita</button>
           </form>
         </div>
       );
@@ -890,7 +886,7 @@ export default function AdminPanel() {
             <div key={item._id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm flex flex-col overflow-hidden group hover:shadow-lg transition-shadow">
               <div className="aspect-video bg-gray-100 relative">
                 <img src={Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : 'https://files.catbox.moe/3tf995.png'} className="w-full h-full object-cover"/>
-                <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-bold">{Array.isArray(item.gallery) ? item.gallery.length : 0} Folder</div>
+                <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-bold">{Array.isArray(item.gallery) ? item.gallery.length : 0} Folder</div>
               </div>
               <div className="p-5 md:p-6 flex flex-col flex-1">
                 <span className="text-orange-500 text-[10px] font-bold tracking-widest uppercase mb-1">{item.date}</span>
@@ -917,9 +913,9 @@ export default function AdminPanel() {
           </div>
           <form onSubmit={handleSaveVideo} className="space-y-6 bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100">
             <div><label className="block text-sm font-bold text-gray-700 mb-2">Judul Video</label><input type="text" value={videoForm.judul} onChange={e=>setVideoForm({...videoForm, judul: e.target.value})} required className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold text-gray-900" placeholder="Lomba Agustusan" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi Singkat</label><textarea value={videoForm.deskripsi} onChange={e=>setVideoForm({...videoForm, deskripsi: e.target.value})} required rows="3" className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-none text-sm md:text-base"></textarea></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Link URL YouTube</label><input type="url" value={videoForm.url} onChange={e=>setVideoForm({...videoForm, url: e.target.value})} required className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-sm md:text-base" placeholder="https://youtube.com/watch?v=..." /></div>
-            <div className="pt-2"><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 hover:-translate-y-1"><Save size={20} /> Simpan Video</button></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi Video</label><textarea value={videoForm.deskripsi} onChange={e=>setVideoForm({...videoForm, deskripsi: e.target.value})} required rows="3" className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-none text-gray-800" placeholder="Deskripsi..."></textarea></div>
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Link URL YouTube</label><input type="url" value={videoForm.url} onChange={e=>setVideoForm({...videoForm, url: e.target.value})} required className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-gray-800" placeholder="https://youtube.com/watch?v=..." /></div>
+            <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-transform hover:-translate-y-1 flex justify-center items-center gap-2"><Save size={20}/> Simpan Video</button>
           </form>
         </div>
       );
@@ -930,21 +926,18 @@ export default function AdminPanel() {
           <div><h1 className="font-display font-bold text-3xl md:text-4xl text-gray-900 mb-2 tracking-tight">Kelola Video</h1><p className="text-gray-500 font-medium text-sm md:text-base">Pengaturan video YouTube di beranda.</p></div>
           <button onClick={() => { pushHistory(); setCurrentVideo(null); setVideoForm({ judul: '', deskripsi: '', url: '' }); setIsEditingVideo(true); }} className="w-full md:w-auto bg-orange-500 text-white px-6 py-3.5 rounded-2xl md:rounded-full font-bold shadow-lg shadow-orange-500/30 hover:-translate-y-1 hover:bg-orange-600 transition-all flex items-center justify-center gap-2"><Plus size={20} /> Tambah Video</button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {videos.length === 0 && <p className="text-gray-500 font-medium col-span-2">Belum ada video.</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+          {videos.length === 0 && <p className="text-gray-500 font-medium bg-white p-6 rounded-2xl border text-center col-span-2">Belum ada video.</p>}
           {videos.map((vid) => {
             const urlStr = String(vid?.url || '');
             const m = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
             const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
             
             return (
-              <div key={vid._id} className="bg-white p-4 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4 md:gap-5">
-                <div className="w-full sm:w-32 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0"><img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80" /><Youtube className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white" size={24} /></div>
-                <div className="flex-1 w-full overflow-hidden text-center sm:text-left"><h4 className="font-bold text-gray-900 truncate mb-1">{vid.judul}</h4><p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
-                  <div className="flex gap-2 justify-center sm:justify-start">
-                    <button onClick={() => { pushHistory(); setCurrentVideo(vid); setVideoForm({ judul: vid.judul, deskripsi: vid.deskripsi, url: vid.url }); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 text-blue-600 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 border border-gray-200"><Edit size={14} /> Edit</button>
-                    <button onClick={() => deleteVideo(vid._id)} className="w-12 bg-red-50 text-red-500 rounded-xl flex justify-center items-center"><Trash2 size={14} /></button>
-                  </div>
+              <div key={vid._id} className="bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-5 group hover:shadow-md transition-shadow">
+                <div className="w-full sm:w-36 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0"><img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" /><Youtube className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md" size={32} /></div>
+                <div className="flex-1 w-full overflow-hidden text-center sm:text-left flex flex-col h-full"><h4 className="font-bold text-gray-900 truncate mb-1">{vid.judul}</h4><p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
+                  <div className="flex gap-2 justify-center sm:justify-start mt-auto"><button onClick={() => { pushHistory(); setCurrentVideo(vid); setVideoForm({ judul: vid.judul, deskripsi: vid.deskripsi, url: vid.url }); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 hover:bg-blue-50 text-blue-600 border border-gray-200 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 transition-colors"><Edit size={14} /> Edit</button><button onClick={() => deleteVideo(vid._id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex justify-center items-center transition-colors"><Trash2 size={14} /></button></div>
                 </div>
               </div>
             );
@@ -960,10 +953,10 @@ export default function AdminPanel() {
         <div className="animate-in fade-in max-w-2xl">
           <div className="flex items-center gap-4 mb-6">
             <button onClick={() => setIsEditingTool(false)} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex justify-center items-center border shadow-sm hover:bg-gray-50 transition-colors"><X size={20} className="text-gray-600" /></button>
-            <h1 className="font-bold text-2xl md:text-3xl text-gray-900">{currentTool ? 'Edit Tool' : 'Tambah Menu Tool'}</h1>
+            <h1 className="font-bold text-2xl md:text-3xl text-gray-900">{currentTool ? 'Edit Tool' : 'Tool Baru'}</h1>
           </div>
-          <form onSubmit={handleSaveTool} className="space-y-6 bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Nama Menu / Aplikasi</label><input type="text" value={toolForm.name} onChange={e => setToolForm({...toolForm, name: e.target.value})} required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold text-gray-900" placeholder="Contoh: Raport Online" /></div>
+          <form onSubmit={handleSaveTool} className="space-y-6 bg-white p-6 md:p-8 rounded-[2rem] border shadow-sm">
+            <div><label className="block text-sm font-bold text-gray-700 mb-2">Nama Menu Aplikasi</label><input type="text" value={toolForm.name} onChange={e => setToolForm({...toolForm, name: e.target.value})} required className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold text-gray-900" placeholder="Contoh: Raport Online" /></div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Tipe Tujuan (Aksi saat diklik)</label>
               <select value={toolForm.type} onChange={e => setToolForm({...toolForm, type: e.target.value, url:'', content:''})} className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200 cursor-pointer font-bold text-gray-800 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all">
