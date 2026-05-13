@@ -24,12 +24,10 @@ export default function Page() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('home'); 
   
-  // Data State
   const [newsData, setNewsData] = useState(defaultNews);
   const [videoData, setVideoData] = useState(defaultVideos);
   const [toolsData, setToolsData] = useState([]);
   
-  // Tampilan (Visuals) State - Default Fallback Images
   const [heroImages, setHeroImages] = useState([
     "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2120&auto=format&fit=crop"
@@ -38,7 +36,6 @@ export default function Page() {
     "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"
   ]);
   
-  // Modals
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState(null);
   const [currentDetail, setCurrentDetail] = useState(null);
@@ -48,9 +45,8 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [heroIndex, setHeroIndex] = useState(0);
-  const [profileIndex, setProfileIndex] = useState(0);
+  const [profileIndex, setProfileIndex] = useState(0); 
   const [newsSlideIndex, setNewsSlideIndex] = useState(0);
-  
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -64,13 +60,13 @@ export default function Page() {
     setIsSidebarOpen(false);
   };
 
+  // SMART VIDEO EMBED
   const playVideo = (url, title) => {
     const ytId = getYouTubeId(url);
     if (ytId) {
       openAppIframe(`https://www.youtube.com/embed/${ytId}?autoplay=1`, title);
     } else {
-      // Fallback jika berupa MP4 atau link lain, langsung putar di Iframe
-      if (url.match(/\.(mp4|webm|ogg)$/i)) {
+      if (String(url).match(/\.(mp4|webm|ogg)$/i)) {
         openAppIframe(url, title);
       } else {
         window.open(url, '_blank');
@@ -90,7 +86,6 @@ export default function Page() {
         if (data.videos && data.videos.length > 0) setVideoData(data.videos);
         if (data.tools) setToolsData(data.tools.filter(t => t.name !== "HIDDEN_NEWS_HTML"));
         
-        // Memuat gambar hero dan profil dari Database MongoDB
         if (data.config) {
             if (data.config.heroImages && data.config.heroImages.length > 0) setHeroImages(data.config.heroImages);
             if (data.config.profileImages && data.config.profileImages.length > 0) setProfileImages(data.config.profileImages);
@@ -139,7 +134,6 @@ export default function Page() {
     }
   }, [isSidebarOpen, activeView, zoomImage, infoModalOpen]);
 
-  // EVENT LISTENER POPSTATE (SWIPE BACK HP)
   useEffect(() => {
     const handlePopState = () => {
       if (zoomImage) setZoomImage(null);
@@ -159,8 +153,7 @@ export default function Page() {
       const targetData = newsData[index] || currentDetail;
       if (!targetData) return;
       pushHistory();
-      // Filter kategori telah dihapus dari argumen agar viewer terbuka untuk semua file
-      setMediaViewerData({ ...targetData });
+      setMediaViewerData({ ...targetData, activeFilter: filter });
       setActiveView('mediaViewer');
     };
     window.openIframe = openAppIframe;
@@ -324,7 +317,6 @@ export default function Page() {
                 const vid = getYouTubeId(item.url);
                 if (vid) thumb = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
               }
-              // FIX BUG: Cegah error runtime bila 'thumb' ternyata null/undefined dari database
               if (typeof thumb === 'string' && thumb.includes('cloudinary')) {
                   thumb = thumb.replace('/upload/', '/upload/w_200,q_auto,f_auto/');
               }
@@ -334,8 +326,12 @@ export default function Page() {
                   key={idx} 
                   onClick={() => {
                     if (isNews) {
-                      if (item.type === 'html') { openAppIframe(item.fileUrl, title); } 
-                      else { pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); }
+                      // FITUR FULL PAGE TAB BARU UNTUK HTML APP
+                      if (item.type === 'html') { 
+                        window.location.href = item.fileUrl; 
+                      } else { 
+                        pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); 
+                      }
                     } else { 
                       playVideo(item.url, title); 
                     }
@@ -375,7 +371,12 @@ export default function Page() {
             return (
               <div 
                 key={idx} 
-                onClick={() => { pushHistory(); openAppIframe(link, t.name); }} 
+                onClick={() => {
+                  // FITUR FULL PAGE TAB BARU UNTUK HTML APP
+                  if (t.type === 'html_code' || t.type === 'link') {
+                    window.location.href = link;
+                  }
+                }} 
                 className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="w-16 h-16 bg-gradient-to-tr from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600 shadow-inner">
@@ -390,82 +391,149 @@ export default function Page() {
     </div>
   );
 
-  // FIX: Iframe Full Screen untuk Web/App HTML agar bebas tanpa Frame pembatas
+  // IFRAME MODAL HANYA DIGUNAKAN UNTUK MEMUTAR VIDEO SAJA (Youtube/MP4)
   const renderIframeModal = () => (
     <div className={`fixed inset-0 z-[11000] bg-black transform transition-transform duration-500 ease-out flex flex-col ${activeView === 'iframe' ? 'translate-y-0' : 'translate-y-full'}`}>
-      <button onClick={() => setActiveView('home')} className="absolute top-4 left-4 w-12 h-12 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full flex justify-center items-center z-[11001] shadow-lg border border-white/20 transition-all">
-        <ArrowLeft size={22} className="text-white" />
-      </button>
-      <div className="flex-1 w-full relative">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-800">
+        <button onClick={() => setActiveView('home')} className="w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center">
+          <ArrowLeft size={22} className="text-gray-900" />
+        </button>
+        <h3 className="font-bold text-lg text-gray-900 truncate">{iframeData.title || 'Video Player'}</h3>
+      </div>
+      <div className="flex-1 w-full relative bg-black">
         {isLoadingIframe && (
           <div className="absolute inset-0 flex justify-center items-center z-20">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white"></div>
           </div>
         )}
         {activeView === 'iframe' && (
-          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-white" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>
+          <iframe src={iframeData.url} className="w-full h-full border-0 absolute inset-0 z-10 bg-black" onLoad={() => setIsLoadingIframe(false)} title={iframeData.title} allowFullScreen allow="autoplay; encrypted-media"/>
         )}
       </div>
     </div>
   );
 
+  // DESAIN BERITA LAYAKNYA PORTAL NEWS (Refernsi brrit.html)
   const renderNewsFullPage = () => {
     if (!currentDetail) return null;
     return (
-      <div className={`fixed inset-0 z-[2000] bg-white/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="sticky top-0 bg-white/80 backdrop-blur-xl shadow-sm z-[201] px-4 py-4 flex items-center gap-4 border-b border-gray-200/50">
-          <button onClick={() => setActiveView('listNews')} className="w-12 h-12 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-700 transition-colors shadow-sm">
-            <ArrowLeft size={22} />
-          </button>
-          <h3 className="font-bold text-xl text-gray-800 truncate tracking-tight">Detail Kegiatan</h3>
-        </div>
+      <div className={`fixed inset-0 z-[2000] bg-gray-100 transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>
         
-        <div className="max-w-4xl mx-auto bg-white min-h-screen pb-24 shadow-2xl">
-          <div className="relative w-full h-[50vh] md:h-[65vh] bg-gray-900 overflow-hidden cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
-            {currentDetail.images?.map((src, i) => (
-              <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                <Image src={src} fill sizes="100vw" className="object-cover blur-2xl opacity-60 scale-125 z-0" alt="blur-bg" />
-                <Image src={src} fill sizes="100vw" className="object-contain z-10 drop-shadow-2xl" alt="slide" />
-              </div>
-            ))}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none z-20" />
-            <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-30 pointer-events-none">
-              <span className="bg-orange-500/90 backdrop-blur-md text-white px-4 py-1.5 rounded-xl text-xs font-bold mb-4 inline-block tracking-widest uppercase shadow-lg">
-                {currentDetail.date}
-              </span>
-              <h2 className="font-bold text-3xl md:text-5xl leading-tight drop-shadow-lg mb-2 tracking-tight">{currentDetail.title}</h2>
+        {/* HEADER PORTAL NEWS */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <button onClick={() => setActiveView('listNews')} className="text-gray-600 hover:text-red-600 transition-colors">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div className="text-2xl font-black text-red-600 tracking-tighter">PORTAL<span className="text-gray-800">NEWS</span></div>
+                </div>
+                <nav className="hidden md:flex space-x-6 font-bold text-sm uppercase">
+                    <span className="text-red-600">Pendidikan</span>
+                </nav>
             </div>
-          </div>
-          
-          <div className="px-6 md:px-12 relative z-10 pt-10">
-            <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8">
-              <div style={logoTightGlowStyle} className="bg-gray-50 p-2 rounded-2xl border border-gray-200">
-                 <Image src="/logotk.webp" width={48} height={48} className="w-12 h-12 object-contain" alt="Admin" />
-              </div>
-              <div><p className="font-bold text-gray-900 text-lg">Admin TK</p><p className="text-sm text-gray-500 font-medium">Informasi & Kegiatan Sekolah</p></div>
-            </div>
-            
-            {currentDetail.gallery && currentDetail.gallery.length > 0 && (
-               <div className="mb-8 flex gap-3 overflow-x-auto hide-scroll">
-                  <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-5 py-3 rounded-2xl flex gap-3 items-center text-sm whitespace-nowrap transition-all duration-300">
-                    <ImageIcon size={18}/> Buka Semua Galeri Media
-                  </button>
-               </div>
-            )}
+        </header>
 
-            <div className="py-2 prose prose-lg prose-blue max-w-none text-gray-700 leading-loose" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
-            
-            <div className="mt-16 bg-gray-50 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 border border-gray-100">
-              <div className="flex-1 text-center md:text-left">
-                <h4 className="font-bold text-2xl text-gray-900 mb-2">Ingin Mendaftar?</h4>
-                <p className="text-gray-600 font-medium">Hubungi kami via WhatsApp untuk informasi lebih lanjut.</p>
-              </div>
-              <button onClick={() => openWhatsApp()} className="bg-blue-600 text-white py-4 px-10 rounded-2xl font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:-translate-y-1 flex gap-3 transition-all duration-300">
-                <MessageCircle size={24} /> Chat Admin
-              </button>
-            </div>
-          </div>
+        <div className="w-full bg-gray-200 h-1">
+            <div className="bg-red-600 h-1 w-1/3"></div>
         </div>
+
+        <main className="max-w-6xl mx-auto px-4 py-8">
+            <div className="flex flex-col lg:flex-row gap-8">
+                
+                {/* KONTEN ARTIKEL UTAMA */}
+                <div className="lg:w-2/3 bg-white p-6 md:p-10 shadow-sm rounded">
+                    <div className="flex items-center text-xs mb-4 space-x-2 text-gray-500">
+                        <span className="cursor-pointer hover:underline" onClick={() => setActiveView('home')}>Home</span>
+                        <span>/</span>
+                        <span className="cursor-pointer hover:underline">Pendidikan</span>
+                        <span>/</span>
+                        <span className="text-gray-400">Kegiatan Sekolah</span>
+                    </div>
+
+                    <div className="text-sm mb-2 text-green-700 font-bold uppercase tracking-widest">Info Sekolah</div>
+                    
+                    <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-6 text-gray-900">
+                        {currentDetail.title}
+                    </h1>
+
+                    <div className="flex items-center space-x-3 mb-8 pb-6 border-b border-gray-100 text-sm">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500">
+                           <ImageIcon size={20}/>
+                        </div>
+                        <div>
+                            <p className="font-bold text-gray-900">Redaksi TK Baiturrohman</p>
+                            <p className="text-gray-500 text-xs">{currentDetail.date}</p>
+                        </div>
+                    </div>
+
+                    {/* HERO IMAGES CROSSFADE */}
+                    <figure className="mb-8 relative w-full h-64 md:h-96 bg-gray-900 rounded-lg shadow-sm overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
+                        {currentDetail.images?.map((src, i) => (
+                            <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                <Image src={src} fill sizes="100vw" className="object-cover" alt="Hero" />
+                            </div>
+                        ))}
+                        <div className="absolute top-4 left-4 text-white text-[11px] font-extrabold flex items-center gap-1.5 z-20 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                            <span className="animate-pulse h-2 w-2 bg-red-500 rounded-full inline-block shadow-[0_0_6px_rgba(239,68,68,1)]"></span> FOTO UTAMA
+                        </div>
+                    </figure>
+
+                    {/* ISI KONTEN (CSS KHUSUS UNTUK PROSE BERITA) */}
+                    <div className="article-content text-lg text-gray-800 space-y-6 text-justify pb-4" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
+
+                    {/* JELAJAHI LIPUTAN */}
+                    <div className="mt-12 pt-8 border-t border-gray-200">
+                        <h3 className="text-lg font-bold mb-4 text-center font-sans text-gray-900">Jelajahi Liputan Selengkapnya</h3>
+                        <div className="flex flex-col sm:flex-row justify-center gap-4">
+                            {currentDetail.gallery && currentDetail.gallery.length > 0 && (
+                              <button onClick={() => { pushHistory(); setMediaViewerData(currentDetail); setActiveView('mediaViewer'); }} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded shadow-md transition flex items-center justify-center gap-2 font-sans">
+                                  <ImageIcon size={20} /> Lihat Semua Dokumentasi
+                              </button>
+                            )}
+                            <button onClick={() => { setActiveView('listVideo'); }} className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-6 rounded shadow-md transition flex items-center justify-center gap-2 font-sans">
+                                <Youtube size={20} /> Lihat Semua Video
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* TAGS */}
+                    <div className="mt-12 pt-8 border-t border-gray-100 flex flex-wrap gap-2 font-sans">
+                        <span className="text-sm font-bold mt-1 text-gray-700">TAGS:</span>
+                        <span className="bg-gray-200 px-3 py-1 rounded text-xs hover:bg-gray-300 font-semibold text-gray-800 cursor-pointer">TK Baiturrohman</span>
+                        <span className="bg-gray-200 px-3 py-1 rounded text-xs hover:bg-gray-300 font-semibold text-gray-800 cursor-pointer">Pendidikan Karakter</span>
+                    </div>
+                </div>
+
+                {/* RIGHT SIDEBAR WIDGETS */}
+                <aside className="lg:w-1/3 space-y-8">
+                    {/* PPDB Banner */}
+                    <div className="bg-red-600 text-white p-8 rounded text-center">
+                        <p className="text-xs uppercase tracking-widest mb-2 opacity-80">Pendaftaran Siswa Baru</p>
+                        <h4 className="text-xl font-bold mb-4">Tahun Ajaran 2026/2027 Telah Dibuka!</h4>
+                        <button onClick={openWhatsApp} className="inline-block bg-white text-red-600 px-6 py-2 rounded-full font-bold text-sm uppercase shadow-lg hover:bg-gray-100 transition">
+                            Info Selengkapnya
+                        </button>
+                    </div>
+
+                    {/* Video Pilihan */}
+                    {videoData.length > 0 && (
+                      <div className="bg-white p-6 shadow-sm rounded">
+                          <h3 className="text-lg font-extrabold border-b-2 border-red-600 pb-2 mb-4 text-gray-900 uppercase">VIDEO PILIHAN</h3>
+                          <div className="relative group cursor-pointer" onClick={() => playVideo(videoData[0].url, videoData[0].judul)}>
+                              <img src={getYouTubeId(videoData[0].url) ? `https://img.youtube.com/vi/${getYouTubeId(videoData[0].url)}/mqdefault.jpg` : 'https://files.catbox.moe/3tf995.png'} alt="Video" className="w-full rounded h-44 object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-12 h-12 bg-red-600 bg-opacity-90 rounded-full flex items-center justify-center pl-1 group-hover:scale-110 transition shadow-lg">
+                                      <PlayCircle className="text-white" size={24} />
+                                  </div>
+                              </div>
+                          </div>
+                          <p className="mt-3 font-bold text-sm hover:text-red-600 cursor-pointer text-gray-900 line-clamp-2" onClick={() => playVideo(videoData[0].url, videoData[0].judul)}>{videoData[0].judul}</p>
+                      </div>
+                    )}
+                </aside>
+            </div>
+        </main>
       </div>
     );
   };
@@ -473,8 +541,11 @@ export default function Page() {
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
     
-    // Tampilkan galeri murni, tanpa ada filter kategori/tombol yang memakan tempat
-    const gallery = mediaViewerData.gallery || [];
+    // Fitur: Kalau admin memberikan filter dari Inline Text Link (group), maka difilter. Jika null, tampilkan semua
+    const filteredGallery = mediaViewerData.gallery?.filter(item => {
+      if (!mediaViewerData.activeFilter || mediaViewerData.activeFilter === 'null') return true;
+      return item.group === mediaViewerData.activeFilter;
+    }) || [];
 
     return (
       <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
@@ -487,10 +558,10 @@ export default function Page() {
         </div>
         
         <div className="flex-1 w-full max-w-4xl mx-auto p-4 flex flex-col gap-10 pb-20 items-center justify-center -mt-8">
-          {gallery.length === 0 ? (
+          {filteredGallery.length === 0 ? (
             <p className="text-white/50 font-medium">Tidak ada media.</p>
           ) : (
-            gallery.map((item, i) => {
+            filteredGallery.map((item, i) => {
               if (item.type === 'image') {
                 return (
                   <div key={i} className="w-full flex flex-col items-center relative group">
@@ -510,7 +581,6 @@ export default function Page() {
                     </div>
                   );
                 } else {
-                  // FIX BUG: NATIVE MP4 SUPPORT JIKA BUKAN YOUTUBE
                   return (
                     <div key={i} className="w-full flex flex-col items-center">
                       <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl mb-2 bg-black border border-white/10 flex justify-center items-center relative">
@@ -519,9 +589,6 @@ export default function Page() {
                         </video>
                       </div>
                       {item.caption && <p className="text-gray-300 text-sm font-medium italic text-center mb-2 mt-2 bg-black/40 px-4 py-2 rounded-full">{item.caption}</p>}
-                      <a href={item.src} target="_blank" rel="noreferrer" className="text-xs bg-white/10 text-white px-5 py-2.5 rounded-full font-bold hover:bg-white/20 transition-colors flex items-center gap-2 backdrop-blur-md">
-                        Buka Tautan Eksternal
-                      </a>
                     </div>
                   );
                 }
@@ -538,7 +605,10 @@ export default function Page() {
 
   return (
     <div className="font-sans text-gray-800 min-h-screen relative overflow-x-hidden bg-[#f4f4f6]">
+      {/* GLOBAL CSS STYLE INJECTION */}
       <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap');
+        
         html { scroll-behavior: smooth; }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
@@ -546,6 +616,16 @@ export default function Page() {
         .animate-float { animation: float 3s ease-in-out infinite; }
         @keyframes kenburns { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.15) translate(-2%, -2%); } }
         .animate-kenburns { animation: kenburns 20s ease-out infinite alternate; }
+
+        /* Custom Styles for PortalNews Article Content */
+        .article-content { font-family: 'Merriweather', serif; }
+        .article-content h2 { font-size: 1.5rem; font-weight: bold; margin-top: 2.5rem; margin-bottom: 1rem; font-family: 'Open Sans', sans-serif; color: #111827; }
+        .article-content h3 { font-size: 1.25rem; font-weight: bold; margin-top: 2rem; margin-bottom: 1rem; font-family: 'Open Sans', sans-serif; color: #111827; }
+        .article-content p { margin-bottom: 1.5rem; }
+        .article-content a { color: #dc2626; text-decoration: none; font-weight: 600; }
+        .article-content a:hover { text-decoration: underline; }
+        .article-content blockquote { border-left: 4px solid #dc2626; padding-left: 1.5rem; margin: 2.5rem 0; font-style: italic; font-size: 1.5rem; color: #374151; background-color: #f9fafb; padding-top: 1rem; padding-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+        .article-content img { border-radius: 0.75rem; margin: 2rem 0; width: 100%; height: auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
       `}} />
 
       {renderLoader()}
@@ -593,7 +673,7 @@ export default function Page() {
       {/* MAIN HOMEPAGE */}
       <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
         
-        {/* HERO SECTION */}
+        {/* HERO SECTION - KEMBALI KE ASLINYA (DENGAN SVG) */}
         <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900">
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/20 z-10 pointer-events-none"></div>
           {heroImages.map((src, i) => (
@@ -620,7 +700,11 @@ export default function Page() {
                  </div>
              </div>
           </div>
-          
+          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] z-20 pointer-events-none">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-[calc(146%_+_1.3px)] h-[80px] text-[#f4f4f6] fill-current">
+                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path>
+             </svg>
+          </div>
         </header>
 
         {/* FEATURES (Glassmorphism iOS) */}
@@ -651,7 +735,6 @@ export default function Page() {
                <div className="absolute -top-6 -left-6 w-40 h-40 bg-blue-200/50 backdrop-blur-3xl rounded-full animate-float blur-xl"></div>
                <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-orange-200/50 backdrop-blur-3xl rounded-full animate-float blur-xl" style={{animationDelay: '1s'}}></div>
                
-               {/* FIX: Rotasi Foto Profil sesuai urutan DOM original agar layout tetap sama persis */}
                <div className="w-full h-full relative group perspective bg-gray-100 rounded-[3rem] overflow-hidden">
                  {profileImages.map((src, i) => (
                     <div key={i} className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${i === profileIndex ? 'opacity-100 z-20' : 'opacity-0 z-10'}`}>
@@ -689,14 +772,12 @@ export default function Page() {
              <div ref={galleryRef} className="flex overflow-x-auto gap-6 hide-scroll snap-x snap-mandatory scroll-smooth pb-10 px-4 md:px-8">
                 {newsData.map((n, i) => {
                   let img = n.images && n.images.length > 0 ? n.images[0] : "https://files.catbox.moe/3tf995.png";
-                  // FIX BUG: Mencegah TypeError jika img ternyata null
                   if (typeof img === 'string' && img.includes('cloudinary')) {
                       img = img.replace('/upload/', '/upload/w_600,q_auto,f_auto/');
                   }
                   const isHtml = n.type === 'html';
                   return (
                     <div key={i} onClick={() => { if(isHtml) openAppIframe(n.fileUrl, n.title); else { pushHistory(); setCurrentDetail(n); setActiveView('detailNews'); } }} className="w-[85vw] md:w-[400px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 cursor-pointer group/item transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                      {/* Rasio Kotak Gambar Kunci (Aspect Square) */}
                       <div className="w-full aspect-square relative overflow-hidden bg-gray-100">
                          <Image src={img} fill sizes="(max-width: 768px) 85vw, 400px" className="object-cover transition-transform duration-700 ease-out group-hover/item:scale-105" alt="News"/>
                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
@@ -730,7 +811,6 @@ export default function Page() {
                   const thumb = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
                   return (
                     <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                      {/* Rasio Kotak Video Kunci (Aspect Video 16:9) */}
                       <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
                          <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 450px" className="object-cover opacity-80 group-hover/vid:opacity-100 transition-all duration-700 ease-out group-hover/vid:scale-105" alt="Thumb"/>
                          <div className="absolute inset-0 flex justify-center items-center z-10">
