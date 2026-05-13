@@ -35,7 +35,7 @@ const defaultProfileImages = [
   "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop"
 ];
 
-// FIX BUG: Algoritma cerdas untuk mendeteksi semua jenis link YouTube (Shorts, youtu.be, embed, watch)
+// FIX BUG: Algoritma cerdas untuk mendeteksi semua jenis link YouTube
 const getYouTubeId = (url) => {
   if (!url) return null;
   const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
@@ -65,7 +65,7 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [heroIndex, setHeroIndex] = useState(0);
-  const [profileIndex, setProfileIndex] = useState(0); // Tambahan index untuk profil
+  const [profileIndex, setProfileIndex] = useState(0); 
   const [newsSlideIndex, setNewsSlideIndex] = useState(0);
   const galleryRef = useRef(null);
   const videoRef = useRef(null);
@@ -89,7 +89,6 @@ export default function Page() {
     if (ytId) {
       openAppIframe(`https://www.youtube.com/embed/${ytId}?autoplay=1`, title);
     } else {
-      // Fallback jika berupa MP4 atau link lain, langsung putar di Iframe
       if (String(url).match(/\.(mp4|webm|ogg)$/i)) {
         openAppIframe(url, title);
       } else {
@@ -365,12 +364,8 @@ export default function Page() {
                   key={idx} 
                   onClick={() => {
                     if (isNews) {
-                      // FITUR FULL PAGE UNTUK HTML APP
-                      if (item.type === 'html') { 
-                        window.location.href = item.fileUrl; 
-                      } else { 
-                        pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); 
-                      }
+                      if (item.type === 'html') { window.location.href = item.fileUrl; } 
+                      else { pushHistory(); setCurrentDetail(item); setActiveView('detailNews'); }
                     } else { 
                       playVideo(item.url, title); 
                     }
@@ -411,10 +406,7 @@ export default function Page() {
               <div 
                 key={idx} 
                 onClick={() => {
-                  // FITUR FULL PAGE UNTUK HTML APP & EXTERNAL LINK
-                  if (t.type === 'html_code' || t.type === 'link') {
-                    window.location.href = link;
-                  }
+                  if (t.type === 'html_code' || t.type === 'link') { window.location.href = link; }
                 }} 
                 className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
               >
@@ -435,7 +427,7 @@ export default function Page() {
       <button onClick={() => setActiveView('home')} className="absolute top-4 left-4 w-12 h-12 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full flex justify-center items-center z-[11001] shadow-lg border border-white/20 transition-all">
         <ArrowLeft size={22} className="text-white" />
       </button>
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative bg-black">
         {isLoadingIframe && (
           <div className="absolute inset-0 flex justify-center items-center z-20">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white"></div>
@@ -448,13 +440,12 @@ export default function Page() {
     </div>
   );
 
-  // DESAIN BERITA RAPI LAYAKNYA PORTAL NEWS KORAN PROFESIONAL
   const renderNewsFullPage = () => {
     if (!currentDetail) return null;
     return (
       <div className={`fixed inset-0 z-[2000] bg-gray-100 transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>
         
-        {/* HEADER PORTAL NEWS */}
+        {/* HEADER PORTAL NEWS (TK BAITURROHMAN NEWS) */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -502,8 +493,8 @@ export default function Page() {
                         </div>
                     </div>
 
-                    {/* HERO IMAGES CROSSFADE */}
-                    <figure className="mb-8 relative w-full aspect-video bg-gray-100 rounded-2xl shadow-md overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
+                    {/* HERO IMAGES CROSSFADE (FIX: KOTAK SQUARE PRESISI) */}
+                    <figure className="mb-8 relative w-full max-w-lg mx-auto aspect-square bg-gray-100 rounded-[2rem] shadow-lg overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
                         {currentDetail.images?.map((src, i) => (
                             <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                                 <Image src={src} fill sizes="100vw" className="object-cover" alt="Hero" />
@@ -638,9 +629,36 @@ export default function Page() {
         .article-content h2, .article-content h3 { font-family: 'Open Sans', sans-serif; font-weight: bold; color: #111827; text-align: left; text-indent: 0; }
         .article-content h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; }
         .article-content h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 1rem; }
+        
+        /* PARAGRAF MENJOROK KE DALAM (TAB) */
         .article-content p { margin-bottom: 1.25rem; text-align: justify; text-indent: 2.5rem; line-height: 1.8; }
-        .article-content a { color: #dc2626; text-decoration: none; font-weight: 600; }
+        
+        .article-content a { color: #dc2626; text-decoration: none; font-weight: 600; text-indent: 0; }
         .article-content a:hover { text-decoration: underline; }
+        
+        /* FIX BULKY BUTTON GALERI: Ubah tombol besar jadi teks inline link biasa */
+        .article-content a[onclick*="openMediaViewer"] {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            color: #dc2626 !important;
+            font-weight: 700 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.25rem !important;
+            text-indent: 0 !important;
+        }
+        .article-content a[onclick*="openMediaViewer"]:hover { text-decoration: underline !important; }
+        
+        /* Mengembalikan tag P yang membungkus link galeri agar menyatu dengan teks */
+        .article-content p:has(a[onclick*="openMediaViewer"]) {
+            text-align: left !important;
+            display: inline !important;
+            margin: 0 !important;
+            text-indent: 0 !important;
+        }
+
         .article-content blockquote { border-left: 4px solid #dc2626; margin: 2.5rem 0; font-style: italic; font-size: 1.25rem; color: #374151; background-color: #f9fafb; padding: 1.5rem; border-radius: 0 1rem 1rem 0; text-indent: 0; text-align: left; }
         .article-content img { border-radius: 1.5rem; margin: 2rem auto; width: 100%; aspect-ratio: 4/3; object-fit: cover; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: block; }
       `}} />
@@ -690,8 +708,8 @@ export default function Page() {
       {/* MAIN HOMEPAGE */}
       <div style={{ display: activeView === 'home' ? 'block' : 'none' }}>
         
-        {/* HERO SECTION - KEMBALI KE ASLINYA (DENGAN SVG) */}
-        <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900">
+        {/* HERO SECTION - DENGAN ROUNDED BAWAH DAN TANPA SVG GELOMBANG */}
+        <header id="beranda" className="relative w-full h-[100dvh] overflow-hidden flex items-center justify-center text-center bg-gray-900 rounded-b-[3rem] shadow-xl">
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/20 z-10 pointer-events-none"></div>
           {heroImages.map((src, i) => (
             <div key={i} className={`absolute inset-0 transition-opacity duration-[2000ms] ease-in-out ${i === heroIndex ? 'opacity-100 z-0' : 'opacity-0 -z-10'}`}>
@@ -716,11 +734,6 @@ export default function Page() {
                     </a>
                  </div>
              </div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] z-20 pointer-events-none">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-[calc(146%_+_1.3px)] h-[80px] text-[#f4f4f6] fill-current">
-                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path>
-             </svg>
           </div>
         </header>
 
