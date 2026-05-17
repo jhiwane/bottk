@@ -231,7 +231,7 @@ export default function Page() {
   // === UI RENDERERS ===
   const renderLoader = () => (
     <div className={`fixed inset-0 bg-white/95 backdrop-blur-3xl z-[50000] flex justify-center items-center transition-opacity duration-700 ease-out ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyMnluczlyMnZma3B4Nzhld2I0OHdtejcxOGI2NzEzNHpxNm5qa3I2cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/6HNxIOKmcbntoaM2KJ/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
     </div>
   );
 
