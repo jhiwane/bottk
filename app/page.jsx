@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { 
   Menu, X, MessageCircle, Info, Newspaper, Youtube, Rocket, 
@@ -26,8 +26,7 @@ const defaultVideos = [{
   deskripsi: "Profil TK Baiturrohman."
 }];
 
-const defaultHeroImages = [
-];
+const defaultHeroImages = [];
 
 // Fallback default profil agar ada 2 gambar untuk bisa bergantian
 const defaultProfileImages = [
@@ -42,6 +41,60 @@ const getYouTubeId = (url) => {
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 };
+
+// === FIX BUG: PISAHKAN CSS GLOBAL KE KONSTANTA STATIS ===
+// Mencegah browser me-reload font Google setiap kali ada perubahan state (seperti slider foto)
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap');
+  
+  html { scroll-behavior: smooth; }
+  .hide-scroll::-webkit-scrollbar { display: none; }
+  .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  .animate-float { animation: float 3s ease-in-out infinite; }
+  @keyframes kenburns { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.15) translate(-2%, -2%); } }
+  .animate-kenburns { animation: kenburns 20s ease-out infinite alternate; }
+
+  /* Custom Styles for PortalNews Article Content */
+  .article-content { font-family: 'Merriweather', serif; }
+  .article-content h2, .article-content h3 { font-family: 'Open Sans', sans-serif; font-weight: bold; color: #111827; text-align: left; text-indent: 0; }
+  .article-content h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; }
+  .article-content h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 1rem; }
+  
+  /* PARAGRAF MENJOROK KE DALAM (TAB) */
+  .article-content p { margin-bottom: 1.25rem; text-align: justify; text-indent: 2.5rem; line-height: 1.8; }
+  
+  .article-content a { color: #dc2626; text-decoration: none; font-weight: 600; text-indent: 0; }
+  .article-content a:hover { text-decoration: underline; }
+  
+  /* FIX BULKY BUTTON GALERI: Ubah tombol besar jadi teks inline link biasa */
+  .article-content a[onclick*="openMediaViewer"] {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      color: #dc2626 !important;
+      font-weight: 700 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.25rem !important;
+      text-indent: 0 !important;
+  }
+  .article-content a[onclick*="openMediaViewer"]:hover { text-decoration: underline !important; }
+  
+  /* Mengembalikan tag P yang membungkus link galeri agar menyatu dengan teks */
+  .article-content p:has(a[onclick*="openMediaViewer"]) {
+      text-align: left !important;
+      display: inline !important;
+      margin: 0 !important;
+      text-indent: 0 !important;
+  }
+
+  .article-content blockquote { border-left: 4px solid #dc2626; margin: 2.5rem 0; font-style: italic; font-size: 1.25rem; color: #374151; background-color: #f9fafb; padding: 1.5rem; border-radius: 0 1rem 1rem 0; text-indent: 0; text-align: left; }
+  .article-content img { border-radius: 1.5rem; margin: 2rem auto; width: 100%; aspect-ratio: 4/3; object-fit: cover; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: block; }
+`;
+
+const STATIC_STYLE_OBJ = { __html: GLOBAL_CSS };
 
 export default function Page() {
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(true);
@@ -144,6 +197,7 @@ export default function Page() {
     return () => clearInterval(profileInterval);
   }, [profileImages]);
 
+  // LOGIKA SLIDER GAMBAR BERITA (Penyebab re-render setiap 3 detik)
   useEffect(() => {
     let newsInterval;
     if (activeView === 'detailNews' && currentDetail?.images?.length > 1) {
@@ -228,10 +282,17 @@ export default function Page() {
     filter: 'drop-shadow(0px 0px 2px white) drop-shadow(0px 0px 5px white) drop-shadow(0px 0px 10px rgba(255,255,255,0.9))'
   };
 
+  // === FIX BUG: KUNCI KONTEN TEKS HTML AGAR TIDAK FLICKER ===
+  // Memoize isi artikel agar React tidak me-render ulang dan me-restart font setiap kali slider berpindah foto
+  const memoizedArticleContent = useMemo(() => {
+    if (!currentDetail) return null;
+    return <div className="article-content text-lg text-gray-800 space-y-6 pb-4" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />;
+  }, [currentDetail?.content]);
+
   // === UI RENDERERS ===
   const renderLoader = () => (
     <div className={`fixed inset-0 bg-white/95 backdrop-blur-3xl z-[50000] flex justify-center items-center transition-opacity duration-700 ease-out ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyMnluczlyMnZma3B4Nzhld2I0OHdtejcxOGI2NzEzNHpxNm5qa3I2cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/6HNxIOKmcbntoaM2KJ/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
     </div>
   );
 
@@ -445,7 +506,7 @@ export default function Page() {
     return (
       <div className={`fixed inset-0 z-[2000] bg-gray-100 transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>
         
-        {/* HEADER PORTAL NEWS (TK BAITURROHMAN NEWS) */}
+        {/* HEADER PORTAL NEWS */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -493,7 +554,7 @@ export default function Page() {
                         </div>
                     </div>
 
-                    {/* HERO IMAGES CROSSFADE (FIX: KOTAK SQUARE PRESISI) */}
+                    {/* HERO IMAGES CROSSFADE */}
                     <figure className="mb-8 relative w-full max-w-lg mx-auto aspect-square bg-gray-100 rounded-[2rem] shadow-lg overflow-hidden group cursor-pointer" onClick={() => { if(currentDetail.images?.length) { pushHistory(); setZoomImage(currentDetail.images[newsSlideIndex]); }}}>
                         {currentDetail.images?.map((src, i) => (
                             <div key={i} className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${i === newsSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
@@ -505,8 +566,8 @@ export default function Page() {
                         </div>
                     </figure>
 
-                    {/* ISI KONTEN (CSS KHUSUS UNTUK PROSE BERITA AGAR TAB RAPI) */}
-                    <div className="article-content text-lg text-gray-800 space-y-6 pb-4" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />
+                    {/* ISI KONTEN (DIKUNCI DENGAN USEMEMO AGAR TIDAK FLICKER SAAT SLIDER JALAN) */}
+                    {memoizedArticleContent}
 
                     {/* JELAJAHI LIPUTAN */}
                     {currentDetail.gallery && currentDetail.gallery.length > 0 && (
@@ -530,7 +591,6 @@ export default function Page() {
 
                 {/* RIGHT SIDEBAR WIDGETS */}
                 <aside className="lg:w-1/3 space-y-8">
-                    {/* PPDB Banner */}
                     <div className="bg-red-600 text-white p-8 rounded-xl text-center shadow-md">
                         <p className="text-xs uppercase tracking-widest mb-2 opacity-80">Pendaftaran Siswa Baru</p>
                         <h4 className="text-xl font-bold mb-4">Tahun Ajaran 2026/2027 Telah Dibuka!</h4>
@@ -548,7 +608,6 @@ export default function Page() {
   const renderMediaViewer = () => {
     if (!mediaViewerData) return null;
     
-    // Fitur: Kalau admin memberikan filter dari Inline Text Link (group), maka difilter. Jika null, tampilkan semua
     const filteredGallery = mediaViewerData.gallery?.filter(item => {
       if (!mediaViewerData.activeFilter || mediaViewerData.activeFilter === 'null') return true;
       return item.group === mediaViewerData.activeFilter;
@@ -556,8 +615,6 @@ export default function Page() {
 
     return (
       <div className={`fixed inset-0 z-[3000] bg-black/95 backdrop-blur-2xl transform transition-transform duration-500 ease-out overflow-y-auto flex flex-col ${activeView === 'mediaViewer' ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
-        
-        {/* HEADER SUPER BERSIH: HANYA ICON KEMBALI */}
         <div className="sticky top-0 left-0 right-0 z-[301] p-4 flex items-start bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <button onClick={() => setActiveView('detailNews')} className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 transition-colors shadow-lg pointer-events-auto">
             <ArrowLeft size={24} />
@@ -608,60 +665,9 @@ export default function Page() {
     );
   }
 
-  // === RENDER UTAMA ===
-
   return (
     <div className="font-sans text-gray-800 min-h-screen relative overflow-x-hidden bg-[#f4f4f6]">
-      {/* GLOBAL CSS STYLE INJECTION */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap');
-        
-        html { scroll-behavior: smooth; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        @keyframes kenburns { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.15) translate(-2%, -2%); } }
-        .animate-kenburns { animation: kenburns 20s ease-out infinite alternate; }
-
-        /* Custom Styles for PortalNews Article Content */
-        .article-content { font-family: 'Merriweather', serif; }
-        .article-content h2, .article-content h3 { font-family: 'Open Sans', sans-serif; font-weight: bold; color: #111827; text-align: left; text-indent: 0; }
-        .article-content h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; }
-        .article-content h3 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 1rem; }
-        
-        /* PARAGRAF MENJOROK KE DALAM (TAB) */
-        .article-content p { margin-bottom: 1.25rem; text-align: justify; text-indent: 2.5rem; line-height: 1.8; }
-        
-        .article-content a { color: #dc2626; text-decoration: none; font-weight: 600; text-indent: 0; }
-        .article-content a:hover { text-decoration: underline; }
-        
-        /* FIX BULKY BUTTON GALERI: Ubah tombol besar jadi teks inline link biasa */
-        .article-content a[onclick*="openMediaViewer"] {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            color: #dc2626 !important;
-            font-weight: 700 !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            gap: 0.25rem !important;
-            text-indent: 0 !important;
-        }
-        .article-content a[onclick*="openMediaViewer"]:hover { text-decoration: underline !important; }
-        
-        /* Mengembalikan tag P yang membungkus link galeri agar menyatu dengan teks */
-        .article-content p:has(a[onclick*="openMediaViewer"]) {
-            text-align: left !important;
-            display: inline !important;
-            margin: 0 !important;
-            text-indent: 0 !important;
-        }
-
-        .article-content blockquote { border-left: 4px solid #dc2626; margin: 2.5rem 0; font-style: italic; font-size: 1.25rem; color: #374151; background-color: #f9fafb; padding: 1.5rem; border-radius: 0 1rem 1rem 0; text-indent: 0; text-align: left; }
-        .article-content img { border-radius: 1.5rem; margin: 2rem auto; width: 100%; aspect-ratio: 4/3; object-fit: cover; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: block; }
-      `}} />
+      <style dangerouslySetInnerHTML={STATIC_STYLE_OBJ} />
 
       {renderLoader()}
       {renderNavbar()}
@@ -737,7 +743,7 @@ export default function Page() {
           </div>
         </header>
 
-        {/* FEATURES (Glassmorphism iOS) */}
+        {/* FEATURES */}
         <section className="relative -mt-12 z-30 px-4 md:px-6 overflow-hidden">
           <div className="max-w-6xl mx-auto bg-white/60 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.05)] p-8 md:p-12 grid grid-cols-1 md:grid-cols-3 gap-8 border border-white">
              <div className="text-center group p-6 rounded-3xl hover:bg-white/50 transition-all duration-300 cursor-default">
@@ -789,7 +795,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* GALLERY / NEWS (Presisi Kotak) */}
+        {/* GALLERY / NEWS */}
         <section id="galeri" className="py-24 px-4 md:px-6 relative bg-white border-y border-gray-100 shadow-[inset_0_10px_30px_rgba(0,0,0,0.02)]">
           <div className="max-w-7xl mx-auto mb-12 text-center">
              <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Galeri & Berita</h2>
@@ -824,7 +830,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* VIDEO (Presisi Kotak) */}
+        {/* VIDEO */}
         <section id="video" className="py-24 px-4 md:px-6 relative">
           <div className="max-w-7xl mx-auto mb-12 text-center">
              <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Video Kegiatan</h2>
