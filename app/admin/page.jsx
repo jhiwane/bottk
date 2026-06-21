@@ -44,9 +44,10 @@ export default function AdminPanel() {
   const [currentTool, setCurrentTool] = useState(null);
   const [toolForm, setToolForm] = useState({ name: '', url: '', type: 'link', content: '' });
 
-  // === ASSET LIBRARY STATES ===
+  // === ASSET LIBRARY STATES (MULTI-SELECT) ===
   const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
   const [assetTarget, setAssetTarget] = useState(null); 
+  const [selectedAssets, setSelectedAssets] = useState([]); // STATE BARU UNTUK MULTI SELECT
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -326,7 +327,7 @@ export default function AdminPanel() {
     }
   };
 
-  // --- ASSET LIBRARY / HISTORY MANAGER ---
+  // --- ASSET LIBRARY / HISTORY MANAGER (MULTI-SELECT LOGIC) ---
   const getAllHistoryAssets = () => {
     const allUrls = new Set();
     if (Array.isArray(configForm.heroImages)) configForm.heroImages.forEach(u => { if (u) allUrls.add(u); });
@@ -340,20 +341,37 @@ export default function AdminPanel() {
     return Array.from(allUrls);
   };
 
-  const handleSelectAsset = (url) => {
-    if (assetTarget === 'news_images') {
-      setNewsForm(prev => ({ ...prev, images: [...(prev.images || []), url] }));
-    } else if (assetTarget === 'news_gallery') {
-      setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), url] }));
-    } else if (assetTarget === 'editor') {
-      insertAtCursor(`<img src="${url}" alt="Gambar Sisipan" loading="lazy" class="rounded-2xl my-6 w-full aspect-video object-cover shadow-md" />`);
-    } else if (assetTarget === 'heroImages') {
-      setConfigForm(prev => ({ ...prev, heroImages: [...(prev.heroImages || []), url] }));
-    } else if (assetTarget === 'profileImages') {
-      setConfigForm(prev => ({ ...prev, profileImages: [...(prev.profileImages || []), url] }));
+  // Fungsi toggle (centang/uncentang gambar)
+  const toggleAssetSelection = (url) => {
+    setSelectedAssets(prev => 
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+    );
+  };
+
+  // Fungsi konfirmasi banyak gambar sekaligus
+  const handleConfirmAssetSelection = () => {
+    if (selectedAssets.length === 0) {
+      setIsAssetLibraryOpen(false);
+      return;
     }
-    setIsAssetLibraryOpen(false);
-    showNotif('Aset dipilih!');
+
+    if (assetTarget === 'news_images') {
+      setNewsForm(prev => ({ ...prev, images: [...(prev.images || []), ...selectedAssets] }));
+    } else if (assetTarget === 'news_gallery') {
+      setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), ...selectedAssets] }));
+    } else if (assetTarget === 'editor') {
+      // Masukkan semua gambar sekaligus ke editor text
+      const htmlToInsert = selectedAssets.map(url => `\n<img src="${url}" alt="Gambar Sisipan" loading="lazy" class="rounded-2xl my-6 w-full aspect-video object-cover shadow-md" />\n`).join('');
+      insertAtCursor(htmlToInsert);
+    } else if (assetTarget === 'heroImages') {
+      setConfigForm(prev => ({ ...prev, heroImages: [...(prev.heroImages || []), ...selectedAssets] }));
+    } else if (assetTarget === 'profileImages') {
+      setConfigForm(prev => ({ ...prev, profileImages: [...(prev.profileImages || []), ...selectedAssets] }));
+    }
+    
+    setSelectedAssets([]); // Bersihkan pilihan
+    setIsAssetLibraryOpen(false); // Tutup modal
+    showNotif(`Berhasil menyisipkan ${selectedAssets.length} aset gambar!`);
   };
 
   // --- EDITOR RICH TEXT PROFESIONAL & TEMPLATE ---
@@ -600,9 +618,7 @@ export default function AdminPanel() {
           <h3 className="font-bold text-xl text-gray-900 mb-1">Mengunggah Foto...</h3>
           <p className="text-gray-500 font-bold text-sm mb-6">File ke {uploadStatus}</p>
 
-          {/* Progress Bar Background */}
           <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden relative shadow-inner">
-            {/* Progress Bar Indicator */}
             <div 
               className="bg-blue-600 h-full transition-all duration-300 ease-out"
               style={{ width: `${uploadProgress}%` }}
@@ -614,6 +630,7 @@ export default function AdminPanel() {
     );
   };
 
+  // MULTI SELECT ASSET LIBRARY MODAL
   const renderAssetLibraryModal = () => {
     if (!isAssetLibraryOpen) return null;
     const assets = getAllHistoryAssets();
@@ -621,22 +638,36 @@ export default function AdminPanel() {
       <div className="fixed inset-0 z-[40000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <h3 className="font-bold text-lg flex items-center gap-2"><ImageIcon size={20}/> Riwayat Media Web</h3>
-            <button onClick={() => setIsAssetLibraryOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100"><X size={20}/></button>
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              <ImageIcon size={20}/> Riwayat Media Web
+              {selectedAssets.length > 0 && <span className="bg-blue-600 text-white text-[10px] uppercase tracking-wider px-3 py-1 rounded-full ml-2 shadow-sm">{selectedAssets.length} Dipilih</span>}
+            </h3>
+            <button onClick={() => { setIsAssetLibraryOpen(false); setSelectedAssets([]); }} className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition-colors"><X size={20}/></button>
           </div>
           <div className="p-4 overflow-y-auto flex-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 content-start">
-            {assets.length === 0 && <p className="col-span-full text-center text-gray-500 py-10">Belum ada riwayat gambar di database.</p>}
+            {assets.length === 0 && <p className="col-span-full text-center text-gray-500 py-10 font-medium">Belum ada riwayat gambar di database.</p>}
             {assets.map((url, i) => {
                const strUrl = String(url || '');
                const thumb = strUrl.includes('cloudinary') ? strUrl.replace('/upload/', '/upload/w_200,q_auto,f_auto/') : strUrl;
+               const isSelected = selectedAssets.includes(strUrl);
                return (
-                 <div key={i} onClick={() => handleSelectAsset(strUrl)} className="relative w-full pb-[100%] rounded-2xl overflow-hidden cursor-pointer hover:ring-4 hover:ring-blue-500 transition-all shadow-sm bg-gray-100 block">
+                 <div key={i} onClick={() => toggleAssetSelection(strUrl)} className={`relative w-full pb-[100%] rounded-2xl overflow-hidden cursor-pointer transition-all shadow-sm block ${isSelected ? 'ring-4 ring-blue-600 scale-95' : 'bg-gray-100 hover:ring-4 hover:ring-blue-300'}`}>
                    {thumb && <img src={thumb} className="absolute inset-0 w-full h-full object-cover" />}
+                   {isSelected && (
+                     <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center backdrop-blur-[1px]">
+                       <CheckCircle size={32} className="text-white drop-shadow-md" />
+                     </div>
+                   )}
                  </div>
                )
             })}
           </div>
-          <div className="p-4 bg-gray-50 border-t border-gray-100 text-center text-sm font-bold text-gray-500">Klik gambar untuk menyisipkan ke dalam form.</div>
+          <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+            <span className="text-sm font-bold text-gray-500 hidden sm:block">Pilih beberapa gambar sekaligus.</span>
+            <button onClick={handleConfirmAssetSelection} disabled={selectedAssets.length === 0} className={`font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center gap-2 w-full sm:w-auto justify-center ${selectedAssets.length > 0 ? 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+              <CheckCircle size={18}/> Sisipkan ({selectedAssets.length}) Gambar
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -727,7 +758,7 @@ export default function AdminPanel() {
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Foto Profil Sekolah (Bagian Tentang Kami)</h3>
         <div className="flex flex-wrap gap-2 mb-4">
-          <button onClick={() => { setAssetTarget('profileImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
+          <button onClick={() => { setSelectedAssets([]); setAssetTarget('profileImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
           <label className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 cursor-pointer transition-colors"><UploadCloud size={18} /> Upload PC/HP <input type="file" multiple accept="image/*" onChange={(e) => handleVisualUpload(e, 'profileImages')} className="hidden" disabled={isUploading} /></label>
           <button onClick={() => addVisualUrl('profileImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
@@ -748,7 +779,7 @@ export default function AdminPanel() {
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Slide Foto Header Beranda Depan</h3>
         <div className="flex flex-wrap gap-2 mb-4">
-          <button onClick={() => { setAssetTarget('heroImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
+          <button onClick={() => { setSelectedAssets([]); setAssetTarget('heroImages'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><ImageIcon size={18} /> Riwayat</button>
           <label className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 cursor-pointer transition-colors"><UploadCloud size={18} /> Upload PC/HP <input type="file" multiple accept="image/*" onChange={(e) => handleVisualUpload(e, 'heroImages')} className="hidden" disabled={isUploading} /></label>
           <button onClick={() => addVisualUrl('heroImages')} className="bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors"><LinkIcon size={18} /> via URL</button>
         </div>
@@ -835,7 +866,7 @@ export default function AdminPanel() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <label className="text-sm font-bold text-gray-700">Foto Thumbnail Utama</label>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><ImageIcon size={14}/> Riwayat</button>
+                  <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('news_images'); setIsAssetLibraryOpen(true); }} className="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><ImageIcon size={14}/> Riwayat</button>
                   <label className="cursor-pointer bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold flex gap-1 items-center"><UploadCloud size={14} /> Upload <input type="file" multiple accept="image/*" onChange={handleNewsFileUpload} className="hidden" disabled={isUploading}/></label>
                 </div>
               </div>
@@ -868,7 +899,7 @@ export default function AdminPanel() {
                 </div>
                 <div className="flex-1 flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <button type="button" onClick={() => { setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><ImageIcon size={14}/> Pilih dari Riwayat</button>
+                    <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><ImageIcon size={14}/> Pilih dari Riwayat</button>
                     <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-200 transition-colors"><UploadCloud size={14} /> Upload Foto Baru <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
                   </div>
                   <input type="text" value={newGalleryItem.group} onChange={e => setNewGalleryItem({...newGalleryItem, group: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Kategori Folder (Misal: Lomba Tarik Tambang)" />
@@ -906,7 +937,7 @@ export default function AdminPanel() {
                 <button type="button" onClick={() => handleToolbarClick('h3')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs w-10">H3</button>
                 <div className="w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={() => handleToolbarClick('link')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs">URL</button>
-                <button type="button" onClick={() => { setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
+                <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
                 
                 {/* UPLOAD MULTIPLE GAMBAR INLINE */}
                 <label className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 cursor-pointer flex items-center justify-center" title="Upload Banyak Foto Menjadi Teks">
