@@ -49,6 +49,8 @@ export default function AdminPanel() {
   const [assetTarget, setAssetTarget] = useState(null); 
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('');
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function AdminPanel() {
     setIsEditingTool(false);
   };
 
-  // --- UPLOAD CLOUDINARY ENGINE (DENGAN AUTO CROP & NOTIFIKASI) ---
+  // --- UPLOAD CLOUDINARY ENGINE (DENGAN PROGRESS BAR & UKURAN ASLI) ---
   const uploadToCloudinary = async (files) => {
     const activeCloud = cloudAccounts.find(c => c.active);
     if (!activeCloud) {
@@ -163,32 +165,56 @@ export default function AdminPanel() {
     }
     
     setIsUploading(true);
-    showNotif('Sedang mengunggah foto... Mohon tunggu.', 'info'); 
     const uploadedUrls = [];
     
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadStatus(`${i + 1} dari ${files.length}`);
+      setUploadProgress(0);
+      
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', activeCloud.preset);
+
       try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${activeCloud.name}/auto/upload`, {
-          method: 'POST',
-          body: formData
+        const data = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${activeCloud.name}/auto/upload`);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percentComplete);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject(new Error(xhr.responseText));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error("Network Error"));
+          xhr.send(formData);
         });
-        const data = await res.json();
+
         if (data.secure_url) {
-          // AUTO CROP: c_fill, w_800, h_800 (membuat gambar selalu berbentuk KOTAK PROPORSIONAL dan ringan)
-          const optimizedUrl = data.secure_url.replace('/upload/', '/upload/c_fill,w_800,h_800,q_auto,f_auto/');
+          const optimizedUrl = data.secure_url.replace('/upload/', '/upload/c_limit,w_1920,q_auto,f_auto/');
           uploadedUrls.push(optimizedUrl);
         } else {
-          showNotif(`Gagal: ${data.error?.message}`, 'error');
+          showNotif(`Gagal upload file ke-${i + 1}`, 'error');
         }
       } catch (err) { 
-        showNotif('Error upload jaringan.', 'error'); 
+        showNotif(`Error jaringan saat upload file ke-${i + 1}`, 'error'); 
       }
     }
+
     setIsUploading(false);
-    showNotif('Upload selesai!', 'success'); 
+    setUploadProgress(0);
+    setUploadStatus('');
+    showNotif('Semua foto berhasil diunggah!', 'success'); 
     return uploadedUrls;
   };
 
@@ -558,6 +584,31 @@ export default function AdminPanel() {
         <div className={`flex items-center gap-3 px-5 py-3 md:px-6 md:py-4 rounded-2xl shadow-xl backdrop-blur-md border ${bgClass}`}>
           {notification.type === 'info' ? <Loader2 size={20} className="animate-spin" /> : <AlertCircle size={20} />}
           <span className="font-bold text-sm">{notification.message}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderUploadOverlay = () => {
+    if (!isUploading) return null;
+    return (
+      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[70000] flex justify-center items-center animate-in fade-in duration-300">
+        <div className="bg-white p-8 rounded-[2rem] shadow-2xl border border-gray-100 w-11/12 max-w-sm text-center transform transition-all">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <UploadCloud size={32} className="text-blue-600 animate-pulse" />
+          </div>
+          <h3 className="font-bold text-xl text-gray-900 mb-1">Mengunggah Foto...</h3>
+          <p className="text-gray-500 font-bold text-sm mb-6">File ke {uploadStatus}</p>
+
+          {/* Progress Bar Background */}
+          <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden relative shadow-inner">
+            {/* Progress Bar Indicator */}
+            <div 
+              className="bg-blue-600 h-full transition-all duration-300 ease-out"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+          <p className="font-bold text-blue-600 text-lg mt-3">{uploadProgress}%</p>
         </div>
       </div>
     );
@@ -1006,6 +1057,7 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-[#f4f4f6] font-sans text-gray-800 flex flex-col md:flex-row">
       {isLoading && renderLoader()}
       {renderNotification()}
+      {renderUploadOverlay()}
       {renderAssetLibraryModal()}
       {renderSidebar()}
       <main className="flex-1 md:ml-72 p-4 pt-6 md:p-12 overflow-x-hidden min-h-screen">
