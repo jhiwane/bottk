@@ -7,6 +7,14 @@ import {
   Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, FileCode
 } from 'lucide-react';
 
+// FUNGSI GLOBAL: Mendeteksi ID YouTube dari berbagai format link
+const getYouTubeId = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function AdminPanel() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminPass, setAdminPass] = useState('');
@@ -47,7 +55,7 @@ export default function AdminPanel() {
   // === ASSET LIBRARY STATES (MULTI-SELECT) ===
   const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
   const [assetTarget, setAssetTarget] = useState(null); 
-  const [selectedAssets, setSelectedAssets] = useState([]); // STATE BARU UNTUK MULTI SELECT
+  const [selectedAssets, setSelectedAssets] = useState([]);
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -157,7 +165,7 @@ export default function AdminPanel() {
     setIsEditingTool(false);
   };
 
-  // --- UPLOAD CLOUDINARY ENGINE (DENGAN PROGRESS BAR & UKURAN ASLI) ---
+  // --- UPLOAD CLOUDINARY ENGINE ---
   const uploadToCloudinary = async (files) => {
     const activeCloud = cloudAccounts.find(c => c.active);
     if (!activeCloud) {
@@ -219,7 +227,7 @@ export default function AdminPanel() {
     return uploadedUrls;
   };
 
-  // --- FITUR IMPORT & EXPORT DATA (SINKRONISASI TOTAL) ---
+  // --- FITUR IMPORT & EXPORT DATA ---
   const handleExportData = () => {
     try {
       const dataToExport = { news, videos, tools, config: configForm };
@@ -247,24 +255,20 @@ export default function AdminPanel() {
         setIsLoading(true);
         showNotif('Mengembalikan data... (Jangan tutup halaman)', 'info');
 
-        // Restore Config
         if (parsed.config) await apiCall('POST', { type: 'config', data: parsed.config });
 
-        // Restore News
         if (Array.isArray(parsed.news)) {
           for (const n of parsed.news) {
-            delete n._id; // Hapus ID lama agar tidak bentrok
+            delete n._id; 
             await apiCall('POST', { type: 'news', data: n });
           }
         }
-        // Restore Videos
         if (Array.isArray(parsed.videos)) {
           for (const v of parsed.videos) {
             delete v._id;
             await apiCall('POST', { type: 'videos', data: v });
           }
         }
-        // Restore Tools
         if (Array.isArray(parsed.tools)) {
           for (const t of parsed.tools) {
             delete t._id;
@@ -327,7 +331,7 @@ export default function AdminPanel() {
     }
   };
 
-  // --- ASSET LIBRARY / HISTORY MANAGER (MULTI-SELECT LOGIC) ---
+  // --- ASSET LIBRARY / HISTORY MANAGER ---
   const getAllHistoryAssets = () => {
     const allUrls = new Set();
     if (Array.isArray(configForm.heroImages)) configForm.heroImages.forEach(u => { if (u) allUrls.add(u); });
@@ -341,14 +345,12 @@ export default function AdminPanel() {
     return Array.from(allUrls);
   };
 
-  // Fungsi toggle (centang/uncentang gambar)
   const toggleAssetSelection = (url) => {
     setSelectedAssets(prev => 
       prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
     );
   };
 
-  // Fungsi konfirmasi banyak gambar sekaligus
   const handleConfirmAssetSelection = () => {
     if (selectedAssets.length === 0) {
       setIsAssetLibraryOpen(false);
@@ -360,7 +362,6 @@ export default function AdminPanel() {
     } else if (assetTarget === 'news_gallery') {
       setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), ...selectedAssets] }));
     } else if (assetTarget === 'editor') {
-      // Masukkan semua gambar sekaligus ke editor text
       const htmlToInsert = selectedAssets.map(url => `\n<img src="${url}" alt="Gambar Sisipan" loading="lazy" class="rounded-2xl my-6 w-full aspect-video object-cover shadow-md" />\n`).join('');
       insertAtCursor(htmlToInsert);
     } else if (assetTarget === 'heroImages') {
@@ -369,12 +370,12 @@ export default function AdminPanel() {
       setConfigForm(prev => ({ ...prev, profileImages: [...(prev.profileImages || []), ...selectedAssets] }));
     }
     
-    setSelectedAssets([]); // Bersihkan pilihan
-    setIsAssetLibraryOpen(false); // Tutup modal
+    setSelectedAssets([]); 
+    setIsAssetLibraryOpen(false); 
     showNotif(`Berhasil menyisipkan ${selectedAssets.length} aset gambar!`);
   };
 
-  // --- EDITOR RICH TEXT PROFESIONAL & TEMPLATE ---
+  // --- EDITOR RICH TEXT PROFESIONAL ---
   const insertAtCursor = (textToInsert) => {
     const textarea = contentRef.current;
     if (!textarea) return;
@@ -388,7 +389,6 @@ export default function AdminPanel() {
     }, 10);
   };
 
-  // UPLOAD FOTO MULTIPLE LANGSUNG JADI LINK HTML DI EDITOR BERITA
   const handleEditorImageUpload = async (e) => {
     const urls = await uploadToCloudinary(Array.from(e.target.files));
     if (urls.length > 0) {
@@ -431,8 +431,8 @@ export default function AdminPanel() {
       case 'youtube':
         const yt = prompt('Masukkan Link YouTube:');
         if (yt) {
-          const m = yt.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-          if (m && m[1]) insertAtCursor(`\n<div class="aspect-video w-full my-6 rounded-2xl overflow-hidden shadow-md bg-gray-900"><iframe src="https://www.youtube.com/embed/${m[1]}" class="w-full h-full border-0" allowfullscreen></iframe></div>\n`);
+          const id = getYouTubeId(yt);
+          if (id) insertAtCursor(`\n<div class="aspect-video w-full my-6 rounded-2xl overflow-hidden shadow-md bg-gray-900"><iframe src="https://www.youtube.com/embed/${id}" class="w-full h-full border-0" allowfullscreen></iframe></div>\n`);
           else alert('Link YouTube tidak valid!');
         }
         break;
@@ -453,9 +453,23 @@ export default function AdminPanel() {
     e.target.value = '';
   };
 
-  // Tombol Tambah Langsung Inject Link ke Text Editor
+  // FUNGSI BARU: MENAMBAH YOUTUBE KE DALAM KOTAK PREVIEW
+  const handleAddYoutubeToGallery = () => {
+    const ytUrl = prompt("Masukkan/Paste Link YouTube di sini:");
+    if (!ytUrl) return;
+    const ytId = getYouTubeId(ytUrl);
+    if (!ytId) {
+      showNotif('Link YouTube tidak valid!', 'error');
+      return;
+    }
+    // Format ulang agar seragam
+    const cleanUrl = `https://www.youtube.com/watch?v=${ytId}`;
+    setNewGalleryItem(prev => ({ ...prev, srcs: [...(prev.srcs || []), cleanUrl] }));
+    showNotif('Video YouTube ditambahkan ke antrean!', 'success');
+  };
+
   const addGalleryItem = () => {
-    if (!newGalleryItem.srcs || newGalleryItem.srcs.length === 0) return showNotif('Foto belum dipilih/diupload!', 'error');
+    if (!newGalleryItem.srcs || newGalleryItem.srcs.length === 0) return showNotif('Foto/Video belum dipilih!', 'error');
     if (!newGalleryItem.group) return showNotif('Nama Kategori Folder wajib diisi!', 'error');
     
     const groupId = newGalleryItem.group; 
@@ -473,12 +487,11 @@ export default function AdminPanel() {
 
     setNewsForm(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...itemsToAdd] }));
     
-    // INJECT LINK OTOMATIS KE TEXT EDITOR
-    const catLink = ` <a onclick="window.openMediaViewer(null, '${groupId}')" class="text-red-600 font-bold cursor-pointer hover:underline inline-flex items-center gap-1">[👉 Lihat Galeri Foto Kategori: ${groupId}]</a> `;
+    const catLink = ` <a onclick="window.openMediaViewer(null, '${groupId}')" class="text-red-600 font-bold cursor-pointer hover:underline inline-flex items-center gap-1">[👉 Lihat Galeri Dokumentasi Kategori: ${groupId}]</a> `;
     insertAtCursor(catLink);
 
     setNewGalleryItem({ group: '', type: 'image', srcs: [], caption: '' }); 
-    showNotif(`${itemsToAdd.length} media masuk Galeri & Teks Link otomatis tercetak!`);
+    showNotif(`${itemsToAdd.length} media berhasil masuk Galeri!`);
   };
 
   const removeGalleryItem = (index) => {
@@ -630,7 +643,6 @@ export default function AdminPanel() {
     );
   };
 
-  // MULTI SELECT ASSET LIBRARY MODAL
   const renderAssetLibraryModal = () => {
     if (!isAssetLibraryOpen) return null;
     const assets = getAllHistoryAssets();
@@ -711,7 +723,6 @@ export default function AdminPanel() {
                 <p className="text-gray-500 text-sm md:text-base">Sistem Manajemen Konten Terintegrasi (MongoDB).</p>
             </div>
             
-            {/* TOMBOL IMPORT & EXPORT SINKRONISASI DATA */}
             <div className="flex items-center gap-3">
                 <label className="cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors border border-blue-200 shadow-sm">
                     <UploadCloud size={18} /> Restore JSON 
@@ -754,7 +765,6 @@ export default function AdminPanel() {
       <h1 className="font-bold text-3xl md:text-4xl text-gray-900 mb-2">Tampilan Web</h1>
       <p className="text-gray-500 mb-8">Atur gambar Header Beranda dan Foto Profil Sekolah.</p>
 
-      {/* FOTO PROFIL SEKOLAH */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Foto Profil Sekolah (Bagian Tentang Kami)</h3>
         <div className="flex flex-wrap gap-2 mb-4">
@@ -775,7 +785,6 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* FOTO HERO HEADER */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-xl mb-4 text-gray-800">Slide Foto Header Beranda Depan</h3>
         <div className="flex flex-wrap gap-2 mb-4">
@@ -887,20 +896,27 @@ export default function AdminPanel() {
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-4 flex flex-col md:flex-row gap-4">
                 <div className="w-full md:w-48 bg-gray-50 rounded-xl relative flex flex-wrap gap-2 p-3 shrink-0 border-2 border-dashed border-gray-300 min-h-[120px] items-center justify-center">
                   {Array.isArray(newGalleryItem.srcs) && newGalleryItem.srcs.length > 0 ? (
-                    newGalleryItem.srcs.map((src, i) => (
-                      <div key={i} className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-gray-300 group/thumb shadow-sm">
-                        <img src={src} className="w-full h-full object-cover"/>
-                        <button type="button" onClick={() => setNewGalleryItem(p => ({...p, srcs: p.srcs.filter((_,idx)=>idx!==i)}))} className="absolute inset-0 m-auto w-6 h-6 bg-red-500 flex items-center justify-center text-white rounded-full opacity-0 group-hover/thumb:opacity-100 transition-all"><X size={12}/></button>
-                      </div>
-                    ))
+                    newGalleryItem.srcs.map((src, i) => {
+                      const ytId = getYouTubeId(src);
+                      const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : src;
+                      
+                      return (
+                        <div key={i} className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-gray-300 group/thumb shadow-sm bg-black">
+                          <img src={thumbUrl} className={`w-full h-full object-cover ${ytId ? 'opacity-70' : ''}`}/>
+                          {ytId && <Youtube size={20} className="absolute inset-0 m-auto text-white drop-shadow-md" />}
+                          <button type="button" onClick={() => setNewGalleryItem(p => ({...p, srcs: p.srcs.filter((_,idx)=>idx!==i)}))} className="absolute inset-0 m-auto w-6 h-6 bg-red-500 flex items-center justify-center text-white rounded-full opacity-0 group-hover/thumb:opacity-100 transition-all z-10"><X size={12}/></button>
+                        </div>
+                      )
+                    })
                   ) : (
-                    <div className="text-gray-400 text-xs flex flex-col items-center"><ImageIcon size={24} className="mb-2 opacity-50"/> <p className="font-medium">Preview Foto</p></div>
+                    <div className="text-gray-400 text-xs flex flex-col items-center"><ImageIcon size={24} className="mb-2 opacity-50"/> <p className="font-medium text-center">Preview<br/>Foto / Video</p></div>
                   )}
                 </div>
                 <div className="flex-1 flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><ImageIcon size={14}/> Pilih dari Riwayat</button>
-                    <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-200 transition-colors"><UploadCloud size={14} /> Upload Foto Baru <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
+                    <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('news_gallery'); setIsAssetLibraryOpen(true); }} className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-purple-200 transition-colors"><ImageIcon size={14}/> Pilih dari Riwayat</button>
+                    <label className="flex-1 cursor-pointer bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-blue-200 transition-colors"><UploadCloud size={14} /> Upload Foto Baru <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" disabled={isUploading}/></label>
+                    <button type="button" onClick={handleAddYoutubeToGallery} className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 px-3 py-3 rounded-xl text-xs font-bold flex justify-center items-center gap-1 border border-red-200 transition-colors"><Youtube size={14}/> Tambah YouTube</button>
                   </div>
                   <input type="text" value={newGalleryItem.group} onChange={e => setNewGalleryItem({...newGalleryItem, group: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Kategori Folder (Misal: Lomba Tarik Tambang)" />
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -912,15 +928,21 @@ export default function AdminPanel() {
 
               {Array.isArray(newsForm.gallery) && newsForm.gallery.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {newsForm.gallery.map((g, idx) => (
-                    <div key={idx} className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-200 relative group text-center flex flex-col items-center">
-                      <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
-                        {g.type === 'video' ? <div className="w-full h-full bg-black flex items-center justify-center"><Youtube className="text-white"/></div> : <img src={g.src} className="w-full h-full object-cover"/>}
+                  {newsForm.gallery.map((g, idx) => {
+                     const isYt = getYouTubeId(g.src);
+                     const thumbImg = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : g.src;
+                     
+                     return (
+                      <div key={idx} className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-200 relative group text-center flex flex-col items-center">
+                        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden mb-2 relative">
+                           <img src={thumbImg} className={`w-full h-full object-cover ${isYt ? 'opacity-70' : ''}`}/>
+                           {isYt && <Youtube size={24} className="absolute inset-0 m-auto text-white drop-shadow-lg" />}
+                        </div>
+                        <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded block truncate w-full mb-1">{g.group || 'Umum'}</span>
+                        <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md transition-opacity z-10"><X size={12}/></button>
                       </div>
-                      <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded block truncate w-full mb-1">{g.group || 'Umum'}</span>
-                      <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-md transition-opacity"><X size={12}/></button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -939,7 +961,6 @@ export default function AdminPanel() {
                 <button type="button" onClick={() => handleToolbarClick('link')} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 font-bold text-xs">URL</button>
                 <button type="button" onClick={() => { setSelectedAssets([]); setAssetTarget('editor'); setIsAssetLibraryOpen(true); }} className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200" title="Pilih dari Riwayat"><ImageIcon size={16} /></button>
                 
-                {/* UPLOAD MULTIPLE GAMBAR INLINE */}
                 <label className="p-2 text-gray-700 hover:text-blue-600 bg-white shadow-sm rounded-lg border border-gray-200 cursor-pointer flex items-center justify-center" title="Upload Banyak Foto Menjadi Teks">
                   <UploadCloud size={16} />
                   <input type="file" multiple accept="image/*" onChange={handleEditorImageUpload} className="hidden" disabled={isUploading}/>
