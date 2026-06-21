@@ -377,6 +377,7 @@ export default function Page() {
     </>
   );
 
+  // FIX BUG OVERSCROLL: Tambahan opacity-0 dan pointer-events-none saat view tidak aktif
   const renderListModal = () => {
     const isNews = activeView === 'listNews';
     const data = isNews ? newsData : videoData;
@@ -385,7 +386,7 @@ export default function Page() {
     );
 
     return (
-      <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-transform duration-500 ease-out flex flex-col ${activeView.startsWith('list') ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-all duration-500 ease-out flex flex-col ${activeView.startsWith('list') ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="sticky top-0 bg-white/80 backdrop-blur-xl p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
           <button onClick={() => { setActiveView('home'); setSearchQuery(''); }} className="w-12 h-12 bg-white hover:bg-gray-50 rounded-full shadow-sm border border-gray-100 flex justify-center items-center transition-all duration-300">
             <ArrowLeft size={22} className="text-gray-700" />
@@ -450,7 +451,7 @@ export default function Page() {
   };
 
   const renderToolsModal = () => (
-    <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-transform duration-500 ease-out flex flex-col ${activeView === 'tools' ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={`fixed inset-0 z-[2000] bg-gray-50/90 backdrop-blur-2xl transform transition-all duration-500 ease-out flex flex-col ${activeView === 'tools' ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'}`}>
       <div className="sticky top-0 bg-white/80 backdrop-blur-xl p-4 shadow-sm flex items-center gap-4 z-10 border-b border-gray-200/50">
         <button onClick={() => setActiveView('home')} className="w-12 h-12 bg-white hover:bg-gray-50 rounded-full shadow-sm border border-gray-100 flex justify-center items-center transition-all duration-300">
           <ArrowLeft size={22} className="text-gray-700" />
@@ -484,7 +485,7 @@ export default function Page() {
   );
 
   const renderIframeModal = () => (
-    <div className={`fixed inset-0 z-[11000] bg-black transform transition-transform duration-500 ease-out flex flex-col ${activeView === 'iframe' ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className={`fixed inset-0 z-[11000] bg-black transform transition-all duration-500 ease-out flex flex-col ${activeView === 'iframe' ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'}`}>
       <button onClick={() => setActiveView('home')} className="absolute top-4 left-4 w-12 h-12 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full flex justify-center items-center z-[11001] shadow-lg border border-white/20 transition-all">
         <ArrowLeft size={22} className="text-white" />
       </button>
@@ -504,13 +505,14 @@ export default function Page() {
   const renderNewsFullPage = () => {
     if (!currentDetail) return null;
     return (
-      <div className={`fixed inset-0 z-[2000] bg-gray-100 transform transition-transform duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0' : 'translate-y-full'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      <div className={`fixed inset-0 z-[2000] bg-gray-100 transform transition-all duration-500 ease-out overflow-y-auto ${activeView === 'detailNews' ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>
         
         {/* HEADER PORTAL NEWS */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                    <button onClick={() => setActiveView('listNews')} className="text-gray-600 hover:text-red-600 transition-colors">
+                    {/* FIX BUG BACK BUTTON: Paksa kembalikan ke home agar tidak terjebak di mode list */}
+                    <button onClick={() => setActiveView('home')} className="text-gray-600 hover:text-red-600 transition-colors">
                         <ArrowLeft size={24} />
                     </button>
                     <div className="text-xl md:text-2xl font-black text-red-600 tracking-tighter uppercase">TK BAITURROHMAN <span className="text-gray-800">NEWS</span></div>
@@ -830,7 +832,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* VIDEO */}
+        {/* VIDEO (FIX: Hapus icon bulat tengah) */}
         <section id="video" className="py-24 px-4 md:px-6 relative">
           <div className="max-w-7xl mx-auto mb-12 text-center">
              <h2 className="font-display font-bold text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Video Kegiatan</h2>
@@ -849,11 +851,6 @@ export default function Page() {
                     <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
                       <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
                          <Image src={thumb} fill sizes="(max-width: 768px) 85vw, 450px" className="object-cover opacity-80 group-hover/vid:opacity-100 transition-all duration-700 ease-out group-hover/vid:scale-105" alt="Thumb"/>
-                         <div className="absolute inset-0 flex justify-center items-center z-10">
-                            <div className="w-[64px] h-[48px] bg-white/90 backdrop-blur-md rounded-[14px] flex items-center justify-center transform group-hover/vid:scale-110 transition-transform duration-300 shadow-xl">
-                              <PlayCircle className="text-orange-500" size={32} fill="currentColor"/>
-                            </div>
-                         </div>
                       </div>
                       <div className="p-8">
                          <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-1 tracking-tight">{v.judul}</h3>
