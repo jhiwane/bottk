@@ -12,7 +12,9 @@ import {
 const defaultNews = [{
   title: "Profil sekolah",
   date: "20 januari 2026",
-  content: `Tetap stay di web kami bunda. segala informasi nanti kami update bisa lihat foto. Untuk melihat aktivitas bisa ke channel video youtube kami bunda. <br><br><span class="text-xs text-gray-500 italic">jika video tidak bisa dibuka di web ada tulisan kecil dibawah buka app youtube.</span>`,
+  content: `Tetap stay di web kami bunda. segala informasi nanti kami update bisa lihat foto. Untuk melihat aktivitas bisa ke channel video youtube kami bunda. 
+
+<span class="text-xs text-gray-500 italic">jika video tidak bisa dibuka di web ada tulisan kecil dibawah buka app youtube.</span>`,
   images: ["https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop"],
   gallery: [
     { group: 'foto_1', type: 'image', src: "https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=2072&auto=format&fit=crop", caption: "Dokumentasi Kelas" },
