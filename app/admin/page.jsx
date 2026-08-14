@@ -7,13 +7,43 @@ import {
   Video, Bold, AlertCircle, CheckCircle, UploadCloud, Loader2, Lock, Menu, Rocket, ImagePlus, FileCode
 } from 'lucide-react';
 
-// FUNGSI GLOBAL: Mendeteksi ID YouTube dari berbagai format link
+// FUNGSI GLOBAL: Mendeteksi ID YouTube dari SEMUA format link (watch, youtu.be, shorts, embed, live)
 const getYouTubeId = (url) => {
   if (!url) return null;
-  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const s = String(url).trim();
+  const patterns = [
+    /youtu\.be\/([\w-]{11})/,
+    /youtube\.com\/embed\/([\w-]{11})/,
+    /youtube\.com\/shorts\/([\w-]{11})/,
+    /youtube\.com\/live\/([\w-]{11})/,
+    /youtube\.com\/v\/([\w-]{11})/,
+    /youtube\.com\/watch\?(?:.*&)?v=([\w-]{11})/,
+  ];
+  for (const re of patterns) { const m = s.match(re); if (m) return m[1]; }
+  return null;
 };
+
+// Thumbnail YouTube jernih + fallback otomatis (maxres -> hq)
+function YtThumb({ id, alt = "", className = "" }) {
+  const [src, setSrc] = useState(`https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
+  const [err, setErr] = useState(false);
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onError={() => { setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`); setErr(true); }}
+      onLoad={(e) => {
+        if (!err && src.includes('maxres') && e.currentTarget.naturalWidth < 200) {
+          setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
+        }
+      }}
+      className={className}
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+}
 
 export default function AdminPanel() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -898,7 +928,7 @@ export default function AdminPanel() {
                   {Array.isArray(newGalleryItem.srcs) && newGalleryItem.srcs.length > 0 ? (
                     newGalleryItem.srcs.map((src, i) => {
                       const ytId = getYouTubeId(src);
-                      const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : src;
+                      const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : src;
                       
                       return (
                         <div key={i} className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border border-gray-300 group/thumb shadow-sm bg-black">
@@ -930,7 +960,7 @@ export default function AdminPanel() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {newsForm.gallery.map((g, idx) => {
                      const isYt = getYouTubeId(g.src);
-                     const thumbImg = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : g.src;
+                     const thumbImg = isYt ? `https://img.youtube.com/vi/${isYt}/hqdefault.jpg` : g.src;
                      
                      return (
                       <div key={idx} className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-200 relative group text-center flex flex-col items-center">
@@ -1032,13 +1062,12 @@ export default function AdminPanel() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
           {videos.length === 0 && <p className="text-gray-500 font-medium bg-white p-6 rounded-2xl border text-center col-span-2">Belum ada video.</p>}
           {videos.map((vid) => {
-            const urlStr = String(vid?.url || '');
-            const m = urlStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-            const thumb = m && m[1] ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : "https://files.catbox.moe/3tf995.png";
-            
+            const ytId = getYouTubeId(vid?.url);
             return (
               <div key={vid._id} className="bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-5 group hover:shadow-md transition-shadow">
-                <div className="w-full sm:w-36 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0"><img src={thumb} alt="thumb" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" /><Youtube className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md" size={32} /></div>
+                <div className="w-full sm:w-36 h-40 sm:h-24 relative rounded-xl overflow-hidden bg-black shrink-0">
+                  {ytId ? <YtThumb id={ytId} alt={vid.judul} className="opacity-90 group-hover:scale-105 transition-transform duration-500" /> : <img src="https://files.catbox.moe/3tf995.png" alt="thumb" className="w-full h-full object-cover" />}
+                </div>
                 <div className="flex-1 w-full overflow-hidden text-center sm:text-left flex flex-col h-full"><h4 className="font-bold text-gray-900 truncate mb-1">{vid.judul}</h4><p className="text-xs text-gray-500 truncate mb-3">{vid.url}</p>
                   <div className="flex gap-2 justify-center sm:justify-start mt-auto"><button onClick={() => { pushHistory(); setCurrentVideo(vid); setVideoForm({ judul: vid.judul, deskripsi: vid.deskripsi, url: vid.url }); setIsEditingVideo(true); }} className="flex-1 sm:flex-none sm:px-6 bg-gray-50 hover:bg-blue-50 text-blue-600 border border-gray-200 py-2 rounded-xl font-bold text-xs flex justify-center items-center gap-1 transition-colors"><Edit size={14} /> Edit</button><button onClick={() => deleteVideo(vid._id)} className="w-12 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex justify-center items-center transition-colors"><Trash2 size={14} /></button></div>
                 </div>
