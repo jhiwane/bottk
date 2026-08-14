@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Menu, X, Info, Newspaper, Youtube, Rocket,
   ArrowLeft, BookOpen, Heart, Shapes, CheckCircle, ChevronLeft,
   ChevronRight, Phone, MapPin, Mail, Play, Home, Image as ImageIcon,
   Building, FileText, GraduationCap, Sparkles, MapPinned,
 } from 'lucide-react';
-import SmartImage from '../components/SmartImage';
-import Reveal from '../components/Reveal';
-import { getYouTubeId } from '../lib/images';
+import { getYouTubeId, optImg } from '../lib/images';
 
 // ====== DATA DEFAULT ======
 const FALLBACK_HERO =
@@ -45,6 +44,66 @@ const ytThumb = (id) => [
   `https://img.youtube.com/vi/${id}/maxresdefault.jpg`,
   `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
 ];
+
+// ====== KOMPONEN GAMBAR CERDAS (in-file, tidak butuh folder components/) ======
+const FALLBACK_POSTER =
+  'https://images.unsplash.com/photo-1588075592446-265fd1e6e761?q=80&w=1400&auto=format&fit=crop';
+
+function SmartImage({
+  src, alt = '', width, height, fill = false, sizes, priority = false,
+  quality, className = '', fallback = FALLBACK_POSTER, onClick, style,
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const finalSrc = errored ? fallback : (src ? optImg(String(src), quality) : fallback);
+
+  if (fill) {
+    return (
+      <div className={`relative overflow-hidden ${className}`} style={style} onClick={onClick}>
+        {!loaded && <div className="absolute inset-0 shimmer" aria-hidden="true" />}
+        <Image
+          src={finalSrc} alt={alt} fill sizes={sizes} priority={priority} unoptimized
+          onLoad={() => setLoaded(true)}
+          onError={() => { if (!errored) setErrored(true); }}
+          className={`img-fade ${loaded ? 'loaded' : ''} object-cover`}
+        />
+      </div>
+    );
+  }
+  return (
+    <span className={`relative inline-block overflow-hidden ${className}`} style={{ lineHeight: 0, ...style }} onClick={onClick}>
+      {!loaded && <span className="shimmer absolute inset-0" style={{ width, height }} aria-hidden="true" />}
+      <Image
+        src={finalSrc} alt={alt} width={width} height={height} priority={priority} unoptimized
+        onLoad={() => setLoaded(true)}
+        onError={() => { if (!errored) setErrored(true); }}
+        className={`img-fade ${loaded ? 'loaded' : ''} h-auto w-full`}
+      />
+    </span>
+  );
+}
+
+// ====== REVEAL ON SCROLL (in-file) ======
+function Reveal({ children, delay = 0, className = '', as: Tag = 'div' }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') { setShown(true); return; }
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) { setShown(true); io.disconnect(); } }),
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <Tag ref={ref} className={`reveal ${shown ? 'in' : ''} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </Tag>
+  );
+}
 
 export default function Page() {
   const [booted, setBooted] = useState(false);
