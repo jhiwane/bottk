@@ -2,11 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .font-sans {
-    font-family: 'Nunito', sans-serif;
-  }
-  .font-display {
-    font-family: 'Fredoka', sans-serif;
-  }
+:root {
+  --cream: #f7f3ea;
+  --ink: #2a2a28;
+  --soft: #8a8578;
+  --sky: #5b8fd4;
+  --peach: #e8a06a;
 }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Nunito', system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display { font-family: 'Fredoka', system-ui, sans-serif; }
+
+.hide-scroll::-webkit-scrollbar { display: none; }
+.hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+img { content-visibility: auto; }
+
+.article-content { font-family: 'Nunito', sans-serif; }
+.article-content h2, .article-content h3 { font-weight: 800; color: #2a2a28; }
+.article-content h2 { font-size: 1.4rem; margin: 1.75rem 0 0.75rem; }
+.article-content h3 { font-size: 1.15rem; margin: 1.4rem 0 0.6rem; }
+.article-content p { margin-bottom: 1rem; text-align: justify; line-height: 1.8; }
+.article-content a { color: #c2410c; font-weight: 700; }
+.article-content img {
+  border-radius: 1.25rem;
+  margin: 1.25rem auto;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: cover;
+  display: block;
+}
+.article-content blockquote {
+  border-left: 4px solid #e8a06a;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background: #fff8ee;
+  border-radius: 0 1rem 1rem 0;
+  font-style: italic;
+}
+
+/* Animasi ringan untuk admin (tanpa plugin tailwindcss-animate) */
+.animate-in { animation-duration: .35s; animation-fill-mode: both; animation-timing-function: cubic-bezier(.22,1,.36,1); }
+.fade-in { animation-name: fadeIn; }
+.zoom-in-95 { animation-name: zoomIn95; }
+.slide-in-from-right-8 { animation-name: slideInRight; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoomIn95 { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+
+/* Shimmer ringan untuk thumbnail YouTube saat dimuat */
+.yt-shimmer { background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 37%,#e5e7eb 63%); background-size: 800px 100%; animation: ytShimmer 1.4s linear infinite; }
+@keyframes ytShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
