@@ -65,27 +65,37 @@ const getYouTubeId = (url) => {
   return null;
 };
 
-// === FIX: THUMBNAIL YOUTUBE JERNIH + FALLBACK OTOMATIS ===
-// maxres = 1280x720 (paling jernih). Kalau tidak ada (video non-HD) atau
-// YouTube mengembalikan gambar abu placeholder, otomatis turun ke hqdefault (480p, selalu ada).
-function YtThumb({ id, alt = "", className = "", sizes }) {
-  const [src, setSrc] = useState(`https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
-  const [err, setErr] = useState(false);
+// === FIX: THUMBNAIL YOUTUBE JERNIH + DIJAMIN TIDAK PERNAH GAGAL ===
+// Strategi anti-rusak:
+//  1) Mulai dari hqdefault.jpg (480p) — DIJAMIN selalu ada untuk semua video,
+//     jadi tidak akan pernah muncul gambar aneh/rusak/profil.
+//  2) Diam-diam coba muat maxresdefault.jpg (1280x720, paling jernih).
+//  3) Kalau maxres berhasil dimuat & resolusinya wajar, baru dipakai.
+//     Kalau gagal/404/placeholder, tetap pakai hqdefault.
+function YtThumb({ id, alt = "", className = "" }) {
+  const HQ = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  const MAX = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  const [src, setSrc] = useState(HQ);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(HQ);
+    const probe = new Image();
+    probe.onload = () => {
+      if (!cancelled && probe.naturalWidth >= 600) setSrc(MAX);
+    };
+    probe.src = MAX;
+    return () => { cancelled = true; };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <img
       src={src}
       alt={alt}
       loading="lazy"
       decoding="async"
-      onError={() => { setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`); setErr(true); }}
-      onLoad={(e) => {
-        // maxres yang "tidak tersedia" kadang mengembalikan gambar abu 120x90 (bukan 404)
-        if (!err && src.includes('maxres') && e.currentTarget.naturalWidth < 200) {
-          setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
-        }
-      }}
       className={className}
-      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#0f172a' }}
     />
   );
 }
@@ -120,11 +130,76 @@ const GLOBAL_CSS = `
   .article-content blockquote { border-left: 4px solid #dc2626; margin: 2.5rem 0; font-style: italic; font-size: 1.25rem; color: #374151; background-color: #f9fafb; padding: 1.5rem; border-radius: 0 1rem 1rem 0; text-indent: 0; text-align: left; }
   .article-content img { border-radius: 1.5rem; margin: 2rem auto; width: 100%; aspect-ratio: 4/3; object-fit: cover; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); display: block; }
 
+  /* DROP CAP cinematic untuk paragraf pertama artikel teks biasa */
+  .article-content .drop-cap {
+    float: left;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 800;
+    font-size: 3.4rem;
+    line-height: .8;
+    padding: .35rem .6rem .1rem 0;
+    color: #dc2626;
+  }
+  .article-content .drop-cap + * { clear: none; }
+
   /* Shimmer ringan saat gambar YouTube/Cloudinary dimuat */
   .yt-shimmer { background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 37%,#e5e7eb 63%); background-size: 800px 100%; animation: shimmer 1.4s linear infinite; }
   @keyframes shimmer { 0%{background-position:-468px 0} 100%{background-position:468px 0} }
 `;
 const STATIC_STYLE_OBJ = { __html: GLOBAL_CSS };
+
+// ====== FORMAT ARTIKEL PINTAR ======
+// Kalau konten dari admin cuma teks biasa (copy-paste tanpa tag HTML),
+// otomatis dibentuk jadi artikel profesional: paragraf rapi, drop cap di
+// paragraf pertama, baris pendek menjadi sub-judul, dan baris kutipan
+// menjadi blockquote. Kalau sudah mengandung HTML, dibiarkan apa adanya.
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function looksLikeHtml(s) {
+  return /<\/?[a-z][\s\S]*?>/i.test(s);
+}
+
+function formatPlainText(raw) {
+  if (!raw) return '';
+  const blocks = String(raw)
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}|\r{2,}/)
+    .map(b => b.trim())
+    .filter(Boolean);
+
+  return blocks.map((block, idx) => {
+    // Blok kutipan: diawali " atau tanda kutip dan cukup panjang
+    if (/^["“”']/.test(block) && block.length > 20 && block.length < 260) {
+      return `<blockquote>${escapeHtml(block.replace(/^["“”']|["“”']$/g, ''))}</blockquote>`;
+    }
+    // Sub-judul: satu baris pendek (<=70 karakter), bukan kalimat panjang bertitik
+    const oneLine = !/[\n\r]/.test(block);
+    if (oneLine && block.length <= 70 && !/\.\s/.test(block) && block.split(' ').length <= 10) {
+      return `<h3>${escapeHtml(block)}</h3>`;
+    }
+    // Paragraf biasa
+    const paragraphs = block.split(/\n/).map(l => l.trim()).filter(Boolean).map(escapeHtml);
+    const html = paragraphs.map((p, i) => {
+      // Drop cap (huruf besar melebar) hanya di paragraf pertama artikel
+      if (idx === 0 && i === 0 && p.length > 1) {
+        const first = p.charAt(0);
+        const rest = p.slice(1);
+        return `<p><span class="drop-cap">${first}</span>${rest}</p>`;
+      }
+      return `<p>${p}</p>`;
+    }).join('');
+    return html;
+  }).join('');
+}
+
+function renderArticle(content) {
+  if (!content) return '';
+  return looksLikeHtml(content) ? content : formatPlainText(content);
+}
 
 export default function Page() {
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(true);
@@ -317,7 +392,7 @@ export default function Page() {
 
   const memoizedArticleContent = useMemo(() => {
     if (!currentDetail) return null;
-    return <div className="article-content text-lg text-gray-800 space-y-6 pb-4" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />;
+    return <div className="article-content text-lg text-gray-800 space-y-6 pb-4" dangerouslySetInnerHTML={{ __html: renderArticle(currentDetail.content) }} />;
   }, [currentDetail?.content]);
 
   // === LOADER (GIF seperti data lama) ===
