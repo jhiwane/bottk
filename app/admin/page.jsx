@@ -23,26 +23,20 @@ const getYouTubeId = (url) => {
   return null;
 };
 
-// Thumbnail YouTube jernih + fallback otomatis (maxres -> hq)
+// Thumbnail YouTube: mulai hqdefault (dijamin ada), upgrade diam-diam ke maxres kalau jernih
 function YtThumb({ id, alt = "", className = "" }) {
-  const [src, setSrc] = useState(`https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
-  const [err, setErr] = useState(false);
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      onError={() => { setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`); setErr(true); }}
-      onLoad={(e) => {
-        if (!err && src.includes('maxres') && e.currentTarget.naturalWidth < 200) {
-          setSrc(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
-        }
-      }}
-      className={className}
-      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-    />
-  );
+  const HQ = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  const MAX = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  const [src, setSrc] = useState(HQ);
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(HQ);
+    const probe = new Image();
+    probe.onload = () => { if (!cancelled && probe.naturalWidth >= 600) setSrc(MAX); };
+    probe.src = MAX;
+    return () => { cancelled = true; };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
 }
 
 export default function AdminPanel() {
