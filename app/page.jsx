@@ -320,17 +320,10 @@ export default function Page() {
     return <div className="article-content text-lg text-gray-800 space-y-6 pb-4" dangerouslySetInnerHTML={{ __html: currentDetail.content }} />;
   }, [currentDetail?.content]);
 
-  // === LOADER (CSS, tanpa GIF eksternal) ===
+  // === LOADER (GIF seperti data lama) ===
   const renderLoader = () => (
     <div className={`fixed inset-0 bg-white/95 backdrop-blur-3xl z-[50000] flex justify-center items-center transition-opacity duration-700 ease-out ${isLoadingGlobal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <div className="flex flex-col items-center">
-        <div className="relative w-20 h-20 mb-5">
-          <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
-        </div>
-        <p className="font-display font-bold text-xl text-blue-600 tracking-tight">TK Baiturrohman</p>
-        <p className="text-gray-400 text-xs mt-1">Memuat…</p>
-      </div>
+      <Image src="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUyd3lvaDA3Y2V5ZG1hcjVudXEzZTZyenc1ZGpmOXF3Z2V1N3VzMjFtaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rjZscpFx7CSYTOMSnN/giphy.gif" alt="Loading..." width={192} height={192} unoptimized className="object-contain animate-pulse-slow" />
     </div>
   );
 
@@ -718,11 +711,9 @@ export default function Page() {
                 if (!id) return null;
                 return (
                   <div key={i} className="w-[85vw] sm:w-[380px] md:w-[450px] flex-shrink-0 snap-center rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 group/vid transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden">
-                    <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer yt-shimmer" onClick={() => playVideo(v.url, v.judul)}>
-                      <YtThumb id={id} alt={v.judul} className="opacity-90 group-hover/vid:opacity-100 transition-all duration-700 group-hover/vid:scale-105" />
-                      <div className="absolute inset-0 bg-black/20 group-hover/vid:bg-black/10 transition-colors flex items-center justify-center">
-                        <span className="w-16 h-16 rounded-full bg-orange-500/95 text-white flex items-center justify-center shadow-2xl group-hover/vid:scale-110 transition-transform"><PlayCircle size={30} fill="currentColor" /></span>
-                      </div>
+                    <div className="w-full aspect-video relative overflow-hidden bg-gray-900 cursor-pointer" onClick={() => playVideo(v.url, v.judul)}>
+                      <YtThumb id={id} alt={v.judul} className="opacity-100 group-hover/vid:opacity-100 transition-all duration-700 group-hover/vid:scale-105" />
+                      {/* Ikon play tengah dihapus agar thumbnail bersih */}
                     </div>
                     <div className="p-8">
                       <h3 className="font-bold text-2xl text-gray-900 mb-3 line-clamp-1 tracking-tight">{v.judul}</h3>
