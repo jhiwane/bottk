@@ -80,7 +80,10 @@ function YtThumb({ id, alt = "", className = "" }) {
   useEffect(() => {
     let cancelled = false;
     setSrc(HQ);
-    const probe = new Image();
+    // Pakai createElement('img') — JANGAN pakai new Image() karena nama
+    // "Image" di file ini adalah komponen next/image, bisa memicu
+    // "client-side exception" di browser tertentu saat di-minify.
+    const probe = document.createElement('img');
     probe.onload = () => {
       if (!cancelled && probe.naturalWidth >= 600) setSrc(MAX);
     };
@@ -160,6 +163,7 @@ function escapeHtml(s) {
 }
 
 function looksLikeHtml(s) {
+  if (typeof s !== 'string') return false;
   return /<\/?[a-z][\s\S]*?>/i.test(s);
 }
 
@@ -172,13 +176,16 @@ function formatPlainText(raw) {
     .filter(Boolean);
 
   return blocks.map((block, idx) => {
-    // Blok kutipan: diawali " atau tanda kutip dan cukup panjang
-    if (/^["“”']/.test(block) && block.length > 20 && block.length < 260) {
+    // Blok kutipan: diawali tanda kutip, cukup panjang, dan TIDAK di paragraf pertama
+    // (paragraf pertama selalu jadi pembuka dengan drop-cap)
+    if (idx > 0 && /^["“”']/.test(block) && block.length > 20 && block.length < 260) {
       return `<blockquote>${escapeHtml(block.replace(/^["“”']|["“”']$/g, ''))}</blockquote>`;
     }
-    // Sub-judul: satu baris pendek (<=70 karakter), bukan kalimat panjang bertitik
+    // Sub-judul: satu baris PENDEK (≤55 char, ≤8 kata), TANPA tanda titik,
+    // dan BUKAN paragraf pertama pembuka.
     const oneLine = !/[\n\r]/.test(block);
-    if (oneLine && block.length <= 70 && !/\.\s/.test(block) && block.split(' ').length <= 10) {
+    const isShortHeading = oneLine && block.length <= 55 && block.split(/\s+/).length <= 8 && !/[.!?。]/.test(block);
+    if (idx > 0 && isShortHeading) {
       return `<h3>${escapeHtml(block)}</h3>`;
     }
     // Paragraf biasa
